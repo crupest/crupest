@@ -15,7 +15,7 @@ Both are in embryonic form. But I'll keep develop them with my ❤. Working on w
 
 💡 I love programing and every creative technologies and ideas.
 
-🎈 I also have a [blog](https://crupest.cn) which includes some emotional essays (in Chinese) written by me. 
+🎈 I also have a [blog](https://crupest.life) which includes some emotional essays (in Chinese) written by me. 
 
 💬 Contact me via my email, *crupest@outlook.com* , or open an issue in any of my repos.
 
