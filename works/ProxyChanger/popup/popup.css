@@ -1,0 +1,28 @@
+html,
+body {
+  width: 200px;
+}
+
+body {
+  margin: 0;
+}
+
+.button {
+  margin: 0;
+  padding: 4px 20px;
+  text-align: center;
+  font-size: 1.5em;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #97c4ff;
+}
+
+.selected {
+  background: #4294ff;
+}
+
+.selected:hover {
+  background: #4294ff;
+}

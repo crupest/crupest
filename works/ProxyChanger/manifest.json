@@ -1,0 +1,12 @@
+{
+  "manifest_version": 2,
+  "name": "Proxy Changer",
+  "version": "1.0",
+  "description": "A proxy changer.",
+  "permissions": ["proxy"],
+  "browser_action": {
+    "default_icon": "icons/black_circle.png",
+    "default_title": "Change proxy.",
+    "default_popup": "popup/popup.html"
+  }
+}
