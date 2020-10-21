@@ -22,26 +22,37 @@ browser.proxy.settings.get({}).then(({ value }) => {
   }
 });
 
-const proxyConfigs = {
-  direct: {
-    proxyType: "none",
-  },
-  system: {
-    proxyType: "system",
-  },
-  proxy: {
-    proxyType: "manual",
-    http: "http://localhost:8888",
-    httpProxyAll: true,
-  },
-};
+browser.storage.local.get("proxyUrl").then(({ proxyUrl }) => {
+  console.log("Saved proxy url is ", proxyUrl);
 
-for (const key in buttons) {
-  buttons[key].addEventListener("click", () => {
-    browser.proxy.settings.set({ value: proxyConfigs[key] }).then((success) => {
-      if (success) {
-        setSelectedButton(key);
-      }
+  const proxyConfigs = {
+    direct: {
+      proxyType: "none",
+    },
+    system: {
+      proxyType: "system",
+    },
+    proxy: {
+      proxyType: "manual",
+      http: proxyUrl,
+      httpProxyAll: true,
+    },
+  };
+
+  for (const key in buttons) {
+    buttons[key].addEventListener("click", () => {
+      console.log("Try to set proxy to ", proxyConfigs[key]);
+      browser.proxy.settings
+        .set({ value: proxyConfigs[key] })
+        .then((success) => {
+          if (success) {
+            setSelectedButton(key);
+          }
+        });
     });
-  });
-}
+  }
+});
+
+document.getElementById("settings_button").addEventListener("click", () => {
+  browser.runtime.openOptionsPage();
+});

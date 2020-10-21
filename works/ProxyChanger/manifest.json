@@ -3,10 +3,14 @@
   "name": "Proxy Changer",
   "version": "1.0",
   "description": "A proxy changer.",
-  "permissions": ["proxy"],
+  "permissions": ["proxy", "storage"],
   "browser_action": {
     "default_icon": "icons/black_circle.png",
     "default_title": "Change proxy.",
     "default_popup": "popup/popup.html"
+  },
+  "options_ui": {
+    "page": "settings/settings.html",
+    "browser_style": true
   }
 }
