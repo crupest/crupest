@@ -11,7 +11,7 @@ Both are in embryonic form. But I'll keep develop them with my ❤. Working on w
 
 🌱 I’m currently majoring in Computer Science at WHPU.
 
-📚 I'm currently reading *Introduction To Algorithms* though very slowly.
+📚 I'm currently reading ~~~*Introduction To Algorithms*~~~(temporarily gave up) *Compilers - Principles, Techniques, and Tools* though very slowly.
 
 💡 I love programing and every creative technologies and ideas.
 
