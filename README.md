@@ -2,20 +2,19 @@
 
 Nice to meet you! 😊
 
-🔭 I have two major projects:
+🔭 I'm currently working on:
 
-- [Timeline](https://github.com/crupest/Timeline) , a web app.
-- [CruUI](https://github.com/crupest/CruUI) , a C++ direct ui library.
+- [cru](https://github.com/crupest/cru) , a C++ direct ui library.
 
-Both are in embryonic form. But I'll keep develop them with my ❤. Working on which depends on my mood in that period. Feel free to comment in the repo via issues.
+It is in embryonic form. But I'll keep develop it with my ❤️. Feel free to comment in the repo via issues.
 
-🌱 I’m currently majoring in Computer Science at WHPU.
+🌱 I’m currently majoring in Computer Science And Technology at WHPU.
 
-📚 I'm currently reading ~~*Introduction To Algorithms*~~(temporarily gave up) *Compilers - Principles, Techniques, and Tools* though very slowly.
+📚 I'm currently reading ~~*Introduction To Algorithms*~~ ~~(temporarily gave up) *Compilers - Principles, Techniques, and Tools*~~ **a lot of books** though very slowly.
 
 💡 I love programing and every creative technologies and ideas.
 
-🎈 I also have a [blog](https://blog.crupest.life) which includes some emotional essays (in Chinese) written by me. 
+🎈 I also have a [blog](https://crupest.life) which includes some emotional essays (in Chinese) written by me. 
 
 💬 Contact me via my email, *crupest@outlook.com* , or open an issue in any of my repos.
 
