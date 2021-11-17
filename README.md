@@ -2,11 +2,7 @@
 
 Nice to meet you! 😊
 
-🔭 I'm currently working on:
-
-- [cru](https://github.com/crupest/cru) , a C++ direct ui library.
-
-It is in embryonic form. But I'll keep develop it with my ❤️. Feel free to comment in the repo via issues.
+🔭 I'm currently working on [cru](https://github.com/crupest/cru), a C++ direct ui library. It is in embryonic form. But I'll keep develop it with my ❤️. Feel free to comment in the repo via issues.
 
 🌱 I’m currently majoring in Computer Science And Technology at WHPU.
 
