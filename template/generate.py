@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+
+import os
+import os.path
+
+print("It's happy to see you!\n")
+
+# get script dir in relative path
+script_dir = os.path.dirname(__file__)
+template_dir = script_dir
+project_dir = os.path.normpath(os.path.join(script_dir, "../"))
+
+print("First let's check all the templates...")
+
+# get all filenames ending with .template
+filenames = [os.path.basename(f)[:-len('.template')] for f in os.listdir(
+    template_dir) if f.endswith(".template")]
+
+print("I have found following template files:")
+for filename in filenames:
+    print(filename)
+
+print("")
+
+print("Now let's check if they are already generated...")
+
+conflict = False
+
+# check if there exists any generated files
+for filename in filenames:
+    if os.path.exists(os.path.join(project_dir, filename)):
+        print(f"Found {filename}")
+        conflict = True
+
+if conflict:
+    print("It seems there are some files already generated. Do you want to overwrite them? (y/N)")
+    if input() != "y":
+        print("Great! Check the existing files and see you next time!")
+        exit()
+else:
+    print("No conflict found. Let's go on!\n")
+
+print("Check for existing config file...")
+
+config_path = os.path.join(project_dir, "config")
+
+# check if there exists a config file
+if not os.path.exists(config_path):
+    print("No existing config file found. Don't worry. Let's create one! Just tell me your domain name:")
+    domain = input()
+    my_uid = os.getuid()
+    my_gid = os.getgid()
+    halo_db_password = os.urandom(8).hex()
+    config_content = f"CRUPEST_DOMAIN={domain}\nCRUPEST_UID={my_uid}\nCRUPEST_GID={my_gid}\nCRUPEST_HALO_DB_PASSWORD={halo_db_password}\n"
+    # write config file
+    with open(config_path, "w") as f:
+        f.write(config_content)
+    print(
+        f"Everything else is auto generated. The config file is written into {config_path}. And here is the content:")
+    print(config_content)
+    print("If you think it's not ok, you can stop here and edit it. Or let's go on? (Y/n)")
+    if input() == "n":
+        print("Great! Check the config file and see you next time!")
+        exit()
+else:
+    print("Looks like you have already had a config file. Let's check the content:")
+    with open(config_path, "r") as f:
+        print(f.read())
+    print("Is it good enough? (Y/n)")
+    if input() == "n":
+        print("Great! Check the config file and see you next time!")
+        exit()
+
+# Parse config file
+with open(config_path, "r") as f:
+    config = {}
+    # read line with line number
+    for line_number, line in enumerate(f.readlines()):
+        # check if it's a comment
+        if line.startswith("#"):
+            continue
+        # check if there is a '='
+        if line.find("=") == -1:
+            print(
+                f"Invalid config file. Please check line {line_number + 1}. There is even no '='! Aborted!")
+        # split at first '='
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        config[key] = value
+
+required_config_keys = ["CRUPEST_DOMAIN", "CRUPEST_UID",
+                        "CRUPEST_GID", "CRUPEST_HALO_DB_PASSWORD"]
+
+# check if all required keys are in config
+for key in required_config_keys:
+    if key not in config:
+        print(
+            f"Invalid config file. Please check if {key} is in the config file. Aborted!")
+        exit()
+
+print("Finally, everything is ready. Let's generate the files:")
+
+# generate files
+for filename in filenames:
+    print(f"Generating {filename}...")
+    with open(os.path.join(template_dir, filename + ".template"), "r") as f:
+        content = f.read()
+        for key in config:
+            content = content.replace("{{" + key + "}}", config[key])
+        with open(os.path.join(project_dir, filename), "w") as f:
+            f.write(content)
+
+print("\n🍻All done! See you next time!")
