@@ -1,0 +1,20 @@
+{
+	encode gzip
+}
+
+{{CRUPEST_DOMAIN}} {
+	root * /srv
+	file_server
+}
+
+blog.{{CRUPEST_DOMAIN}} {
+	reverse_proxy halo:8090
+}
+
+timeline.{{CRUPEST_DOMAIN}} {
+	reverse_proxy timeline:5000
+}
+
+code.{{CRUPEST_DOMAIN}} {
+	reverse_proxy code_server:8080
+}
