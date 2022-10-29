@@ -53,8 +53,8 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - ./site:/srv:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - ./data/caddy/data:/data
+      - ./data/caddy/config:/config
     ports:
       - "80:80"
       - "443:443"
@@ -97,11 +97,6 @@ services:
       retries: 0
     networks:
       - external
-
-volumes:
-  caddy_data:
-  caddy_config:
-
 
 networks:
   internal:
