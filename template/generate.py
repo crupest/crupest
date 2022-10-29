@@ -2,6 +2,11 @@
 
 import os
 import os.path
+import re
+from sys import argv
+
+required_config_keys = set(["CRUPEST_DOMAIN", "CRUPEST_UID",
+                            "CRUPEST_GID", "CRUPEST_HALO_DB_PASSWORD"])
 
 print("It's happy to see you!\n")
 
@@ -21,6 +26,43 @@ for filename in filenames:
     print(filename)
 
 print("")
+
+# if command is 'clean'
+if len(argv) > 1 and argv[1] == "clean":
+    print("Are you sure you want to delete all generated files? (y/N)")
+    if input() == "y":
+        print("Deleting all generated files...")
+        for filename in filenames:
+            os.remove(os.path.join(project_dir, filename))
+        print("Your workspace is clean now! However config file is still there! See you!")
+    exit(0)
+
+
+sub_regex = re.compile(r"\{\{\s*([a-zA-Z0-9_]+?)\s*\}\}")
+var_set = set()
+for template in os.listdir(template_dir):
+    if not template.endswith(".template"):
+        continue
+    with open(os.path.join(template_dir, template), "r") as f:
+        content = f.read()
+        match_list = sub_regex.finditer(content)
+        for match in match_list:
+            var_set.add(match.group(1))
+
+print("I have found following variables needed in templates:")
+for var in var_set:
+    print(var, end=" ")
+print("")
+
+# check vars
+if not var_set == required_config_keys:
+    print("The variables needed in templates are not same to the explicitly declared ones! There must be something wrong.")
+    print("The explicitly declared ones are:")
+    for var in required_config_keys:
+        print(var, end=" ")
+    print("Try to check template files and edit the var list at the head of this script. Aborted! See you next time!")
+    exit(1)
+
 
 print("Now let's check if they are already generated...")
 
@@ -42,7 +84,7 @@ else:
 
 print("Check for existing config file...")
 
-config_path = os.path.join(project_dir, "config")
+config_path = os.path.join(project_dir, "data/config")
 
 # check if there exists a config file
 if not os.path.exists(config_path):
@@ -52,11 +94,14 @@ if not os.path.exists(config_path):
     my_gid = os.getgid()
     halo_db_password = os.urandom(8).hex()
     config_content = f"CRUPEST_DOMAIN={domain}\nCRUPEST_UID={my_uid}\nCRUPEST_GID={my_gid}\nCRUPEST_HALO_DB_PASSWORD={halo_db_password}\n"
+    # create data dir if not exist
+    if not os.path.exists(os.path.join(project_dir, "data")):
+        os.mkdir(os.path.join(project_dir, "data"))
     # write config file
     with open(config_path, "w") as f:
         f.write(config_content)
     print(
-        f"Everything else is auto generated. The config file is written into {config_path}. And here is the content:")
+        f"Everything else is auto generated. The config file is written into {config_path}. You had better keep it well. And here is the content:")
     print(config_content)
     print("If you think it's not ok, you can stop here and edit it. Or let's go on? (Y/n)")
     if input() == "n":
@@ -89,8 +134,6 @@ with open(config_path, "r") as f:
         value = value.strip()
         config[key] = value
 
-required_config_keys = ["CRUPEST_DOMAIN", "CRUPEST_UID",
-                        "CRUPEST_GID", "CRUPEST_HALO_DB_PASSWORD"]
 
 # check if all required keys are in config
 for key in required_config_keys:
@@ -106,8 +149,7 @@ for filename in filenames:
     print(f"Generating {filename}...")
     with open(os.path.join(template_dir, filename + ".template"), "r") as f:
         content = f.read()
-        for key in config:
-            content = content.replace("{{" + key + "}}", config[key])
+        content = sub_regex.sub(lambda m: config[m.group(1)], content)
         with open(os.path.join(project_dir, filename), "w") as f:
             f.write(content)
 
