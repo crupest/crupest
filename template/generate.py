@@ -3,9 +3,11 @@
 import os
 import os.path
 import re
-from sys import argv
+import pwd
+import grp
+import sys
 
-required_config_keys = set(["CRUPEST_DOMAIN", "CRUPEST_UID",
+required_config_keys = set(["CRUPEST_DOMAIN", "CRUPEST_USER", "CRUPEST_GROUP", "CRUPEST_UID",
                             "CRUPEST_GID", "CRUPEST_HALO_DB_PASSWORD"])
 
 print("It's happy to see you!\n")
@@ -28,7 +30,7 @@ for filename in filenames:
 print("")
 
 # if command is 'clean'
-if len(argv) > 1 and argv[1] == "clean":
+if len(sys.argv) > 1 and sys.argv[1] == "clean":
     print("Are you sure you want to delete all generated files? (y/N)")
     if input() == "y":
         print("Deleting all generated files...")
@@ -88,12 +90,17 @@ config_path = os.path.join(project_dir, "data/config")
 
 # check if there exists a config file
 if not os.path.exists(config_path):
+    config = {}
     print("No existing config file found. Don't worry. Let's create one! Just tell me your domain name:")
-    domain = input()
-    my_uid = os.getuid()
-    my_gid = os.getgid()
-    halo_db_password = os.urandom(8).hex()
-    config_content = f"CRUPEST_DOMAIN={domain}\nCRUPEST_UID={my_uid}\nCRUPEST_GID={my_gid}\nCRUPEST_HALO_DB_PASSWORD={halo_db_password}\n"
+    config["CRUPEST_DOMAIN"] = input()
+    config["CRUPEST_USER"] = pwd.getpwuid(os.getuid()).pw_name
+    config["CRUPEST_GROUP"] = grp.getgrgid(os.getgid()).gr_name
+    config["CRUPEST_UID"] = str(os.getuid())
+    config["CRUPEST_GID"] = str(os.getgid())
+    config["CRUPEST_HALO_DB_PASSWORD"] = os.urandom(8).hex()
+    config_content = ""
+    for key in config:
+        config_content += f"{key}={config[key]}\n"
     # create data dir if not exist
     if not os.path.exists(os.path.join(project_dir, "data")):
         os.mkdir(os.path.join(project_dir, "data"))

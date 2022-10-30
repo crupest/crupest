@@ -32,17 +32,20 @@ services:
       - internal
 
   code-server:
-    image: codercom/code-server:latest
+    build:
+      context: ./docker/code-server
+      dockerfile: Dockerfile
+      args:
+        - CRUPEST_USER={{CRUPEST_USER}}
+        - CRUPEST_GROUP={{CRUPEST_GROUP}}
+        - CRUPEST_UID={{CRUPEST_UID}}
+        - CRUPEST_GID={{CRUPEST_GID}}
     container_name: code_server
     restart: on-failure:3
     volumes:
       - ./data/code-server:/data
-      - ./data/code-server-config.yaml:/home/coder/.config/code-server/config.yaml
     ports:
       - "8080:8080"
-    environment:
-      - "DOCKER_USER=$USER"
-    user: "{{CRUPEST_UID}}:{{CRUPEST_GID}}"
     networks:
       - internal
 
