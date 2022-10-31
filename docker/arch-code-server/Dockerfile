@@ -22,4 +22,4 @@ VOLUME [ "/data" ]
 EXPOSE 8080
 
 ENV CODE_SERVER_CONFIG="/data/code-server-config.yaml"
-ENTRYPOINT [ "code-sever", "--bind-addr", "0.0.0.0:8080" ]
+ENTRYPOINT [ "code-server", "--bind-addr", "0.0.0.0:8080" ]
