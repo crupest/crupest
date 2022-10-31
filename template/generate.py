@@ -8,7 +8,7 @@ import grp
 import sys
 
 required_config_keys = set(["CRUPEST_DOMAIN", "CRUPEST_USER", "CRUPEST_GROUP", "CRUPEST_UID",
-                            "CRUPEST_GID", "CRUPEST_HALO_DB_PASSWORD"])
+                            "CRUPEST_GID", "CRUPEST_HALO_DB_PASSWORD", "CRUPEST_IN_CHINA"])
 
 print("It's happy to see you!\n")
 
@@ -98,6 +98,7 @@ if not os.path.exists(config_path):
     config["CRUPEST_UID"] = str(os.getuid())
     config["CRUPEST_GID"] = str(os.getgid())
     config["CRUPEST_HALO_DB_PASSWORD"] = os.urandom(8).hex()
+    config["CRUPEST_IN_CHINA"] = "false"
     config_content = ""
     for key in config:
         config_content += f"{key}={config[key]}\n"
@@ -160,4 +161,4 @@ for filename in filenames:
         with open(os.path.join(project_dir, filename), "w") as f:
             f.write(content)
 
-print("\n🍻All done! See you next time!")
+print("\n🍻All done! See you next time!\nBy the way, you may wish to run tool/download.py to download some scripts to do some extra setup like creating email user.")
