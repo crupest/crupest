@@ -6,19 +6,23 @@ if [ "${CRUPEST_IN_DOCKER}" != "true" ]; then
     exit 1
 fi
 
-cd ~ || exit 1
+# don't allow any error
+set -e
 
-mkdir data
+cd ~
 
 mkdir aur
-cd aur || exit 1
+cd aur
 
 # install all aur packages
-for aur_package in ${CRUPEST_AUR_PACKAGES} ; do
+for aur_package in code-server ${CRUPEST_AUR_PACKAGES} ; do
     echo "Installing ${aur_package} from AUR..."
     git clone "https://aur.archlinux.org/${aur_package}.git" --depth 1
-    pushd "${aur_package}" || exit 1
+    pushd "${aur_package}"
     makepkg -sr --noconfirm
     makepkg --packagelist | sudo pacman -U --noconfirm -
-    popd || exit 1
+    popd
 done
+
+# finnally, test code-server
+code-server --version
