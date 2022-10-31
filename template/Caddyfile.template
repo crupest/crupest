@@ -16,5 +16,5 @@ timeline.{{CRUPEST_DOMAIN}} {
 }
 
 code.{{CRUPEST_DOMAIN}} {
-	reverse_proxy code_server:8080
+	reverse_proxy code-server:8080
 }

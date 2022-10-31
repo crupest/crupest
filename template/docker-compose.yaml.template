@@ -32,15 +32,17 @@ services:
       - internal
 
   code-server:
+    image: crupest/arch-code-server:latest
     build:
-      context: ./docker/code-server
+      context: ./docker/arch-code-server
       dockerfile: Dockerfile
       args:
         - CRUPEST_USER={{CRUPEST_USER}}
         - CRUPEST_GROUP={{CRUPEST_GROUP}}
         - CRUPEST_UID={{CRUPEST_UID}}
         - CRUPEST_GID={{CRUPEST_GID}}
-    container_name: code_server
+        - USE_CHINA_MIRROR={{CRUPEST_IN_CHINA}}
+    container_name: code-server
     restart: on-failure:3
     volumes:
       - ./data/code-server:/data
@@ -52,7 +54,7 @@ services:
   caddy:
     image: caddy:latest
     container_name: caddy
-    restart: always
+    restart: on-failure:3
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - ./site:/srv:ro
