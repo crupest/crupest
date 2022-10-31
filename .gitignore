@@ -1,6 +1,4 @@
-config
 Caddyfile
 docker-compose.yaml
 mailserver.env
 data
-setup.sh
