@@ -1,7 +1,6 @@
-This directory contains the template files to generate the final config files.
-The template format is quite simple: they are just files containing `{{VAR}}`s. You can simply use text substitution to do the generation. All variable names begin with `CRUPEST_` to avoid name conflicts.
+This directory contains the template files used to generate the final config files. They should not be used directly usually. Run `../tool/setup.py` to perform any generation and necessary setup.
 
-Run `generate.py` and it will help you configure and generate the final config files.
+The template format is quite simple: they are just files containing `{{VAR}}`s. You can simply use text substitution to do the generation. All variable names begin with `CRUPEST_` to avoid name conflicts.
 
 Here are the variables used in templates:
 | Variable | Description |
