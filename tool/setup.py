@@ -104,7 +104,8 @@ for filename in template_name_list:
 print("")
 
 required_config_key_list = [
-    ("CRUPEST_DOMAIN", None),
+    ("CRUPEST_DOMAIN", lambda: input("Please input your domain name:")),
+    ("CRUPEST_EMAIL", lambda: input("Please input your email address:")),
     ("CRUPEST_USER", lambda: pwd.getpwuid(os.getuid()).pw_name),
     ("CRUPEST_GROUP", lambda: grp.getgrgid(os.getgid()).gr_name),
     ("CRUPEST_UID", lambda: str(os.getuid())),
@@ -195,8 +196,7 @@ def print_config(config):
 # check if there exists a config file
 if not os.path.exists(config_path):
     config = {}
-    print("No existing config file found. Don't worry. Let's create one! Just tell me your domain name:")
-    config["CRUPEST_DOMAIN"] = input()
+    print("No existing config file found. Don't worry. Let's create one!")
     for key, default_generator in required_config_key_list:
         if default_generator is not None:
             config[key] = default_generator()
@@ -228,10 +228,6 @@ else:
     if len(missed_keys) > 0:
         print(
             "Oops! It seems you have missed some keys in your config file. Let's add them!")
-        if "CRUPEST_DOMAIN" in missed_keys:
-            print("Please tell me your domain name:")
-            config["CRUPEST_DOMAIN"] = input()
-            missed_keys.remove("CRUPEST_DOMAIN")
         for key in missed_keys:
             config[key] = required_config_value_generator_map[key]()
         content = config_to_str(config)
@@ -265,7 +261,8 @@ else:
     if code_server_stat.st_uid == 0 or code_server_stat.st_gid == 0:
         print("WARNING: The owner of data dir for code-server is root. This may cause permission problem. You had better change it. Want me help you? (Y/n)")
         if input() != "n":
-            os.system(f"sudo chown -R {os.getuid()}:{os.getgid()} {os.path.join(data_dir, 'code-server')}")
+            os.system(
+                f"sudo chown -R {os.getuid()}:{os.getgid()} {os.path.join(data_dir, 'code-server')}")
 print()
 
 print("🍻All done! By the way, would you like to download some scripts to do some extra setup like creating email user? (Y/n)")

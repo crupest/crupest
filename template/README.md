@@ -6,6 +6,7 @@ Here are the variables used in templates:
 | Variable | Description |
 | -------- | ----------- |
 | `CRUPEST_DOMAIN` | Domain to deploy. |
+| `CRUPEST_EMAIL` | Email address used in some cases like ssl cert. |
 | `CRUPEST_USER` | Your username. Run `id -un` to get it. |
 | `CRUPEST_GROUP` | Your group. Run `id -gn` to get it. |
 | `CRUPEST_UID` | Your uid. Run `id -u` to get it. |
