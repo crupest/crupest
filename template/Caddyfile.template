@@ -1,3 +1,7 @@
+{
+	email {{CRUPEST_EMAIL}}
+}
+
 {{CRUPEST_DOMAIN}} {
 	root * /srv
 	encode gzip
