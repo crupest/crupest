@@ -7,9 +7,9 @@ ARG CRUPEST_GID=1000
 ARG CRUPEST_PACKAGES=""
 ARG CRUPEST_AUR_PACKAGES=""
 ARG USE_CHINA_MIRROR="false"
-ARG CHINA_MIRROR_URL="https://mirrors.tuna.tsinghua.edu.cn/archlinux/\$repo/os/\$arch"
+ARG CHINA_MIRROR_URL="https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch"
 
-ADD ./archlinux-setup.bash ./archlinux-setup-user.bash ./restore-pacman-conf.py /tmp/
+ADD ./archlinux-setup.bash ./archlinux-setup-user.bash ./china-magic-for-pkgbuild.py ./restore-pacman-conf.py /tmp/
 
 ENV CRUPEST_IN_DOCKER="true"
 WORKDIR /tmp
