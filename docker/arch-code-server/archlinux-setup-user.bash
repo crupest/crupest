@@ -19,6 +19,13 @@ for aur_package in code-server ${CRUPEST_AUR_PACKAGES} ; do
     echo "Installing ${aur_package} from AUR..."
     git clone "https://aur.archlinux.org/${aur_package}.git" --depth 1
     pushd "${aur_package}"
+
+    # do some magic thing for China
+    if [ "${USE_CHINA_MIRROR}" = "true" ]; then
+        mv PKGBUILD PKGBUILD.old
+        /tmp/china-magic-for-pkgbuild.py < PKGBUILD.old > PKGBUILD
+    fi
+
     makepkg -sr --noconfirm
     makepkg --packagelist | sudo pacman -U --noconfirm -
     popd
