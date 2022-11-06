@@ -14,7 +14,7 @@ services:
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver
       - SPRING_DATASOURCE_URL=jdbc:h2:file:~/.halo/db/halo
       - SPRING_DATASOURCE_USERNAME=admin
-      - SPRING_DATASOURCE_PASSWORD={{CRUPEST_HALO_DB_PASSWORD}}
+      - SPRING_DATASOURCE_PASSWORD=$CRUPEST_HALO_DB_PASSWORD
       - HALO_ADMIN_PATH=admin
       - HALO_CACHE=memory
     networks:
@@ -37,11 +37,11 @@ services:
       context: ./docker/arch-code-server
       dockerfile: Dockerfile
       args:
-        - CRUPEST_USER={{CRUPEST_USER}}
-        - CRUPEST_GROUP={{CRUPEST_GROUP}}
-        - CRUPEST_UID={{CRUPEST_UID}}
-        - CRUPEST_GID={{CRUPEST_GID}}
-        - USE_CHINA_MIRROR={{CRUPEST_IN_CHINA}}
+        - CRUPEST_USER=$CRUPEST_USER
+        - CRUPEST_GROUP=$CRUPEST_GROUP
+        - CRUPEST_UID=$CRUPEST_UID
+        - CRUPEST_GID=$CRUPEST_GID
+        - USE_CHINA_MIRROR=$CRUPEST_IN_CHINA
     container_name: code-server
     restart: on-failure:3
     volumes:
@@ -51,22 +51,13 @@ services:
     networks:
       - internal
 
-  caddy:
-    image: caddy:latest
-    container_name: caddy
-    restart: on-failure:3
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - ./site:/srv:ro
-      - ./data/caddy/data:/data
-      - ./data/caddy/config:/config
+  nginx:
+    image: nginx:latest
+    container_name: nginx
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp"
-    networks:
-      - internal
-      - external
+    volumes:
 
   mailserver:
     image: docker.io/mailserver/docker-mailserver:latest
@@ -74,7 +65,7 @@ services:
     # If the FQDN for your mail-server is only two labels (eg: example.com),
     # you can assign this entirely to `hostname` and remove `domainname`.
     hostname: mail
-    domainname: {{CRUPEST_DOMAIN}}
+    domainname: $CRUPEST_DOMAIN
     env_file: mailserver.env
     # More information about the mail-server ports:
     # https://docker-mailserver.github.io/docker-mailserver/edge/config/security/understanding-the-ports/
