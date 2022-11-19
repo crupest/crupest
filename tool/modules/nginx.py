@@ -16,6 +16,8 @@ with open(os.path.join(nginx_template_dir, 'server.schema.json')) as f:
 
 jsonschema.validate(server, schema)
 
+non_template_files = ['ssl.conf', 'https-redirect.conf']
+
 root_template = Template(os.path.join(
     nginx_template_dir, 'root.conf.template'))
 static_file_template = Template(os.path.join(
@@ -31,7 +33,7 @@ def nginx_config_gen(domain: str, dest: str) -> None:
     if not os.path.isdir(dest):
         raise ValueError('dest must be a directory')
     # copy ssl.conf and https-redirect.conf which need no variable substitution
-    for filename in ['ssl.conf', 'https-redirect.conf']:
+    for filename in non_template_files:
         src = os.path.join(nginx_template_dir, filename)
         dst = os.path.join(dest, filename)
         shutil.copyfile(src, dst)
@@ -58,8 +60,12 @@ def nginx_config_gen(domain: str, dest: str) -> None:
             f.write(template.generate(local_config))
 
 
+def list_subdomains(domain: str) -> list:
+    return [f"{s['subdomain']}.{domain}" for s in server["sites"]]
+
+
 def list_domains(domain: str) -> list:
-    return [domain, *[f"{s['subdomain']}.{domain}" for s in server["sites"]]]
+    return [domain, *list_subdomains(domain)]
 
 
 def certbot_command_gen(domain: str, action, test=False) -> str:
@@ -71,3 +77,14 @@ def certbot_command_gen(domain: str, action, test=False) -> str:
         # renew with webroot mode
         return f'docker run -it --rm --name certbot -v "{project_abs_path}/data/certbot/certs:/etc/letsencrypt" -v "{project_abs_path}/data/certbot/data:/var/lib/letsencrypt" -v "{project_abs_path}/data/certbot/webroot:/var/www/certbot" certbot/certbot renew --webroot -w /var/www/certbot{ " --test-cert --dry-run" if test else "" }'
     raise ValueError('Invalid action')
+
+
+def nginx_config_dir_check(dir_path: str, domain: str) -> list:
+    good_files = [*non_template_files, *
+                  [f"{full_domain}.conf" for full_domain in list_domains(domain)]]
+    bad_files = []
+    for path in os.listdir(dir_path):
+        basename = os.path.basename(path)
+        if basename not in good_files:
+            bad_files.append(basename)
+    return bad_files
