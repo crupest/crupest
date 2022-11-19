@@ -6,7 +6,6 @@ import pwd
 import grp
 import sys
 import argparse
-import typing
 import shutil
 import urllib.request
 from rich.console import Console
@@ -47,7 +46,12 @@ domain_certbot_parser = domain_subparsers.add_parser(
     "certbot", help="Get some common certbot commands.")
 
 domain_certbot_parser.add_argument(
-    "-t", "--test", action="store_true", help="Make the commands for test use.")
+    "-C", "--create", action="store_true", default=False, help="Only print the command for 'create' action.")
+domain_certbot_parser.add_argument(
+    "-R", "--renew", action="store_true", default=False, help="Only print the command for 'renew' action.")
+
+domain_certbot_parser.add_argument(
+    "-t", "--test", action="store_true", default=False, help="Make the commands for test use.")
 
 clear_parser = subparsers .add_parser(
     "clear", help="Delete existing data so you can make a fresh start.")
@@ -115,9 +119,15 @@ if args.action == 'domain':
         for domain in domains:
             console.print(domain)
     elif domain_action == 'certbot':
+        is_test = args.test
+        if args.create:
+            console.print(certbot_command_gen(domain, "create", test=is_test))
+            exit(0)
+        elif args.renew:
+            console.print(certbot_command_gen(domain, "renew", test=is_test))
+            exit(0)
         console.print(
             "Here is some commands you can use to do certbot related work.")
-        is_test = args.test
         if is_test:
             console.print(
                 "Note you specified --test, so the commands are for test use.", style="yellow")
