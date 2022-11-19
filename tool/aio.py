@@ -103,6 +103,11 @@ def download_tools():
 
 
 def generate_nginx_config(domain: str) -> None:
+    console.print(
+        "I have found following var in nginx templates:", style="green")
+    for var in nginx_var_set:
+        console.print(var, end=" ", style="magenta")
+    console.print()
     if not os.path.exists(nginx_config_dir):
         os.mkdir(nginx_config_dir)
         console.print(
