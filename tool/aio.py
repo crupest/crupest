@@ -2,7 +2,6 @@
 
 import os
 import os.path
-import re
 import pwd
 import grp
 import sys
@@ -12,6 +11,10 @@ import shutil
 import urllib.request
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
+from modules.path import *
+from modules.template import Template
+from modules.nginx import *
+from modules.configfile import *
 
 console = Console()
 
@@ -24,11 +27,27 @@ parser = argparse.ArgumentParser(
     description="Crupest server all-in-one setup script. Have fun play with it!")
 subparsers = parser.add_subparsers(dest="action")
 
-setup_parser = subparsers .add_parser(
+setup_parser = subparsers.add_parser(
     "setup", help="Do everything necessary to setup the server.")
 
-download_tools_parser = subparsers .add_parser(
+download_tools_parser = subparsers.add_parser(
     "download-tools", help="Download some extra tools to manage the server.")
+
+domain_parser = subparsers.add_parser(
+    "domain", help="Misc things about domains.")
+domain_subparsers = domain_parser.add_subparsers(dest="domain_action")
+
+domain_list_parser = domain_subparsers.add_parser(
+    "list", help="List all domains.")
+
+domain_nginx_parser = domain_subparsers.add_parser(
+    "nginx", help="Generate nginx config for a domain.")
+
+domain_certbot_parser = domain_subparsers.add_parser(
+    "certbot", help="Get some common certbot commands.")
+
+domain_certbot_parser.add_argument(
+    "-t", "--test", action="store_true", help="Make the commands for test use.")
 
 clear_parser = subparsers .add_parser(
     "clear", help="Delete existing data so you can make a fresh start.")
@@ -39,12 +58,15 @@ args = parser.parse_args()
 
 console.print("Nice to see you! :waving_hand:", style="cyan")
 
-# get script dir in relative path
-script_dir = os.path.relpath(os.path.dirname(__file__))
-project_dir = os.path.normpath(os.path.join(script_dir, "../"))
-template_dir = os.path.join(project_dir, "template")
-data_dir = os.path.join(project_dir, "data")
-tool_dir = os.path.join(project_dir, "tool")
+
+def check_domain_is_defined() -> str:
+    try:
+        return get_domain()
+    except ValueError as e:
+        console.print(
+            "We are not able to get the domain. You may want to first run setup command.", style="red")
+        console.print_exception(e)
+        exit(1)
 
 
 def download_tools():
@@ -74,6 +96,38 @@ def download_tools():
             console.print(f"Downloaded {name} to {path}.", style="green")
         else:
             console.print(f"Skipped {name}.", style="yellow")
+
+
+def generate_nginx_config(domain: str) -> None:
+    if not os.path.exists(nginx_config_dir):
+        os.mkdir(nginx_config_dir)
+        console.print(
+            f"Nginx config directory created at [magenta]{nginx_config_dir}[/]", style="green")
+    nginx_config_gen(domain, dest=nginx_config_dir)
+    console.print("Nginx config generated.", style="green")
+
+
+if args.action == 'domain':
+    domain = check_domain_is_defined()
+    match args.domain_action:
+        case 'list':
+            domains = list_domains(domain)
+            for domain in domains:
+                console.print(domain)
+        case 'certbot':
+            console.print(
+                "Here is some commands you can use to do certbot related work.")
+            is_test = args.test
+            if is_test:
+                console.print(
+                    "Note you specified --test, so the commands are for test use.", style="yellow")
+            console.print(
+                f"To create certs for init:\n[code]{certbot_command_gen(domain, 'create', test=is_test)}[/]")
+            console.print(
+                f"To renew certs previously created:\n[code]{certbot_command_gen(domain, 'renew', test=is_test)}[/]")
+        case 'nginx':
+            generate_nginx_config(domain)
+    exit(0)
 
 
 if args.action == 'download-tools':
@@ -173,38 +227,6 @@ config_var_list: list[ConfigVar] = [
 
 config_var_name_set = set([config_var.name for config_var in config_var_list])
 
-
-class Template:
-
-    def __init__(self, template_path: str, var_prefix: str = "CRUPEST"):
-        if len(var_prefix) != 0 and re.fullmatch(r"^[a-zA-Z_][a-zA-Z0-9_]*$", var_prefix) is None:
-            raise ValueError("Invalid var prefix.")
-        self.template_path = template_path
-        self.template_name = os.path.basename(
-            template_path)[:-len(".template")]
-        with open(template_path, "r") as f:
-            self.template = f.read()
-        self.var_prefix = var_prefix
-        self.__var_regex = re.compile(r"\$(" + var_prefix + r"_[a-zA-Z0-9_]+)")
-        self.__var_brace_regex = re.compile(
-            r"\$\{\s*(" + var_prefix + r"_[a-zA-Z0-9_]+)\s*\}")
-        var_set = set()
-        for match in self.__var_regex.finditer(self.template):
-            var_set.add(match.group(1))
-        for match in self.__var_brace_regex.finditer(self.template):
-            var_set.add(match.group(1))
-        self.var_set = var_set
-
-    def generate(self, config: dict[str, str]) -> str:
-        result = self.template
-        for var in self.var_set:
-            if var not in config:
-                raise ValueError(f"Missing config var {var}.")
-            result = result.replace("$" + var, config[var])
-            re.sub(r"\$\{\s*" + var + r"\s*\}", config[var], result)
-        return result
-
-
 template_list: list[Template] = []
 config_var_name_set_in_template = set()
 for template_path in os.listdir(template_dir):
@@ -254,39 +276,9 @@ else:
 
 console.print("Check for existing config file...")
 
-config_path = os.path.join(data_dir, "config")
-
-
-def parse_config(str: str) -> dict:
-    config = {}
-    for line_number, line in enumerate(str.splitlines()):
-        # check if it's a comment
-        if line.startswith("#"):
-            continue
-        # check if there is a '='
-        if line.find("=") == -1:
-            console.print(
-                f"Invalid config file. Please check line {line_number + 1}. There is even no '='! Aborted!", style="red")
-            raise ValueError("Invalid config file.")
-        # split at first '='
-        key, value = line.split("=", 1)
-        key = key.strip()
-        value = value.strip()
-        config[key] = value
-    return config
-
-
-def config_to_str(config: dict) -> str:
-    return "\n".join([f"{key}={value}" for key, value in config.items()])
-
-
-def print_config(config: dict) -> None:
-    for key, value in config.items():
-        console.print(f"[magenta]{key}[/] = [cyan]{value}")
-
 
 # check if there exists a config file
-if not os.path.exists(config_path):
+if not config_file_exist:
     config = {}
     console.print(
         "No existing config file found. Don't worry. Let's create one!", style="green")
@@ -297,11 +289,11 @@ if not os.path.exists(config_path):
     if not os.path.exists(data_dir):
         os.mkdir(data_dir)
     # write config file
-    with open(config_path, "w") as f:
+    with open(config_file_path, "w") as f:
         f.write(config_content)
     console.print(
-        f"Everything else is auto generated. The config file is written into [magenta]{config_path}[/]. You had better keep it well. And here is the content:", style="green")
-    print_config(config)
+        f"Everything else is auto generated. The config file is written into [magenta]{config_file_path}[/]. You had better keep it well. And here is the content:", style="green")
+    print_config(console, config)
     is_ok = Confirm.ask(
         "If you think it's not ok, you can stop here and edit it. Or let's go on?", console=console, default=True)
     if not is_ok:
@@ -311,10 +303,10 @@ if not os.path.exists(config_path):
 else:
     console.print(
         "Looks like you have already had a config file. Let's check the content:", style="green")
-    with open(config_path, "r") as f:
+    with open(config_file_path, "r") as f:
         content = f.read()
     config = parse_config(content)
-    print_config(config)
+    print_config(console, config)
     missed_config_vars = []
     for config_var in config_var_list:
         if config_var.name not in config:
@@ -326,11 +318,11 @@ else:
         for config_var in missed_config_vars:
             config[config_var.name] = config_var.get_default_value()
         content = config_to_str(config)
-        with open(config_path, "w") as f:
+        with open(config_file_path, "w") as f:
             f.write(content)
         console.print(
-            f"Here is the new config, it has been written out to [magenta]{config_path}[/]:")
-        print_config(config)
+            f"Here is the new config, it has been written out to [magenta]{config_file_path}[/]:")
+        print_config(console, config)
     good_enough = Confirm.ask("Is it good enough?",
                               console=console, default=True)
     if not good_enough:
@@ -349,8 +341,20 @@ for index, template in enumerate(template_list):
     console.print(
         f"Generating [magenta]{template.template_name}[/]...")
     content = template.generate(config)
-    with open(os.path.join(project_dir, filename), "w") as f:
+    with open(os.path.join(project_dir, template.template_name), "w") as f:
         f.write(content)
+
+# generate nginx config
+if not os.path.exists(nginx_config_dir):
+    to_gen_nginx_conf = Confirm.ask("It seems you haven't generate nginx config. Do you want to generate it?",
+                                    default=True, console=console)
+else:
+    to_gen_nginx_conf = Confirm.ask("It seems you have already generated nginx config. Do you want to overwrite it?",
+                                    default=False, console=console)
+if to_gen_nginx_conf:
+    domain = config["CRUPEST_DOMAIN"]
+    generate_nginx_config(domain)
+
 
 if not os.path.exists(os.path.join(data_dir, "code-server")):
     os.mkdir(os.path.join(data_dir, "code-server"))

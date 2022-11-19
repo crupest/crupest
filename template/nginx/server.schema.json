@@ -1,0 +1,80 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "CertOnlySite": {
+            "properties": {
+                "subdomain": {
+                    "type": "string"
+                },
+                "type": {
+                    "enum": [
+                        "cert-only"
+                    ],
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "ReverseProxySite": {
+            "properties": {
+                "subdomain": {
+                    "type": "string"
+                },
+                "type": {
+                    "enum": [
+                        "reverse-proxy"
+                    ],
+                    "type": "string"
+                },
+                "upstream": {
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "server": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "type": "object"
+        },
+        "StaticFileSite": {
+            "properties": {
+                "root": {
+                    "type": "string"
+                },
+                "subdomain": {
+                    "type": "string"
+                },
+                "type": {
+                    "enum": [
+                        "static-file"
+                    ],
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        }
+    },
+    "properties": {
+        "sites": {
+            "items": {
+                "anyOf": [
+                    {
+                        "$ref": "#/definitions/ReverseProxySite"
+                    },
+                    {
+                        "$ref": "#/definitions/StaticFileSite"
+                    },
+                    {
+                        "$ref": "#/definitions/CertOnlySite"
+                    }
+                ]
+            },
+            "type": "array"
+        }
+    },
+    "type": "object"
+}

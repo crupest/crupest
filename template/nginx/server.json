@@ -1,0 +1,25 @@
+{
+    "$schema": "./server.schema.json",
+    "sites": [
+        {
+            "type": "reverse-proxy",
+            "subdomain": "code",
+            "upstream": {
+                "name": "code-server",
+                "server": "code-server:8080"
+            }
+        },
+        {
+            "type": "reverse-proxy",
+            "subdomain": "halo",
+            "upstream": {
+                "name": "halo",
+                "server": "halo:8090"
+            }
+        },
+        {
+            "type": "cert-only",
+            "subdomain": "mail"
+        }
+    ]
+}

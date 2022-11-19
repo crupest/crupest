@@ -58,6 +58,11 @@ services:
       - "80:80"
       - "443:443"
     volumes:
+      - "./nginx-config:/etc/nginx/conf.d:ro"
+      - "./data/certbot/certs:/etc/letsencrypt:ro"
+    networks:
+      - external
+      - internal
 
   mailserver:
     image: docker.io/mailserver/docker-mailserver:latest
