@@ -11,7 +11,7 @@
         },
         {
             "type": "reverse-proxy",
-            "subdomain": "halo",
+            "subdomain": "blog",
             "upstream": {
                 "name": "halo",
                 "server": "halo:8090"
