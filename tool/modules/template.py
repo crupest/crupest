@@ -22,7 +22,7 @@ class Template:
             var_set.add(match.group(1))
         self.var_set = var_set
 
-    def generate(self, config: dict[str, str]) -> str:
+    def generate(self, config: dict) -> str:
         result = self.template
         for var in self.var_set:
             if var not in config:
