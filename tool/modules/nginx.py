@@ -63,7 +63,7 @@ def certbot_command_gen(domain: str, action, test=False) -> str:
     domains = list_domains(domain)
     if action == 'create':
         # create with standalone mode
-        return f'docker run -it --rm --name certbot -v "{project_abs_path}/data/certbot/certs:/etc/letsencrypt" -v "{project_abs_path}/data/certbot/data:/var/lib/letsencrypt" certbot/certbot certonly --standalone -d {" -d ".join(domains)}{ " --test-cert" if test else "" }'
+        return f'docker run -it --rm --name certbot -v "{project_abs_path}/data/certbot/certs:/etc/letsencrypt" -v "{project_abs_path}/data/certbot/data:/var/lib/letsencrypt" -p "0.0.0.0:80:80" certbot/certbot certonly --standalone -d {" -d ".join(domains)}{ " --test-cert" if test else "" }'
     elif action == 'renew':
         # renew with webroot mode
         return f'docker run -it --rm --name certbot -v "{project_abs_path}/data/certbot/certs:/etc/letsencrypt" -v "{project_abs_path}/data/certbot/data:/var/lib/letsencrypt" -v "{project_abs_path}/data/certbot/webroot:/var/www/certbot" certbot/certbot renew --webroot -w /var/www/certbot'
