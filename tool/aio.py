@@ -103,6 +103,17 @@ def download_tools():
 
 
 def generate_nginx_config(domain: str) -> None:
+    bad_files = nginx_config_dir_check(nginx_config_dir, domain)
+    if len(bad_files) > 0:
+        console.print(
+            "WARNING: It seems there are some bad conf files in the nginx config directory:", style="yellow")
+        for bad_file in bad_files:
+            console.print(bad_file, style="cyan")
+        to_delete = Confirm.ask(
+            "They will affect nginx in a [red]bad[/] way. Do you want to delete them?", default=True, console=console)
+        if to_delete:
+            for file in bad_files:
+                os.remove(os.path.join(nginx_config_dir, file))
     console.print(
         "I have found following var in nginx templates:", style="green")
     for var in nginx_var_set:
