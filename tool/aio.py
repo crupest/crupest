@@ -121,10 +121,12 @@ if args.action == 'domain':
     elif domain_action == 'certbot':
         is_test = args.test
         if args.create:
-            console.print(certbot_command_gen(domain, "create", test=is_test))
+            console.print(certbot_command_gen(domain, "create",
+                          test=is_test), soft_wrap=True, highlight=False)
             exit(0)
         elif args.renew:
-            console.print(certbot_command_gen(domain, "renew", test=is_test))
+            console.print(certbot_command_gen(domain, "renew",
+                          test=is_test), soft_wrap=True, highlight=False)
             exit(0)
         console.print(
             "Here is some commands you can use to do certbot related work.")
