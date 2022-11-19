@@ -54,12 +54,15 @@ services:
   nginx:
     image: nginx:latest
     container_name: nginx
+    restart: on-failure:3
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - "./nginx-config:/etc/nginx/conf.d:ro"
+      - "./site:/srv/www:ro"
       - "./data/certbot/certs:/etc/letsencrypt:ro"
+      - "./data/certbot/webroot:/srv/acme:ro"
     networks:
       - external
       - internal
