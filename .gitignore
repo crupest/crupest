@@ -1,4 +1,5 @@
-Caddyfile
 docker-compose.yaml
 mailserver.env
 data
+nginx-config
+__pycache__

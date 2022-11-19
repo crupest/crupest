@@ -1,4 +1,4 @@
-This directory contains the template files used to generate the final config files. They should not be used directly usually. Run `../tool/setup.py` to perform any generation and necessary setup.
+This directory contains the template files used to generate the final config files. They should not be used directly usually. Run `../tool/aio.py` to perform any generation and necessary setup.
 
 The template format is quite simple: they are just files containing `$VAR`s or `${VAR}`s. All variable names begin with `CRUPEST_` to avoid name conflicts.
 
