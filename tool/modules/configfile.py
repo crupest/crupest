@@ -39,7 +39,3 @@ def config_to_str(config: dict) -> str:
 def print_config(console, config: dict) -> None:
     for key, value in config.items():
         console.print(f"[magenta]{key}[/] = [cyan]{value}")
-
-
-__all__ = ["config_file_exist", "parse_config",
-           "get_domain", "config_to_str", "print_config"]

@@ -9,6 +9,3 @@ data_dir = os.path.join(project_dir, "data")
 tool_dir = os.path.join(project_dir, "tool")
 config_file_path = os.path.join(data_dir, "config")
 nginx_config_dir = os.path.join(project_dir, "nginx-config")
-
-__all__ = ["script_dir", "project_dir", "project_abs_path", "template_dir",
-           "nginx_template_dir", "data_dir", "config_file_path", "tool_dir", "nginx_config_dir"]

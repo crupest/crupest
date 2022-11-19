@@ -28,5 +28,5 @@ class Template:
             if var not in config:
                 raise ValueError(f"Missing config var {var}.")
             result = result.replace("$" + var, config[var])
-            re.sub(r"\$\{\s*" + var + r"\s*\}", config[var], result)
+            result = re.sub(r"\$\{\s*" + var + r"\s*\}", config[var], result)
         return result

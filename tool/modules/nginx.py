@@ -23,6 +23,9 @@ static_file_template = Template(os.path.join(
 reverse_proxy_template = Template(os.path.join(
     nginx_template_dir, 'reverse-proxy.conf.template'))
 
+nginx_var_set = set.union(root_template.var_set,
+                          static_file_template.var_set, reverse_proxy_template.var_set)
+
 
 def nginx_config_gen(domain: str, dest: str) -> None:
     if not os.path.isdir(dest):
