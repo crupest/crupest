@@ -55,7 +55,7 @@ def nginx_config_gen(domain: str, dest: str) -> None:
             f.write(template.generate(local_config))
 
 
-def list_domains(domain: str) -> list[str]:
+def list_domains(domain: str) -> list:
     return [domain, *[f"{s['subdomain']}.{domain}" for s in server["sites"]]]
 
 

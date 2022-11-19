@@ -206,7 +206,7 @@ class ConfigVar:
             return self.default_value_generator()
 
 
-config_var_list: list[ConfigVar] = [
+config_var_list: list = [
     ConfigVar("CRUPEST_DOMAIN", "domain name",
               "Please input your domain name:"),
     # ConfigVar("CRUPEST_EMAIL", "admin email address",
@@ -227,7 +227,7 @@ config_var_list: list[ConfigVar] = [
 
 config_var_name_set = set([config_var.name for config_var in config_var_list])
 
-template_list: list[Template] = []
+template_list: list = []
 config_var_name_set_in_template = set()
 for template_path in os.listdir(template_dir):
     if not template_path.endswith(".template"):
