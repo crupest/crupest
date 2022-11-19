@@ -187,7 +187,7 @@ for filename in template_name_list:
 
 
 class ConfigVar:
-    def __init__(self, name: str, description: str, default_value_generator: typing.Callable[[], str] | str):
+    def __init__(self, name: str, description: str, default_value_generator: typing.Callable | str):
         """Create a config var.
 
         Args:
