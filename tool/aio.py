@@ -109,24 +109,24 @@ def generate_nginx_config(domain: str) -> None:
 
 if args.action == 'domain':
     domain = check_domain_is_defined()
-    match args.domain_action:
-        case 'list':
-            domains = list_domains(domain)
-            for domain in domains:
-                console.print(domain)
-        case 'certbot':
+    domain_action = args.domain_action
+    if domain_action == 'list':
+        domains = list_domains(domain)
+        for domain in domains:
+            console.print(domain)
+    elif domain_action == 'certbot':
+        console.print(
+            "Here is some commands you can use to do certbot related work.")
+        is_test = args.test
+        if is_test:
             console.print(
-                "Here is some commands you can use to do certbot related work.")
-            is_test = args.test
-            if is_test:
-                console.print(
-                    "Note you specified --test, so the commands are for test use.", style="yellow")
-            console.print(
-                f"To create certs for init:\n[code]{certbot_command_gen(domain, 'create', test=is_test)}[/]")
-            console.print(
-                f"To renew certs previously created:\n[code]{certbot_command_gen(domain, 'renew', test=is_test)}[/]")
-        case 'nginx':
-            generate_nginx_config(domain)
+                "Note you specified --test, so the commands are for test use.", style="yellow")
+        console.print(
+            f"To create certs for init:\n[code]{certbot_command_gen(domain, 'create', test=is_test)}[/]")
+        console.print(
+            f"To renew certs previously created:\n[code]{certbot_command_gen(domain, 'renew', test=is_test)}[/]")
+    elif domain_action == 'nginx':
+        generate_nginx_config(domain)
     exit(0)
 
 
