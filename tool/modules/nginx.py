@@ -44,29 +44,27 @@ def nginx_config_gen(domain: str, dest: str) -> None:
         subdomain = site["subdomain"]
         local_config = config.copy()
         local_config['CRUPEST_NGINX_SUBDOMAIN'] = subdomain
-        match site["type"]:
-            case 'static-file':
-                template = static_file_template
-                local_config['CRUPEST_NGINX_ROOT'] = site["root"]
-            case 'reverse-proxy':
-                template = reverse_proxy_template
-                local_config['CRUPEST_NGINX_UPSTREAM_NAME'] = site["upstream"]["name"]
-                local_config['CRUPEST_NGINX_UPSTREAM_SERVER'] = site["upstream"]["server"]
+        if site["type"] == 'static-file':
+            template = static_file_template
+            local_config['CRUPEST_NGINX_ROOT'] = site["root"]
+        elif site["type"] == 'reverse-proxy':
+            template = reverse_proxy_template
+            local_config['CRUPEST_NGINX_UPSTREAM_NAME'] = site["upstream"]["name"]
+            local_config['CRUPEST_NGINX_UPSTREAM_SERVER'] = site["upstream"]["server"]
         with open(os.path.join(dest, f'{subdomain}.{domain}.conf'), 'w') as f:
             f.write(template.generate(local_config))
 
 
 def list_domains(domain: str) -> list[str]:
-    return [domain, *server.sites.map(lambda s: f"{s.subdomain}.{domain}")]
+    return [domain, *[f"{s['subdomain']}.{domain}" for s in server["sites"]]]
 
 
 def certbot_command_gen(domain: str, action, test=False) -> str:
     domains = list_domains(domain)
-    match action:
-        case 'create':
-            # create with standalone mode
-            return f'docker run -it --name certbot -v "./data/certbot/certs:/etc/letsencrypt" -v "./data/certbot/data:/var/lib/letsencrypt" certbot/certbot certonly --standalone -d {" -d ".join(domains)}{ " --test-cert" if test else "" }'
-        case 'renew':
-            # renew with webroot mode
-            return f'docker run -it --name certbot -v "./data/certbot/certs:/etc/letsencrypt" -v "./data/certbot/data:/var/lib/letsencrypt" -v "./data/certbot/webroot:/var/www/certbot" certbot/certbot renew --webroot -w /var/www/certbot'
+    if action == 'create':
+        # create with standalone mode
+        return f'docker run -it --name certbot -v "./data/certbot/certs:/etc/letsencrypt" -v "./data/certbot/data:/var/lib/letsencrypt" certbot/certbot certonly --standalone -d {" -d ".join(domains)}{ " --test-cert" if test else "" }'
+    elif action == 'renew':
+        # renew with webroot mode
+        return f'docker run -it --name certbot -v "./data/certbot/certs:/etc/letsencrypt" -v "./data/certbot/data:/var/lib/letsencrypt" -v "./data/certbot/webroot:/var/www/certbot" certbot/certbot renew --webroot -w /var/www/certbot'
     raise ValueError('Invalid action')
