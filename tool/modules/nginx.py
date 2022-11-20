@@ -25,6 +25,7 @@ static_file_template = Template(os.path.join(
     nginx_template_dir, 'static-file.conf.template'))
 reverse_proxy_template = Template(os.path.join(
     nginx_template_dir, 'reverse-proxy.conf.template'))
+cert_only_template = Template(os.path.join(nginx_template_dir, 'cert-only.conf.template'))
 
 nginx_var_set = set.union(root_template.var_set,
                           static_file_template.var_set, reverse_proxy_template.var_set)
@@ -48,7 +49,7 @@ def nginx_config_gen(domain: str, dest: str) -> None:
     # generate nginx config for each site
     sites: list = server["sites"]
     for site in sites:
-        if site["type"] not in ['static-file', 'reverse-proxy']:
+        if site["type"] not in ['static-file', 'reverse-proxy', "cert-only"]:
             continue
         subdomain = site["subdomain"]
         local_config = config.copy()
@@ -60,6 +61,8 @@ def nginx_config_gen(domain: str, dest: str) -> None:
             template = reverse_proxy_template
             local_config['CRUPEST_NGINX_UPSTREAM_NAME'] = site["upstream"]["name"]
             local_config['CRUPEST_NGINX_UPSTREAM_SERVER'] = site["upstream"]["server"]
+        elif site["type"] == 'cert-only':
+            template = cert_only_template
         with open(os.path.join(dest, f'{subdomain}.{domain}.conf'), 'w') as f:
             f.write(template.generate(local_config))
 
