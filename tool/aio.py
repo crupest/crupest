@@ -52,6 +52,8 @@ certbot_command_group = certbot_parser.add_mutually_exclusive_group()
 certbot_command_group.add_argument(
     "-C", "--create", action="store_true", default=False, help="Only print the command for 'create' action.")
 certbot_command_group.add_argument(
+    "-E", "--expand", action="store_true", default=False, help="Only print the command for 'expand' action.")
+certbot_command_group.add_argument(
     "-R", "--renew", action="store_true", default=False, help="Only print the command for 'renew' action.")
 
 certbot_parser.add_argument(
@@ -154,6 +156,10 @@ if args.action == 'certbot':
     is_test = args.test
     if args.create:
         console.print(certbot_command_gen(domain, "create",
+                                          test=is_test), soft_wrap=True, highlight=False)
+        exit(0)
+    elif args.expand:
+        console.print(certbot_command_gen(domain, "expand",
                                           test=is_test), soft_wrap=True, highlight=False)
         exit(0)
     elif args.renew:
