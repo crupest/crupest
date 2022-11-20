@@ -3,9 +3,6 @@ server {
     listen [::]:443 ssl http2;
     server_name ${CRUPEST_DOMAIN};
 
-    ssl_certificate /etc/letsencrypt/live/${CRUPEST_DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${CRUPEST_DOMAIN}/privkey.pem;
-
     root /srv/www;
 }
 

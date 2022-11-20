@@ -16,8 +16,9 @@ with open(os.path.join(nginx_template_dir, 'server.schema.json')) as f:
 
 jsonschema.validate(server, schema)
 
-non_template_files = ['ssl.conf', 'forbid_unknown_domain.conf']
+non_template_files = ['forbid_unknown_domain.conf']
 
+ssl_template = Template(os.path.join(nginx_template_dir, 'ssl.conf.template'))
 root_template = Template(os.path.join(
     nginx_template_dir, 'root.conf.template'))
 static_file_template = Template(os.path.join(
@@ -38,6 +39,9 @@ def nginx_config_gen(domain: str, dest: str) -> None:
         dst = os.path.join(dest, filename)
         shutil.copyfile(src, dst)
     config = {"CRUPEST_DOMAIN": domain}
+    # generate ssl.conf
+    with open(os.path.join(dest, 'ssl.conf'), 'w') as f:
+        f.write(ssl_template.generate(config))
     # generate root.conf
     with open(os.path.join(dest, f'{domain}.conf'), 'w') as f:
         f.write(root_template.generate(config))
@@ -80,7 +84,7 @@ def certbot_command_gen(domain: str, action, test=False) -> str:
 
 
 def nginx_config_dir_check(dir_path: str, domain: str) -> list:
-    good_files = [*non_template_files, *
+    good_files = [*non_template_files, "ssl.conf", *
                   [f"{full_domain}.conf" for full_domain in list_domains(domain)]]
     bad_files = []
     for path in os.listdir(dir_path):
