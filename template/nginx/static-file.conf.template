@@ -7,4 +7,16 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/${CRUPEST_DOMAIN}/privkey.pem;
 
     root ${CRUPEST_NGINX_ROOT};
+
+    client_max_body_size 5G;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${CRUPEST_NGINX_SUBDOMAIN}.${CRUPEST_DOMAIN};
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
 }

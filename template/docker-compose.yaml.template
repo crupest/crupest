@@ -58,6 +58,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     volumes:
       - "./nginx-config:/etc/nginx/conf.d:ro"
       - "./site:/srv/www:ro"

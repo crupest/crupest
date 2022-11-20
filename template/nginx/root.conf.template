@@ -8,3 +8,17 @@ server {
 
     root /srv/www;
 }
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${CRUPEST_DOMAIN};
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+
+    location /.well-known/acme-challenge {
+        root /srv/acme;
+    }
+}
