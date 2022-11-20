@@ -18,6 +18,14 @@
             }
         },
         {
+            "type": "reverse-proxy",
+            "subdomain": "timeline",
+            "upstream": {
+                "name": "timeline",
+                "server": "timeline:5000"
+            }
+        },
+        {
             "type": "cert-only",
             "subdomain": "mail"
         }

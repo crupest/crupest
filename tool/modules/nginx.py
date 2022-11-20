@@ -16,7 +16,7 @@ with open(os.path.join(nginx_template_dir, 'server.schema.json')) as f:
 
 jsonschema.validate(server, schema)
 
-non_template_files = ['ssl.conf', 'https-redirect.conf']
+non_template_files = ['ssl.conf', 'forbid_unknown_domain.conf']
 
 root_template = Template(os.path.join(
     nginx_template_dir, 'root.conf.template'))

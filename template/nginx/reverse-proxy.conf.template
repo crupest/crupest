@@ -21,3 +21,13 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
     }
 }
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${CRUPEST_NGINX_SUBDOMAIN}.${CRUPEST_DOMAIN};
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}

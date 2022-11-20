@@ -24,33 +24,37 @@ def print_order(number: int, total: int, *, console=console) -> None:
 
 parser = argparse.ArgumentParser(
     description="Crupest server all-in-one setup script. Have fun play with it!")
+parser.add_argument("--no-hello", action="store_true",
+                    default=False, help="Do not print hello message.")
+
 subparsers = parser.add_subparsers(dest="action")
 
 setup_parser = subparsers.add_parser(
     "setup", help="Do everything necessary to setup the server.")
 
+print_path_parser = subparsers.add_parser(
+    "print-path", help="Print the paths of all related files and dirs.")
+
 download_tools_parser = subparsers.add_parser(
     "download-tools", help="Download some extra tools to manage the server.")
 
-domain_parser = subparsers.add_parser(
-    "domain", help="Misc things about domains.")
-domain_subparsers = domain_parser.add_subparsers(dest="domain_action")
+list_domain_parser = subparsers.add_parser(
+    "list-domain", help="Misc things about domains.")
 
-domain_list_parser = domain_subparsers.add_parser(
-    "list", help="List all domains.")
-
-domain_nginx_parser = domain_subparsers.add_parser(
+nginx_parser = subparsers.add_parser(
     "nginx", help="Generate nginx config for a domain.")
 
-domain_certbot_parser = domain_subparsers.add_parser(
+certbot_parser = subparsers.add_parser(
     "certbot", help="Get some common certbot commands.")
 
-domain_certbot_parser.add_argument(
+certbot_command_group = certbot_parser.add_mutually_exclusive_group()
+
+certbot_command_group.add_argument(
     "-C", "--create", action="store_true", default=False, help="Only print the command for 'create' action.")
-domain_certbot_parser.add_argument(
+certbot_command_group.add_argument(
     "-R", "--renew", action="store_true", default=False, help="Only print the command for 'renew' action.")
 
-domain_certbot_parser.add_argument(
+certbot_parser.add_argument(
     "-t", "--test", action="store_true", default=False, help="Make the commands for test use.")
 
 clear_parser = subparsers .add_parser(
@@ -60,7 +64,18 @@ clear_parser.add_argument("-D", "--include-data-dir", action="store_true",
 
 args = parser.parse_args()
 
-console.print("Nice to see you! :waving_hand:", style="cyan")
+if args.action == "certbot":
+    if args.create or args.renew:
+        args.no_hello = True
+
+if not args.no_hello:
+    console.print("Nice to see you! :waving_hand:", style="cyan")
+
+if args.action == 'print-path':
+    console.print("Project path =", project_dir)
+    console.print("Project absolute path =", project_abs_path)
+    console.print("Data path =", data_dir)
+    exit(0)
 
 
 def check_domain_is_defined() -> str:
@@ -127,34 +142,38 @@ def generate_nginx_config(domain: str) -> None:
     console.print("Nginx config generated.", style="green")
 
 
-if args.action == 'domain':
+if args.action == 'list-domain':
     domain = check_domain_is_defined()
-    domain_action = args.domain_action
-    if domain_action == 'list':
-        domains = list_domains(domain)
-        for domain in domains:
-            console.print(domain)
-    elif domain_action == 'certbot':
-        is_test = args.test
-        if args.create:
-            console.print(certbot_command_gen(domain, "create",
-                          test=is_test), soft_wrap=True, highlight=False)
-            exit(0)
-        elif args.renew:
-            console.print(certbot_command_gen(domain, "renew",
-                          test=is_test), soft_wrap=True, highlight=False)
-            exit(0)
+    domains = list_domains(domain)
+    for domain in domains:
+        console.print(domain)
+    exit(0)
+
+if args.action == 'certbot':
+    domain = check_domain_is_defined()
+    is_test = args.test
+    if args.create:
+        console.print(certbot_command_gen(domain, "create",
+                                          test=is_test), soft_wrap=True, highlight=False)
+        exit(0)
+    elif args.renew:
+        console.print(certbot_command_gen(domain, "renew",
+                                          test=is_test), soft_wrap=True, highlight=False)
+        exit(0)
+    console.print(
+        "Here is some commands you can use to do certbot related work.")
+    if is_test:
         console.print(
-            "Here is some commands you can use to do certbot related work.")
-        if is_test:
-            console.print(
-                "Note you specified --test, so the commands are for test use.", style="yellow")
-        console.print(
-            f"To create certs for init:\n[code]{certbot_command_gen(domain, 'create', test=is_test)}[/]")
-        console.print(
-            f"To renew certs previously created:\n[code]{certbot_command_gen(domain, 'renew', test=is_test)}[/]")
-    elif domain_action == 'nginx':
-        generate_nginx_config(domain)
+            "Note you specified --test, so the commands are for test use.", style="yellow")
+    console.print(
+        f"To create certs for init:\n[code]{certbot_command_gen(domain, 'create', test=is_test)}[/]")
+    console.print(
+        f"To renew certs previously created:\n[code]{certbot_command_gen(domain, 'renew', test=is_test)}[/]")
+    exit(0)
+
+if args.action == 'nginx':
+    domain = check_domain_is_defined()
+    generate_nginx_config(domain)
     exit(0)
 
 
