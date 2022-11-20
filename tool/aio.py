@@ -67,7 +67,7 @@ clear_parser.add_argument("-D", "--include-data-dir", action="store_true",
 args = parser.parse_args()
 
 if args.action == "certbot":
-    if args.create or args.renew:
+    if args.create or args.renew or args.expand:
         args.no_hello = True
 
 if not args.no_hello:
