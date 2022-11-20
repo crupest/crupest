@@ -27,4 +27,8 @@ server {
     location / {
         return 301 https://$host$request_uri;
     }
+
+    location /.well-known/acme-challenge {
+        root /srv/acme;
+    }
 }
