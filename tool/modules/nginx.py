@@ -16,7 +16,7 @@ with open(os.path.join(nginx_template_dir, 'server.schema.json')) as f:
 
 jsonschema.validate(server, schema)
 
-non_template_files = ['forbid_unknown_domain.conf']
+non_template_files = ['forbid_unknown_domain.conf', "websocket.conf"]
 
 ssl_template = Template(os.path.join(nginx_template_dir, 'ssl.conf.template'))
 root_template = Template(os.path.join(
@@ -25,7 +25,8 @@ static_file_template = Template(os.path.join(
     nginx_template_dir, 'static-file.conf.template'))
 reverse_proxy_template = Template(os.path.join(
     nginx_template_dir, 'reverse-proxy.conf.template'))
-cert_only_template = Template(os.path.join(nginx_template_dir, 'cert-only.conf.template'))
+cert_only_template = Template(os.path.join(
+    nginx_template_dir, 'cert-only.conf.template'))
 
 nginx_var_set = set.union(root_template.var_set,
                           static_file_template.var_set, reverse_proxy_template.var_set)
