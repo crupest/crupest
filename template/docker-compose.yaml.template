@@ -24,6 +24,10 @@ services:
     image: crupest/timeline:latest
     container_name: timeline
     restart: on-failure:3
+    environment:
+      - TIMELINE_DisableAutoBackup=true
+      - TIMELINE_EnableForwardedHeaders=true
+      - TIMELINE_ForwardedHeadersAllowedProxyHosts=nginx
     volumes:
       - ./data/timeline:/root/timeline
     ports:
