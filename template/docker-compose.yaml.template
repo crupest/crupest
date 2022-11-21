@@ -27,9 +27,8 @@ services:
     container_name: timeline
     restart: on-failure:3
     environment:
+      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
       - TIMELINE_DisableAutoBackup=true
-      - TIMELINE_EnableForwardedHeaders=true
-      - TIMELINE_ForwardedHeadersAllowedProxyHosts=nginx
     volumes:
       - ./data/timeline:/root/timeline
     ports:
