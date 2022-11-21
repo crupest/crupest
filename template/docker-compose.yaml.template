@@ -27,6 +27,7 @@ services:
     container_name: timeline
     restart: on-failure:3
     environment:
+      - ASPNETCORE_URLS=http://0.0.0.0:80
       - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
       - TIMELINE_DisableAutoBackup=true
     volumes:
