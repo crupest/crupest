@@ -1,6 +1,7 @@
 services:
   halo:
     image: halohub/halo:latest
+    pull_policy: always
     container_name: halo
     restart: on-failure:3
     volumes:
@@ -22,6 +23,7 @@ services:
 
   timeline:
     image: crupest/timeline:latest
+    pull_policy: always
     container_name: timeline
     restart: on-failure:3
     environment:
@@ -40,6 +42,7 @@ services:
     build:
       context: ./docker/arch-code-server
       dockerfile: Dockerfile
+      pull: true
       args:
         - CRUPEST_USER=$CRUPEST_USER
         - CRUPEST_GROUP=$CRUPEST_GROUP
@@ -57,6 +60,7 @@ services:
 
   nginx:
     image: nginx:latest
+    pull_policy: always
     container_name: nginx
     restart: on-failure:3
     ports:
@@ -74,6 +78,7 @@ services:
 
   mailserver:
     image: docker.io/mailserver/docker-mailserver:latest
+    pull_policy: always
     container_name: mailserver
     # If the FQDN for your mail-server is only two labels (eg: example.com),
     # you can assign this entirely to `hostname` and remove `domainname`.
@@ -96,7 +101,7 @@ services:
       - ./data/dms/config/:/tmp/docker-mailserver/
       - ./data/certbot/certs:/etc/letsencrypt
       - /etc/localtime:/etc/localtime:ro
-    restart: always
+    restart: on-failure:3
     stop_grace_period: 1m
     cap_add:
       - NET_ADMIN
