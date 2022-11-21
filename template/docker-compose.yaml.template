@@ -27,13 +27,12 @@ services:
     container_name: timeline
     restart: on-failure:3
     environment:
-      - ASPNETCORE_URLS=http://0.0.0.0:80
       - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
       - TIMELINE_DisableAutoBackup=true
     volumes:
       - ./data/timeline:/root/timeline
     ports:
-      - "5000:80"
+      - "5000:5000"
     networks:
       - internal
 
