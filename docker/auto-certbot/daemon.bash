@@ -8,8 +8,11 @@ fi
 
 # Check CRUPEST_CERTBOT_RENEW_COMMAND is defined.
 if [ -z "$CRUPEST_CERTBOT_RENEW_COMMAND" ]; then
-    echo "CRUPEST_CERTBOT_RENEW_COMMAND must be defined."
-    exit 1
+    echo "CRUPEST_CERTBOT_RENEW_COMMAND is not defined or empty"
+    CRUPEST_CERTBOT_RENEW_COMMAND="certbot renew --webroot -w /var/www/certbot"
+    printf "Will use:\n%s\n" "$CRUPEST_CERTBOT_RENEW_COMMAND"
+else
+    printf "CRUPEST_CERTBOT_RENEW_COMMAND is defined as:\n%s\n" "$CRUPEST_CERTBOT_RENEW_COMMAND"
 fi
 
 # Check CRUPEST_CERT_PATH, default to /etc/letsencrypt/live/$CRUPEST_DOMAIN/fullchain.pem
@@ -17,7 +20,7 @@ if [ -z "$CRUPEST_CERT_PATH" ]; then
     CRUPEST_CERT_PATH="/etc/letsencrypt/live/$CRUPEST_DOMAIN/fullchain.pem"
 fi
 
-function check_and_renew_cert() {
+function check_and_renew_cert {
     expire_info=$(openssl x509 -enddate -noout -in "$CRUPEST_CERT_PATH")
     
     # Get ssl certificate expire date.
@@ -33,21 +36,15 @@ function check_and_renew_cert() {
     echo "Renew SSL certificate at: $(date -d @$renew_timestamp)"
 
     # Get rest time til renew.
-    rest_time="$((renew_timestamp - $(date +%s)))"
-    echo "Rest time til renew: $rest_time seconds"
+    rest_time_in_second="$((renew_timestamp - $(date +%s)))"
+    rest_time_in_day=$((rest_time_in_second / 86400))
+    echo "Rest time til renew: $rest_time_in_second seconds, aka, about $rest_time_in_day days"
 
     # Do we have rest time?
-    if [ "$rest_time" -gt 0 ]; then
-        # Check CRUPEST_GREEDY_CHECK is defined.
-        if [ -z "$CRUPEST_GREEDY_CHECK" ]; then
-            # Sleep til renew.
-            echo "Sleeping til renew..."
-            sleep "$rest_time"
-        else
-            # Sleep 1 hour.
-            echo "Seems like CRUPEST_GREEDY_CHECK is defined, sleep 1 day and check again..."
-            sleep 86400
-        fi
+    if [ $rest_time_in_second -gt 0 ]; then
+        # Sleep 1 hour.
+        echo "I'm going to sleop for 1 day to check again."
+        sleep 1d
     else
         # No, renew now.
         echo "Renewing now..."

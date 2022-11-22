@@ -75,6 +75,23 @@ services:
       - external
       - internal
 
+  auto-certbot:
+    image: crupest/auto-certbot:latest
+    build:
+      context: ./docker/auto-certbot
+      dockerfile: Dockerfile
+      pull: true
+      args:
+        - CRUPEST_DOMAIN=$CRUPEST_DOMAIN
+    container_name: auto-certbot
+    volumes:
+      - "./data/certbot/certs:/etc/letsencrypt"
+      - "./data/certbot/data:/var/lib/letsencrypt"
+      - "./data/certbot/webroot:/var/www/certbot"
+    restart: on-failure:3
+    networks:
+      - internal
+
   mailserver:
     image: docker.io/mailserver/docker-mailserver:latest
     pull_policy: always
