@@ -37,7 +37,6 @@ services:
       - internal
 
   code-server:
-    image: crupest/arch-code-server:latest
     build:
       context: ./docker/arch-code-server
       dockerfile: Dockerfile
@@ -48,6 +47,8 @@ services:
         - CRUPEST_UID=$CRUPEST_UID
         - CRUPEST_GID=$CRUPEST_GID
         - USE_CHINA_MIRROR=$CRUPEST_IN_CHINA
+      tags:
+        - "crupest/arch-code-server:latest"
     container_name: code-server
     restart: on-failure:3
     volumes:
@@ -76,13 +77,14 @@ services:
       - internal
 
   auto-certbot:
-    image: crupest/auto-certbot:latest
     build:
       context: ./docker/auto-certbot
       dockerfile: Dockerfile
       pull: true
       args:
         - CRUPEST_DOMAIN=$CRUPEST_DOMAIN
+      tags:
+        - "crupest/auto-certbot:latest"
     container_name: auto-certbot
     volumes:
       - "./data/certbot/certs:/etc/letsencrypt"
