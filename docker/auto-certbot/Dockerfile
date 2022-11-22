@@ -5,4 +5,4 @@ ARG CRUPEST_CERTBOT_RENEW_COMMAND=""
 RUN apk add --no-cache bash
 COPY daemon.bash /daemon.bash
 VOLUME ["/var/www/certbot", "/etc/letsencrypt", "/var/lib/letsencrypt"]
-ENTRYPOINT [ "bash", "/daemon.bash" ]
+ENTRYPOINT [ "/daemon.bash" ]
