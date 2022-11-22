@@ -76,19 +76,53 @@ def list_domains(domain: str) -> list:
     return [domain, *list_subdomains(domain)]
 
 
-def certbot_command_gen(domain: str, action, test=False) -> str:
+def certbot_command_gen(domain: str, action, /, test=False, no_docker=False, *, standalone=None, email=None, agree_tos=False) -> str:
     domains = list_domains(domain)
-    if action == 'create':
-        # create with standalone mode
-        return f'docker run -it --rm --name certbot -v "{project_abs_path}/data/certbot/certs:/etc/letsencrypt" -v "{project_abs_path}/data/certbot/data:/var/lib/letsencrypt" -p "0.0.0.0:80:80" certbot/certbot certonly --standalone -d {" -d ".join(domains)}{ " --test-cert --dry-run" if test else "" }'
-    elif action == 'expand':
-        # expand with webroot mode
-        return f'docker run -it --rm --name certbot -v "{project_abs_path}/data/certbot/certs:/etc/letsencrypt" -v "{project_abs_path}/data/certbot/data:/var/lib/letsencrypt" -v "{project_abs_path}/data/certbot/webroot:/var/www/certbot" certbot/certbot certonly --webroot -w /var/www/certbot -d {" -d ".join(domains)}{ " --test-cert --dry-run" if test else "" }'
-    elif action == 'renew':
-        # renew with webroot mode
-        return f'docker run -it --rm --name certbot -v "{project_abs_path}/data/certbot/certs:/etc/letsencrypt" -v "{project_abs_path}/data/certbot/data:/var/lib/letsencrypt" -v "{project_abs_path}/data/certbot/webroot:/var/www/certbot" certbot/certbot renew --webroot -w /var/www/certbot{ " --test-cert --dry-run" if test else "" }'
-    raise ValueError('Invalid action')
 
+    add_domain_option = True
+    if action == 'create':
+        if standalone == None:
+            standalone = True
+        certbot_action = "certonly"
+    elif action == 'expand':
+        if standalone == None:
+            standalone = False
+        certbot_action = "certonly"
+    elif action == 'renew':
+        if standalone == None:
+            standalone = False
+        add_domain_option = False
+        certbot_action = "renew"
+    else:
+        raise ValueError('Invalid action')
+    
+    if no_docker:
+        command = "certbot "
+    else:
+        expose_segment = ' -p "0.0.0.0:80:80"'
+        web_root_segment = ' -v "{project_abs_path}/data/certbot/webroot:/var/www/certbot"'
+        command = f'docker run -it --rm --name certbot -v "{project_abs_path}/data/certbot/certs:/etc/letsencrypt" -v "{project_abs_path}/data/certbot/data:/var/lib/letsencrypt"{ expose_segment if  standalone else web_root_segment} certbot/certbot '
+
+    command += certbot_action
+
+    if standalone:
+        command += " --standalone"
+    else:
+        command += ' --webroot -w /var/www/certbot'
+
+    if add_domain_option:
+        command += f' -d {" -d ".join(domains)}'
+
+    if email is not None:
+        command += f' --email {email}'
+
+    if agree_tos:
+        command += ' --agree-tos'
+
+    if test:
+        command += " --test-cert --dry-run"
+
+    return command
 
 def nginx_config_dir_check(dir_path: str, domain: str) -> list:
     good_files = [*non_template_files, "ssl.conf", *
