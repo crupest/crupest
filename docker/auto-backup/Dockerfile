@@ -1,10 +1,5 @@
-FROM alpine:latest AS coscli-downloader
-RUN apk add --no-cache bash curl jq
-COPY install-coscli.bash /install-coscli.bash
-RUN /install-coscli.bash
-
 FROM alpine:latest
-RUN apk add --no-cache coreutils bash tar xz
+RUN apk add --no-cache coreutils bash tar xz python3
 ARG CRUPEST_AUTO_BACKUP_INIT_DELAY=0
 ARG CRUPEST_AUTO_BACKUP_INTERVAL=1d
 ARG CRUPEST_AUTO_BACKUP_COS_SECRET_ID
@@ -17,8 +12,13 @@ ENV CRUPEST_AUTO_BACKUP_COS_SECRET_ID=${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}
 ENV CRUPEST_AUTO_BACKUP_COS_SECRET_KEY=${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}
 ENV CRUPEST_AUTO_BACKUP_COS_REGION=${CRUPEST_AUTO_BACKUP_COS_REGION}
 ENV CRUPEST_AUTO_BACKUP_BUCKET_NAME=${CRUPEST_AUTO_BACKUP_BUCKET_NAME}
-COPY --from=coscli-downloader /coscli /coscli
+# install pip and coscmd
+RUN python3 -m ensurepip && \
+    rm -r /usr/lib/python*/ensurepip && \
+    pip3 install --upgrade pip setuptools && \
+    pip3 install coscmd && \
+    rm -r /root/.cache
 COPY daemon.bash /daemon.bash
-VOLUME [ "/data", "/root/.cos.yaml" ]
+VOLUME [ "/data" ]
 STOPSIGNAL SIGINT
 ENTRYPOINT [ "/daemon.bash" ]
