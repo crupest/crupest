@@ -100,6 +100,23 @@ services:
     networks:
       - internal
 
+  auto-backup:
+    pull_policy: build
+    build:
+      context: ./docker/auto-backup
+      dockerfile: Dockerfile
+      pull: true
+      args: CRUPEST_AUTO_BACKUP_BUCKET_NAME=${CRUPEST_AUTO_BACKUP_BUCKET_NAME}
+      tags:
+        - "crupest/auto-backup:latest"
+      container_name: auto-backup
+    volumes:
+      - "./data:/data:ro"
+      - "./rclone.conf:/config/rclone/rclone.conf:ro"
+    restart: on-failure:3
+    networks:
+      - internal
+
   mailserver:
     image: docker.io/mailserver/docker-mailserver:latest
     pull_policy: always
