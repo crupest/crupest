@@ -1,5 +1,5 @@
-FROM rclone/rclone:latest
-RUN apk add --no-cache coreutils bash tar xz
+FROM alpine:latest
+RUN apk add --no-cache coreutils bash tar xz rclone
 ARG CRUPEST_AUTO_BACKUP_BUCKET_NAME
 ARG CRUPEST_AUTO_BACKUP_INIT_DELAY=0
 ARG CRUPEST_AUTO_BACKUP_INTERVAL=1d
