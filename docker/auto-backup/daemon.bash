@@ -34,7 +34,7 @@ function backup {
 
     echo "Use rclone to upload data..."
     # upload to remote
-    rclone copyto /tmp/data.tar.xz "mycos:$CRUPEST_AUTO_BACKUP_BUCKET_NAME/$current_time.tar.xz"
+    rclone --progress copyto /tmp/data.tar.xz "mycos:$CRUPEST_AUTO_BACKUP_BUCKET_NAME/$current_time.tar.xz"
 
     echo "Remove tmp file..."
     # remove tmp
@@ -55,4 +55,3 @@ while true; do
     echo "Sleep for $CRUPEST_AUTO_BACKUP_INTERVAL for next backup..."
     sleep "$CRUPEST_AUTO_BACKUP_INTERVAL"
 done
-
