@@ -8,15 +8,14 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-/coscli --version
 
-# Check xz and tar
+# Check xz, tar and coscmd
 xz --version
 tar --version
+coscmd --version
 
 # do not echo next command
-/coscli config set --secret_id "${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}" --secret_key "${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}"
-/coscli config add --alias "crupest-backup" --bucket "${CRUPEST_AUTO_BACKUP_BUCKET_NAME}" --region "${CRUPEST_AUTO_BACKUP_COS_REGION}"
+coscmd config -a "${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}" -s "${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}" -b "${CRUPEST_AUTO_BACKUP_BUCKET_NAME}" -r "${CRUPEST_AUTO_BACKUP_COS_REGION}"
 
 function backup {
     # Output "Begin backup..." in yellow and restore default
@@ -33,13 +32,13 @@ function backup {
     # Output /tmp/data.tar.xz size
     du -h /tmp/data.tar.xz | cut -f1 | xargs echo "Size of data.tar.xz:"
 
-    destination="cos://crupest-backup/$current_time.tar.xz"
+    destination="$current_time.tar.xz"
     echo "Use coscli to upload data to $destination ..."
     echo "Bucket name: ${CRUPEST_AUTO_BACKUP_BUCKET_NAME}"
     echo "Bucket region: ${CRUPEST_AUTO_BACKUP_COS_REGION}"
 
     # upload to remote
-    /coscli cp /tmp/data.tar.xz "$destination" 
+    coscmd upload /tmp/data.tar.xz "$destination" 
 
     echo "Remove tmp file..."
     # remove tmp
