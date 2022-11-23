@@ -14,7 +14,7 @@ fi
 xz --version
 tar --version
 
-bucket_yaml=$(/coscli config show | yq ".buckets[] | select(.alias == \"crupest-backup\")")
+bucket_yaml=$(yq ".buckets[] | select(.alias == \"crupest-backup\")" ~/.cos.yaml)
 
 # check bucket_yaml is not empty
 if [[ -z "$bucket_yaml" ]]; then

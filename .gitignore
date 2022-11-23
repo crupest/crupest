@@ -3,3 +3,4 @@ mailserver.env
 data
 nginx-config
 __pycache__
+coscli-config.yaml
