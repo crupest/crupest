@@ -32,6 +32,10 @@ function backup {
     # tar and xz /data to tmp
     tar -cJf /tmp/data.tar.xz -C / data
 
+    # Output /tmp/data.tar.xz size
+    size=$(du -h /tmp/data.tar.xz)
+    echo "File data.tar.xz created with size of $size"
+
     destination="mycos:$CRUPEST_AUTO_BACKUP_BUCKET_NAME/$current_time.tar.xz"
     echo "Use rclone to upload data to $destination ..."
     # upload to remote
