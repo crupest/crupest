@@ -113,7 +113,7 @@ services:
     container_name: auto-backup
     volumes:
       - "./data:/data:ro"
-      - "./rclone.conf:/config/rclone/rclone.conf:ro"
+      - "./rclone.conf:/root/.config/rclone/rclone.conf:ro"
     restart: on-failure:3
     networks:
       - internal
