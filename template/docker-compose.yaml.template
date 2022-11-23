@@ -115,8 +115,7 @@ services:
         - "crupest/auto-backup:latest"
     container_name: auto-backup
     volumes:
-      - "./data:/data"
-      - "./coscli-config.yaml:/root/.cos.yaml:ro"
+      - "./data:/data:ro"
     restart: on-failure:3
     networks:
       - internal
