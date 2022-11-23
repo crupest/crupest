@@ -106,6 +106,11 @@ services:
       context: ./docker/auto-backup
       dockerfile: Dockerfile
       pull: true
+      args:
+        - CRUPEST_AUTO_BACKUP_COS_SECRET_ID=${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}
+        - CRUPEST_AUTO_BACKUP_COS_SECRET_KEY=${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}
+        - CRUPEST_AUTO_BACKUP_COS_REGION=${CRUPEST_AUTO_BACKUP_COS_REGION}
+        - CRUPEST_AUTO_BACKUP_BUCKET_NAME=${CRUPEST_AUTO_BACKUP_BUCKET_NAME}
       tags:
         - "crupest/auto-backup:latest"
     container_name: auto-backup

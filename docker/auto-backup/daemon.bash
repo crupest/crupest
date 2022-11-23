@@ -14,16 +14,9 @@ fi
 xz --version
 tar --version
 
-bucket_yaml=$(yq ".buckets[] | select(.alias == \"crupest-backup\")" ~/.cos.yaml)
-
-# check bucket_yaml is not empty
-if [[ -z "$bucket_yaml" ]]; then
-    echo "Bucket crupest-backup not found. Please check your coscli config." 1>&2
-    exit 1
-fi
-
-bucket_name=$(echo "$bucket_yaml" | yq ".name")
-bucket_region=$(echo "$bucket_yaml" | yq ".region")
+# do not echo next command
+/coscli set --secret_id "${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}" --secret_key "${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}"
+/coscli add --alias "crupest-backup" --bucket "${CRUPEST_AUTO_BACKUP_BUCKET_NAME}" --region "${CRUPEST_AUTO_BACKUP_COS_REGION}"
 
 function backup {
     # Output "Begin backup..." in yellow and restore default
@@ -42,8 +35,8 @@ function backup {
 
     destination="cos://crupest-backup/$current_time.tar.xz"
     echo "Use coscli to upload data to $destination ..."
-    echo "Bucket name: $bucket_name"
-    echo "Bucket region: $bucket_region"
+    echo "Bucket name: ${CRUPEST_AUTO_BACKUP_BUCKET_NAME}"
+    echo "Bucket region: ${CRUPEST_AUTO_BACKUP_COS_REGION}"
 
     # upload to remote
     /coscli cp /tmp/data.tar.xz "$destination" 
