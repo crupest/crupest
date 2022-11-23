@@ -14,7 +14,7 @@ certbot --version
 # Check CRUPEST_AUTO_CERTBOT_RENEW_COMMAND is defined.
 if [ -z "$CRUPEST_AUTO_CERTBOT_RENEW_COMMAND" ]; then
     echo "CRUPEST_AUTO_CERTBOT_RENEW_COMMAND is not defined or empty"
-    CRUPEST_AUTO_CERTBOT_RENEW_COMMAND="certbot renew --webroot -w /var/www/certbot"
+    CRUPEST_AUTO_CERTBOT_RENEW_COMMAND="certbot renew -n --webroot -w /var/www/certbot"
     printf "Will use:\n%s\n" "$CRUPEST_AUTO_CERTBOT_RENEW_COMMAND"
 else
     printf "CRUPEST_AUTO_CERTBOT_RENEW_COMMAND is defined as:\n%s\n" "$CRUPEST_AUTO_CERTBOT_RENEW_COMMAND"
