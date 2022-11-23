@@ -85,8 +85,8 @@ services:
       pull: true
       args:
         - CRUPEST_DOMAIN=$CRUPEST_DOMAIN
-        - CRUPEST_AUTO_CERTBOT_ADDITIONAL_PACKAGES="docker-cli"
-        - CRUPEST_AUTO_CERTBOT_POST_HOOK="docker restart nginx"
+        - CRUPEST_AUTO_CERTBOT_ADDITIONAL_PACKAGES=docker-cli
+        - CRUPEST_AUTO_CERTBOT_POST_HOOK=docker restart nginx
       tags:
         - "crupest/auto-certbot:latest"
     container_name: auto-certbot
