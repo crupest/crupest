@@ -54,7 +54,7 @@ function check_and_renew_cert {
     # Do we have rest time?
     if [ $rest_time_in_second -gt 0 ]; then
         # Sleep 1 hour.
-        echo "I'm going to sleop for 1 day to check again."
+        echo "I'm going to sleep for 1 day to check again."
         sleep 1d
     else
         # No, renew now.
