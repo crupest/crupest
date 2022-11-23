@@ -303,13 +303,13 @@ config_var_list: list = [
     ConfigVar("CRUPEST_IN_CHINA",
               "set to true if you are in China, some network optimization will be applied", lambda: "false"),
     ConfigVar("CRUPEST_AUTO_BACKUP_COS_SECRET_ID",
-              "access key id for Tencent COS, used for auto backup", "Please input your Tencent COS access key id for backup:"),
+              "access key id for Tencent COS, used for auto backup", "Please input your Tencent COS access key id for backup"),
     ConfigVar("CRUPEST_AUTO_BACKUP_COS_SECRET_KEY",
-              "access key secret for Tencent COS, used for auto backup", "Please input your Tencent COS access key for backup:"),
+              "access key secret for Tencent COS, used for auto backup", "Please input your Tencent COS access key for backup"),
     ConfigVar("CRUPEST_AUTO_BACKUP_COS_REGION",
-              "region for Tencent COS, used for auto backup", "Please input your Tencent COS region for backup:", "ap-hongkong"),
+              "region for Tencent COS, used for auto backup", "Please input your Tencent COS region for backup", "ap-hongkong"),
     ConfigVar("CRUPEST_AUTO_BACKUP_BUCKET_NAME",
-              "bucket name for Tencent COS, used for auto backup", "Please input your Tencent COS bucket name for backup:")
+              "bucket name for Tencent COS, used for auto backup", "Please input your Tencent COS bucket name for backup")
 ]
 
 config_var_name_set = set([config_var.name for config_var in config_var_list])

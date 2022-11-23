@@ -15,8 +15,8 @@ xz --version
 tar --version
 
 # do not echo next command
-/coscli set --secret_id "${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}" --secret_key "${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}"
-/coscli add --alias "crupest-backup" --bucket "${CRUPEST_AUTO_BACKUP_BUCKET_NAME}" --region "${CRUPEST_AUTO_BACKUP_COS_REGION}"
+/coscli config set --secret_id "${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}" --secret_key "${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}"
+/coscli config add --alias "crupest-backup" --bucket "${CRUPEST_AUTO_BACKUP_BUCKET_NAME}" --region "${CRUPEST_AUTO_BACKUP_COS_REGION}"
 
 function backup {
     # Output "Begin backup..." in yellow and restore default
