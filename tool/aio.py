@@ -7,6 +7,7 @@ import grp
 import sys
 import argparse
 import shutil
+import json
 import urllib.request
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
@@ -90,14 +91,38 @@ def check_domain_is_defined() -> str:
         exit(1)
 
 
+def get_coscli_download_url() -> str:
+    request = urllib.request.urlopen(
+        "https://api.github.com/repos/tencentyun/coscli/releases/latest")
+    response = request.read()
+    # parse with json
+    data = json.loads(response)
+    assets = data["assets"]
+    for asset in assets:
+        if asset["name"] == "coscli-linux":
+            return asset["browser_download_url"]
+    raise ValueError("Cannot find coscli-linux in the latest release.")
+
+
 def download_tools():
+    # if we are not linux, we prompt the user
+    if sys.platform != "linux":
+        console.print(
+            "You are not running this script on linux. The tools will not work.", style="yellow")
+        if not Confirm.ask("Do you want to continue?", default=False, console=console):
+            exit(0)
+
     SCRIPTS = [("docker-mailserver setup script", "docker-mailserver-setup.sh",
-                "https://raw.githubusercontent.com/docker-mailserver/docker-mailserver/master/setup.sh")]
+                "https://raw.githubusercontent.com/docker-mailserver/docker-mailserver/master/setup.sh"),
+               ("coscli", "coscli", get_coscli_download_url)]
     for index, script in enumerate(SCRIPTS):
         number = index + 1
         total = len(SCRIPTS)
         print_order(number, total)
         name, filename, url = script
+        # if url is callable, call it
+        if callable(url):
+            url = url()
         path = os.path.join(tool_dir, filename)
         skip = False
         if os.path.exists(path):
