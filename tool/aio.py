@@ -240,7 +240,7 @@ for filename in template_name_list:
 
 
 class ConfigVar:
-    def __init__(self, name: str, description: str, default_value_generator):
+    def __init__(self, name: str, description: str, default_value_generator, /, default_value_for_ask=None):
         """Create a config var.
 
         Args:
@@ -251,10 +251,11 @@ class ConfigVar:
         self.name = name
         self.description = description
         self.default_value_generator = default_value_generator
+        self.default_value_for_ask = default_value_for_ask
 
     def get_default_value(self):
         if isinstance(self.default_value_generator, str):
-            return Prompt.ask(self.default_value_generator, console=console)
+            return Prompt.ask(self.default_value_generator, console=console, default=self.default_value_for_ask)
         else:
             return self.default_value_generator()
 
@@ -275,7 +276,15 @@ config_var_list: list = [
     ConfigVar("CRUPEST_HALO_DB_PASSWORD",
               "password for halo h2 database, once used never change it", lambda: os.urandom(8).hex()),
     ConfigVar("CRUPEST_IN_CHINA",
-              "set to true if you are in China, some network optimization will be applied", lambda: "false")
+              "set to true if you are in China, some network optimization will be applied", lambda: "false"),
+    ConfigVar("CRUPEST_AUTO_BACKUP_COS_ACCESS_KEY_ID",
+              "access key id for Tencent COS, used for auto backup", "Please input your Tencent COS access key id for backup:"),
+    ConfigVar("CRUPEST_AUTO_BACKUP_COS_SECRET_ACCESS_KEY",
+              "access key secret for Tencent COS, used for auto backup", "Please input your Tencent COS access key for backup:"),
+    ConfigVar("CRUPEST_AUTO_BACKUP_COS_REGION",
+              "region for Tencent COS, used for auto backup", "Please input your Tencent COS region for backup:", "ap-hongkong"),
+    ConfigVar("CRUPEST_AUTO_BACKUP_BUCKET_NAME",
+              "bucket name for Tencent COS, used for auto backup", "Please input your Tencent COS bucket name for backup:")
 ]
 
 config_var_name_set = set([config_var.name for config_var in config_var_list])
