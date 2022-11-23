@@ -112,7 +112,7 @@ services:
         - "crupest/auto-backup:latest"
     container_name: auto-backup
     volumes:
-      - "./data:/data:ro"
+      - "./data:/data"
       - "./rclone.conf:/root/.config/rclone/rclone.conf:ro"
     restart: on-failure:3
     networks:
