@@ -32,10 +32,10 @@ function backup {
     # tar and xz /data to tmp
     tar -cJf /tmp/data.tar.xz -C / data
 
-    destination="mycos:$CRUPEST_AUTO_BACKUP_BUCKET_NAME/$current_time/data.tar.xz"
+    destination="mycos:$CRUPEST_AUTO_BACKUP_BUCKET_NAME/$current_time.tar.xz"
     echo "Use rclone to upload data to $destination ..."
     # upload to remote
-    rclone --progress copyto /tmp/data.tar.xz "$destination"
+    rclone -v copyto /tmp/data.tar.xz "$destination"
 
     echo "Remove tmp file..."
     # remove tmp
