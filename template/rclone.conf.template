@@ -1,7 +1,0 @@
-[mycos]
-type = s3
-provider = TencentCOS
-access_key_id = ${CRUPEST_AUTO_BACKUP_COS_ACCESS_KEY_ID}
-secret_access_key = ${CRUPEST_AUTO_BACKUP_COS_SECRET_ACCESS_KEY}
-endpoint = cos.${CRUPEST_AUTO_BACKUP_COS_REGION}.myqcloud.com
-acl = default
