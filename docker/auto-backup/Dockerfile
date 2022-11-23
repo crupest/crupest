@@ -1,5 +1,5 @@
 FROM alpine:latest
-RUN apk add --no-cache coreutils bash tar xz python3
+RUN apk add --no-cache build-base coreutils bash tar xz python3
 ARG CRUPEST_AUTO_BACKUP_INIT_DELAY=0
 ARG CRUPEST_AUTO_BACKUP_INTERVAL=1d
 ARG CRUPEST_AUTO_BACKUP_COS_SECRET_ID
@@ -17,7 +17,8 @@ RUN python3 -m ensurepip && \
     rm -r /usr/lib/python*/ensurepip && \
     pip3 install --upgrade pip setuptools && \
     pip3 install coscmd && \
-    rm -r /root/.cache
+    rm -r /root/.cache && \
+    coscmd --version
 COPY daemon.bash /daemon.bash
 VOLUME [ "/data" ]
 STOPSIGNAL SIGINT
