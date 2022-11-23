@@ -1,23 +1,34 @@
 #!/usr/bin/env bash
 
+set -e
+
 # Check I'm root.
 if [[ $EUID -ne 0 ]]; then
     echo "This script must be run as root" 1>&2
     exit 1
 fi
 
-# Check CRUPEST_CERTBOT_RENEW_COMMAND is defined.
-if [ -z "$CRUPEST_CERTBOT_RENEW_COMMAND" ]; then
-    echo "CRUPEST_CERTBOT_RENEW_COMMAND is not defined or empty"
-    CRUPEST_CERTBOT_RENEW_COMMAND="certbot renew --webroot -w /var/www/certbot"
-    printf "Will use:\n%s\n" "$CRUPEST_CERTBOT_RENEW_COMMAND"
+# Check certbot version.
+certbot --version
+
+# Check CRUPEST_AUTO_CERTBOT_RENEW_COMMAND is defined.
+if [ -z "$CRUPEST_AUTO_CERTBOT_RENEW_COMMAND" ]; then
+    echo "CRUPEST_AUTO_CERTBOT_RENEW_COMMAND is not defined or empty"
+    CRUPEST_AUTO_CERTBOT_RENEW_COMMAND="certbot renew --webroot -w /var/www/certbot"
+    printf "Will use:\n%s\n" "$CRUPEST_AUTO_CERTBOT_RENEW_COMMAND"
 else
-    printf "CRUPEST_CERTBOT_RENEW_COMMAND is defined as:\n%s\n" "$CRUPEST_CERTBOT_RENEW_COMMAND"
+    printf "CRUPEST_AUTO_CERTBOT_RENEW_COMMAND is defined as:\n%s\n" "$CRUPEST_AUTO_CERTBOT_RENEW_COMMAND"
 fi
 
 # Check CRUPEST_CERT_PATH, default to /etc/letsencrypt/live/$CRUPEST_DOMAIN/fullchain.pem
 if [ -z "$CRUPEST_CERT_PATH" ]; then
     CRUPEST_CERT_PATH="/etc/letsencrypt/live/$CRUPEST_DOMAIN/fullchain.pem"
+fi
+
+# Check CRUPEST_CERT_PATH exists.
+if [ ! -f "$CRUPEST_CERT_PATH" ]; then
+    echo "Cert file does not exist"
+    exit 1
 fi
 
 function check_and_renew_cert {
@@ -48,8 +59,12 @@ function check_and_renew_cert {
     else
         # No, renew now.
         echo "Renewing now..."
-        # Run CRUPEST_CERTBOT_RENEW_COMMAND
-        $CRUPEST_CERTBOT_RENEW_COMMAND
+        # Run CRUPEST_AUTO_CERTBOT_RENEW_COMMAND
+        if [ -n "$CRUPEST_AUTO_CERTBOT_POST_HOOK" ]; then
+            $CRUPEST_AUTO_CERTBOT_RENEW_COMMAND --post-hook "$CRUPEST_AUTO_CERTBOT_POST_HOOK"
+        else
+            $CRUPEST_AUTO_CERTBOT_RENEW_COMMAND
+        fi
     fi
 }
 
