@@ -10,4 +10,5 @@ ENV CRUPEST_AUTO_CERTBOT_RENEW_COMMAND=${CRUPEST_AUTO_CERTBOT_RENEW_COMMAND}
 RUN apk add --no-cache coreutils bash ${CRUPEST_AUTO_CERTBOT_ADDITIONAL_PACKAGES} 
 COPY daemon.bash /daemon.bash
 VOLUME ["/var/www/certbot", "/etc/letsencrypt", "/var/lib/letsencrypt"]
+STOPSIGNAL SIGINT
 ENTRYPOINT [ "/daemon.bash" ]
