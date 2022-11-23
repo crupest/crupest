@@ -1,0 +1,9 @@
+cos:
+  base:
+    secretid: ${CRUPEST_AUTO_BACKUP_COS_ACCESS_KEY_ID}
+    secretkey: ${CRUPEST_AUTO_BACKUP_COS_SECRET_ACCESS_KEY}
+    sessiontoken: ""
+  buckets:
+  - name: ${CRUPEST_AUTO_BACKUP_BUCKET_NAME}
+    alias: crupest-backup
+    region: ${CRUPEST_AUTO_BACKUP_COS_REGION}

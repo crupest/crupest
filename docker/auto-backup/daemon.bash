@@ -8,17 +8,22 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-# Check if CRUPEST_AUTO_BACKUP_BUCKET_NAME is defined.
-if [[ -z "$CRUPEST_AUTO_BACKUP_BUCKET_NAME" ]]; then
-    echo "CRUPEST_AUTO_BACKUP_BUCKET_NAME is not defined or empty"
-    exit 1
-fi
-
-rclone --version
+/coscli --version
 
 # Check xz and tar
 xz --version
 tar --version
+
+bucket_yaml=$(/coscli config show | yq ".buckets[] | select(.alias == \"crupest-backup\")")
+
+# check bucket_yaml is not empty
+if [[ -z "$bucket_yaml" ]]; then
+    echo "Bucket crupest-backup not found. Please check your coscli config." 1>&2
+    exit 1
+fi
+
+bucket_name=$(echo "$bucket_yaml" | yq ".name")
+bucket_region=$(echo "$bucket_yaml" | yq ".region")
 
 function backup {
     # Output "Begin backup..." in yellow and restore default
@@ -33,12 +38,15 @@ function backup {
     tar -cJf /tmp/data.tar.xz -C / data
 
     # Output /tmp/data.tar.xz size
-    du -h /tmp/data.tar.xz
+    du -h /tmp/data.tar.xz | cut -f1 | xargs echo "Size of data.tar.xz:"
 
-    destination="mycos:$CRUPEST_AUTO_BACKUP_BUCKET_NAME/$current_time.tar.xz"
-    echo "Use rclone to upload data to $destination ..."
+    destination="cos://crupest-backup/$current_time.tar.xz"
+    echo "Use coscli to upload data to $destination ..."
+    echo "Bucket name: $bucket_name"
+    echo "Bucket region: $bucket_region"
+
     # upload to remote
-    rclone -vv copyto /tmp/data.tar.xz "$destination"
+    /coscli cp /tmp/data.tar.xz "$destination" 
 
     echo "Remove tmp file..."
     # remove tmp
