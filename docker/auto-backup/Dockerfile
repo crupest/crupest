@@ -20,4 +20,5 @@ ENV CRUPEST_AUTO_BACKUP_BUCKET_NAME=${CRUPEST_AUTO_BACKUP_BUCKET_NAME}
 COPY --from=coscli-downloader /coscli /coscli
 COPY daemon.bash /daemon.bash
 VOLUME [ "/data", "/root/.cos.yaml" ]
+STOPSIGNAL SIGINT
 ENTRYPOINT [ "/daemon.bash" ]
