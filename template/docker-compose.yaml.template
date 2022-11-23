@@ -37,6 +37,7 @@ services:
       - internal
 
   code-server:
+    pull_policy: build
     build:
       context: ./docker/arch-code-server
       dockerfile: Dockerfile
@@ -77,6 +78,7 @@ services:
       - internal
 
   auto-certbot:
+    pull_policy: build
     build:
       context: ./docker/auto-certbot
       dockerfile: Dockerfile
