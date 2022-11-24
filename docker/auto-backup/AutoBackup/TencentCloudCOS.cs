@@ -19,16 +19,16 @@ public static class TencentCloudCOSHelper
 
     public class RequestInfo
     {
-        public RequestInfo(string method, string uri, IEnumerable<KeyValuePair<string, string>> parameters, IEnumerable<KeyValuePair<string, string>> headers)
+        public RequestInfo(string method, string urlPathname, IEnumerable<KeyValuePair<string, string>> parameters, IEnumerable<KeyValuePair<string, string>> headers)
         {
             Method = method;
-            Uri = uri;
+            UrlPathname = urlPathname;
             Parameters = new Dictionary<string, string>(parameters);
             Headers = new Dictionary<string, string>(headers);
         }
 
         public string Method { get; }
-        public string Uri { get; }
+        public string UrlPathname { get; }
         public IReadOnlyDictionary<string, string> Parameters { get; }
         public IReadOnlyDictionary<string, string> Headers { get; }
     }
@@ -57,7 +57,7 @@ public static class TencentCloudCOSHelper
             if (raw == null)
                 return new List<(string key, string value)>();
 
-            var sorted = raw.Select(p => (key: p.Key.ToLower(), value: WebUtility.UrlEncode(p.Value))).ToList();
+            var sorted = raw.Select(p => (key: WebUtility.UrlEncode(p.Key.ToLower()), value: WebUtility.UrlEncode(p.Value))).ToList();
             sorted.Sort((left, right) => string.CompareOrdinal(left.key, right.key));
             return sorted;
         }
@@ -65,53 +65,45 @@ public static class TencentCloudCOSHelper
         var transformedParameters = Transform(request.Parameters);
         var transformedHeaders = Transform(request.Headers);
 
-        List<(string, string)> result = new List<(string, string)>();
 
         const string signAlgorithm = "sha1";
-        result.Add(("q-sign-algorithm", signAlgorithm));
 
-        result.Add(("q-ak", credentials.SecretId));
-
-        var signTime = $"{signValidTime.Start.ToUnixTimeSeconds().ToString()};{signValidTime.End.ToUnixTimeSeconds().ToString()}";
-        var keyTime = signTime;
-        result.Add(("q-sign-time", signTime));
-        result.Add(("q-key-time", keyTime));
-
-        result.Add(("q-header-list", string.Join(';', transformedHeaders.Select(h => h.key))));
-        result.Add(("q-url-param-list", string.Join(';', transformedParameters.Select(p => p.key))));
-
-        using HMACSHA1 hmac = new HMACSHA1();
-
-        string ByteArrayToString(byte[] bytes)
+        static string ByteArrayToString(byte[] bytes)
         {
             return BitConverter.ToString(bytes).Replace("-", "").ToLower();
         }
 
-        hmac.Key = Encoding.UTF8.GetBytes(credentials.SecretKey);
+        var keyTime = $"{signValidTime.Start.ToUnixTimeSeconds().ToString()};{signValidTime.End.ToUnixTimeSeconds().ToString()}";
+        using HMACSHA1 hmac = new HMACSHA1(Encoding.ASCII.GetBytes(credentials.SecretKey));
         var signKey = ByteArrayToString(hmac.ComputeHash(Encoding.UTF8.GetBytes(keyTime)));
 
-        string Join(IEnumerable<(string key, string value)> raw)
+        static string Join(IEnumerable<(string key, string value)> raw)
         {
             return string.Join('&', raw.Select(p => string.Concat(p.key, "=", p.value)));
         }
 
+        var httpParameters = Join(transformedParameters);
+        var urlParamList = string.Join(';', transformedParameters.Select(p => p.key));
+        var httpHeaders = Join(transformedHeaders);
+        var headerList = string.Join(';', transformedHeaders.Select(h => h.key));
+
         var httpString = new StringBuilder()
             .Append(request.Method.ToLower()).Append('\n')
-            .Append(request.Uri).Append('\n')
-            .Append(Join(transformedParameters)).Append('\n')
-            .Append(Join(transformedHeaders)).Append('\n')
+            .Append(request.UrlPathname).Append('\n')
+            .Append(httpParameters).Append('\n')
+            .Append(httpHeaders).Append('\n')
             .ToString();
 
+        using var sha1 = SHA1.Create();
         string Sha1(string data)
         {
-            using var sha1 = SHA1.Create();
             var result = sha1.ComputeHash(Encoding.UTF8.GetBytes(data));
             return ByteArrayToString(result);
         }
 
         var stringToSign = new StringBuilder()
             .Append(signAlgorithm).Append('\n')
-            .Append(signTime).Append('\n')
+            .Append(keyTime).Append('\n')
             .Append(Sha1(httpString)).Append('\n')
             .ToString();
 
@@ -119,8 +111,15 @@ public static class TencentCloudCOSHelper
         var signature = ByteArrayToString(hmac.ComputeHash(
             Encoding.UTF8.GetBytes(stringToSign)));
 
-        result.Add(("q-signature", signature));
 
+        List<(string, string)> result = new List<(string, string)>();
+        result.Add(("q-sign-algorithm", signAlgorithm));
+        result.Add(("q-ak", credentials.SecretId));
+        result.Add(("q-sign-time", keyTime));
+        result.Add(("q-key-time", keyTime));
+        result.Add(("q-header-list", headerList));
+        result.Add(("q-url-param-list", urlParamList));
+        result.Add(("q-signature", signature));
         return Join(result);
     }
 
@@ -140,7 +139,7 @@ public static class TencentCloudCOSHelper
         request.Headers.Host = host;
         request.Headers.Date = DateTimeOffset.Now;
         request.Headers.TryAddWithoutValidation("Authorization", GenerateSign(credentials, new RequestInfo(
-            "head", "/" + encodedKey, new Dictionary<string, string>(),
+            "head", "/" + key, new Dictionary<string, string>(),
             new Dictionary<string, string>
             {
                 ["Host"] = host
@@ -200,13 +199,13 @@ public static class TencentCloudCOSHelper
         };
 
         httpRequest.Headers.TryAddWithoutValidation("Authorization", GenerateSign(credentials, new RequestInfo(
-            "put", "/" + encodedKey, new Dictionary<string, string>(), signedHeaders
+            "put", "/" + key, new Dictionary<string, string>(), signedHeaders
         ), new TimeDuration(DateTimeOffset.Now, DateTimeOffset.Now.AddMinutes(10))));
 
         using var client = new HttpClient();
         using var response = await client.SendAsync(httpRequest);
 
         if (!response.IsSuccessStatusCode)
-            throw new Exception($"Not success status code. {response.ToString()}");
+            throw new Exception($"Not success status code: {response.StatusCode}\n{await response.Content.ReadAsStringAsync()}");
     }
 }

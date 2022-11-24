@@ -1,11 +1,4 @@
-﻿// Check I'm root
-if (Environment.UserName != "root")
-{
-    Console.WriteLine("You must run this program as root");
-    Environment.Exit(1);
-}
-
-// Read args to determine what file to upload
+﻿// Read args to determine what file to upload
 
 const string DefaultUploadFilePath = "/tmp/data.tar.xz";
 string uploadFilePath = DefaultUploadFilePath;
