@@ -133,6 +133,7 @@ uploadTask.progressCallback = delegate (long completed, long total)
 try
 {
     COSXMLUploadTask.UploadTaskResult result = await transferManager.UploadAsync(uploadTask);
+    Console.WriteLine(result.GetResultInfo());
     Console.WriteLine("Upload completed!");
 }
 catch (Exception e)
