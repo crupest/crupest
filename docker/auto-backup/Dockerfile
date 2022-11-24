@@ -1,5 +1,10 @@
-FROM alpine:latest
-RUN apk add --no-cache build-base coreutils bash tar xz python3
+FROM mcr.microsoft.com/dotnet/sdk:7.0-alpine AS build
+COPY AutoBackup /AutoBackup
+WORKDIR /AutoBackup
+RUN dotnet publish AutoBackup.csproj --configuration Release --output ./publish/ -r linux-x64 --self-contained false
+
+FROM mcr.microsoft.com/dotnet/aspnet:7.0-alpine
+RUN apk add --no-cache coreutils bash tar xz
 ARG CRUPEST_AUTO_BACKUP_INIT_DELAY=0
 ARG CRUPEST_AUTO_BACKUP_INTERVAL=1d
 ARG CRUPEST_AUTO_BACKUP_COS_SECRET_ID
@@ -12,14 +17,8 @@ ENV CRUPEST_AUTO_BACKUP_COS_SECRET_ID=${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}
 ENV CRUPEST_AUTO_BACKUP_COS_SECRET_KEY=${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}
 ENV CRUPEST_AUTO_BACKUP_COS_REGION=${CRUPEST_AUTO_BACKUP_COS_REGION}
 ENV CRUPEST_AUTO_BACKUP_BUCKET_NAME=${CRUPEST_AUTO_BACKUP_BUCKET_NAME}
-# install pip and coscmd
-RUN python3 -m ensurepip && \
-    rm -r /usr/lib/python*/ensurepip && \
-    pip3 install --upgrade pip setuptools && \
-    pip3 install coscmd && \
-    rm -r /root/.cache && \
-    coscmd --version
-COPY daemon.bash /daemon.bash
 VOLUME [ "/data" ]
+COPY daemon.bash /daemon.bash
+COPY --from=build /AutoBackup/publish /AutoBackup
 STOPSIGNAL SIGINT
 ENTRYPOINT [ "/daemon.bash" ]
