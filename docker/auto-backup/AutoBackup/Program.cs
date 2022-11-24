@@ -1,8 +1,4 @@
-﻿using COSXML;
-using COSXML.Auth;
-using COSXML.Transfer;
-
-// Check I'm root
+﻿// Check I'm root
 if (Environment.UserName != "root")
 {
     Console.WriteLine("You must run this program as root");
@@ -67,6 +63,13 @@ if (File.GetAttributes(uploadFilePath).HasFlag(FileAttributes.Directory))
     Environment.Exit(4);
 }
 
+// Check the upload file is not bigger than 5G
+if (new FileInfo(uploadFilePath).Length > 5L * 1024L * 1024L * 1024L)
+{
+    Console.Error.WriteLine($"The file {uploadFilePath} is bigger than 5G, which is not support now.");
+    Environment.Exit(5);
+}
+
 // Get config from environment variables
 var configNameList = new List<string>{
     "CRUPEST_AUTO_BACKUP_COS_SECRET_ID",
@@ -87,23 +90,12 @@ foreach (var configName in configNameList)
     config.Add(configName, configValue);
 }
 
-var cosConfig = new CosXmlConfig.Builder()
-    .IsHttps(true)
-    .SetRegion(config["CRUPEST_AUTO_BACKUP_COS_REGION"])
-    .Build();
+var region = config["CRUPEST_AUTO_BACKUP_COS_REGION"];
+var secretId = config["CRUPEST_AUTO_BACKUP_COS_SECRET_ID"];
+var secretKey = config["CRUPEST_AUTO_BACKUP_COS_SECRET_KEY"];
+var bucketName = config["CRUPEST_AUTO_BACKUP_BUCKET_NAME"];
 
-QCloudCredentialProvider cosCredentialProvider =
-    new DefaultQCloudCredentialProvider(
-        config["CRUPEST_AUTO_BACKUP_COS_SECRET_ID"],
-        config["CRUPEST_AUTO_BACKUP_COS_SECRET_KEY"],
-        60
-    );
-
-CosXml cosXml = new CosXmlServer(cosConfig, cosCredentialProvider);
-
-TransferConfig transferConfig = new TransferConfig();
-
-TransferManager transferManager = new TransferManager(cosXml, transferConfig);
+var credentials = new TencentCloudCOSHelper.Credentials(secretId, secretKey);
 
 if (uploadDestinationPath is null)
 {
@@ -121,23 +113,16 @@ Console.WriteLine($"Upload COS region: {config["CRUPEST_AUTO_BACKUP_COS_REGION"]
 Console.WriteLine($"Upload bucket name: {config["CRUPEST_AUTO_BACKUP_BUCKET_NAME"]}");
 Console.WriteLine($"Upload file destination: {uploadDestinationPath}");
 
+using var fileStream = File.OpenRead(uploadFilePath);
+
 // 上传对象
-COSXMLUploadTask uploadTask = new COSXMLUploadTask(config["CRUPEST_AUTO_BACKUP_BUCKET_NAME"], uploadDestinationPath);
-uploadTask.SetSrcPath(uploadFilePath);
-
-uploadTask.progressCallback = delegate (long completed, long total)
-{
-    Console.WriteLine(String.Format("progress = {0:##.##}%", completed * 100.0 / total));
-};
-
 try
 {
-    COSXMLUploadTask.UploadTaskResult result = await transferManager.UploadAsync(uploadTask);
-    Console.WriteLine(result.GetResultInfo());
+    await TencentCloudCOSHelper.PutObject(credentials, region, bucketName, uploadDestinationPath, fileStream);
     Console.WriteLine("Upload completed!");
 }
 catch (Exception e)
 {
-    Console.Error.WriteLine("CosException: " + e);
+    Console.Error.WriteLine("Exception: " + e);
     Environment.Exit(6);
 }
