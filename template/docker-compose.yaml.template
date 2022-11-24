@@ -155,7 +155,7 @@ services:
       retries: 0
 
 networks:
-  - halo-network
-  - timeline-network
-  - code-server-network
-  - auto-certbot-network
+  halo-network:
+  timeline-network:
+  code-server-network:
+  auto-certbot-network:
