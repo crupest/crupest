@@ -84,6 +84,7 @@ foreach (var configName in configNameList)
         Console.Error.WriteLine($"Environment variable {configName} is required.");
         Environment.Exit(5);
     }
+    config.Add(configName, configValue);
 }
 
 var cosConfig = new CosXmlConfig.Builder()
