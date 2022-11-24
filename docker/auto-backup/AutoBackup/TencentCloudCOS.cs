@@ -160,7 +160,7 @@ public static class TencentCloudCOSHelper
 
     public static async Task PutObject(Credentials credentials, string region, string bucket, string key, Stream dataStream)
     {
-        if (dataStream.CanSeek)
+        if (!dataStream.CanSeek)
         {
             throw new ArgumentException("Data stream must be seekable.");
         }
@@ -169,6 +169,8 @@ public static class TencentCloudCOSHelper
         {
             throw new ArgumentException("Data stream must be smaller than 5GB.");
         }
+
+        dataStream.Seek(0, SeekOrigin.Begin);
 
         var host = GetHost(bucket, region);
         var encodedKey = WebUtility.UrlEncode(key);
