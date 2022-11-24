@@ -95,7 +95,7 @@ def certbot_command_gen(domain: str, action, /, test=False, no_docker=False, *, 
         certbot_action = "renew"
     else:
         raise ValueError('Invalid action')
-    
+
     if no_docker:
         command = "certbot "
     else:
@@ -124,7 +124,10 @@ def certbot_command_gen(domain: str, action, /, test=False, no_docker=False, *, 
 
     return command
 
+
 def nginx_config_dir_check(dir_path: str, domain: str) -> list:
+    if not os.path.exists(dir_path):
+        return []
     good_files = [*non_template_files, "ssl.conf", *
                   [f"{full_domain}.conf" for full_domain in list_domains(domain)]]
     bad_files = []
