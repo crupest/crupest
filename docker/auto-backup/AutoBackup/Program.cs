@@ -113,7 +113,7 @@ Console.WriteLine($"Upload COS region: {config["CRUPEST_AUTO_BACKUP_COS_REGION"]
 Console.WriteLine($"Upload bucket name: {config["CRUPEST_AUTO_BACKUP_BUCKET_NAME"]}");
 Console.WriteLine($"Upload file destination: {uploadDestinationPath}");
 
-using var fileStream = File.OpenRead(uploadFilePath);
+await using var fileStream = new FileStream(uploadFilePath, FileMode.Open, FileAccess.Read);
 
 // 上传对象
 try
