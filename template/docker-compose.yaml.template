@@ -19,7 +19,7 @@ services:
       - HALO_ADMIN_PATH=admin
       - HALO_CACHE=memory
     networks:
-      - internal
+      - halo-network
 
   timeline:
     image: crupest/timeline:latest
@@ -34,7 +34,7 @@ services:
     ports:
       - "5000:5000"
     networks:
-      - internal
+      - timeline-network
 
   code-server:
     pull_policy: build
@@ -57,7 +57,7 @@ services:
     ports:
       - "8080:8080"
     networks:
-      - internal
+      - code-server-network
 
   nginx:
     image: nginx:latest
@@ -74,8 +74,10 @@ services:
       - "./data/certbot/certs:/etc/letsencrypt:ro"
       - "./data/certbot/webroot:/srv/acme:ro"
     networks:
-      - external
-      - internal
+      - halo-network
+      - timeline-network
+      - code-server-network
+      - auto-certbot-network
 
   auto-certbot:
     pull_policy: build
@@ -98,7 +100,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock"
     restart: on-failure:3
     networks:
-      - internal
+      - auto-certbot-network
 
   auto-backup:
     pull_policy: build
@@ -117,8 +119,6 @@ services:
     volumes:
       - "./data:/data:ro"
     restart: on-failure:3
-    networks:
-      - internal
 
   mailserver:
     image: docker.io/mailserver/docker-mailserver:latest
@@ -153,10 +153,9 @@ services:
       test: "ss --listening --tcp | grep -P 'LISTEN.+:smtp' || exit 1"
       timeout: 3s
       retries: 0
-    networks:
-      - external
 
 networks:
-  internal:
-    internal: true
-  external:
+  - halo-network
+  - timeline-network
+  - code-server-network
+  - auto-certbot-network
