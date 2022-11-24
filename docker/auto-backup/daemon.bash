@@ -12,18 +12,15 @@ fi
 # Check xz, tar and coscmd
 xz --version
 tar --version
-coscmd --version
-
-# do not echo next command
-coscmd config -a "${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}" -s "${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}" -b "${CRUPEST_AUTO_BACKUP_BUCKET_NAME}" -r "${CRUPEST_AUTO_BACKUP_COS_REGION}"
 
 function backup {
     # Output "Begin backup..." in yellow and restore default
     echo -e "\e[0;103m\e[K\e[1mBegin backup..." "\e[0m"
 
-    # Get current time and convert it to YYYY-MM-DDTHH.MM.SS
-    current_time=$(date +%Y-%m-%dT%H.%M.%S)
+    # Get current time and convert it to YYYY-MM-DDTHH:MM:SS
+    current_time=$(date +%Y-%m-%dT%H:%M:%S)
     echo "Current time: $current_time"
+
     echo "Create tar.xz for data..."
 
     # tar and xz /data to tmp
@@ -32,13 +29,10 @@ function backup {
     # Output /tmp/data.tar.xz size
     du -h /tmp/data.tar.xz | cut -f1 | xargs echo "Size of data.tar.xz:"
 
-    destination="$current_time.tar.xz"
-    echo "Use coscli to upload data to $destination ..."
-    echo "Bucket name: ${CRUPEST_AUTO_BACKUP_BUCKET_NAME}"
-    echo "Bucket region: ${CRUPEST_AUTO_BACKUP_COS_REGION}"
+    destination="${current_time}.tar.xz"
 
     # upload to remote
-    coscmd upload /tmp/data.tar.xz "$destination" 
+    dotnet /AutoBackup/AutoBackup.dll /tmp/data.tar.xz "$destination" 
 
     echo "Remove tmp file..."
     # remove tmp
