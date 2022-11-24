@@ -8,8 +8,6 @@ services:
       - ./data/halo:/root/.halo
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    ports:
-      - "8090:8090"
     environment:
       - SERVER_PORT=8090
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver
@@ -31,8 +29,6 @@ services:
       - TIMELINE_DisableAutoBackup=true
     volumes:
       - ./data/timeline:/root/timeline
-    ports:
-      - "5000:5000"
     networks:
       - timeline-network
 
@@ -54,8 +50,6 @@ services:
     restart: on-failure:3
     volumes:
       - ./data/code-server:/data
-    ports:
-      - "8080:8080"
     networks:
       - code-server-network
 
