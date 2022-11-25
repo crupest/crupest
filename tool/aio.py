@@ -272,9 +272,9 @@ class ConfigVar:
 
 config_var_list: list = [
     ConfigVar("CRUPEST_DOMAIN", "domain name",
-              "Please input your domain name:"),
+              "Please input your domain name"),
     ConfigVar("CRUPEST_EMAIL", "admin email address",
-              "Please input your email address:"),
+              "Please input your email address"),
     ConfigVar("CRUPEST_USER", "your system account username",
               lambda: pwd.getpwuid(os.getuid()).pw_name),
     ConfigVar("CRUPEST_GROUP", "your system account group name",
