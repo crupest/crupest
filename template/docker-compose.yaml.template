@@ -54,8 +54,13 @@ services:
       - code-server-network
 
   nginx:
-    image: nginx:latest
-    pull_policy: always
+    pull_policy: build
+    build:
+      context: ./docker/crupest-nginx
+      dockerfile: Dockerfile
+      pull: true
+      tags:
+        - "crupest/arch-code-server:latest"
     container_name: nginx
     restart: on-failure:3
     ports:
@@ -64,7 +69,6 @@ services:
       - "443:443/udp"
     volumes:
       - "./nginx-config:/etc/nginx/conf.d:ro"
-      - "./site:/srv/www:ro"
       - "./data/certbot/certs:/etc/letsencrypt:ro"
       - "./data/certbot/webroot:/srv/acme:ro"
     networks:
