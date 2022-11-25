@@ -28,7 +28,7 @@ if not 'CRUPEST_DOMAIN' in os.environ:
 
 root_domain = os.environ['CRUPEST_DOMAIN']
 
-with open(cert_path) as f:
+with open(cert_path, 'rb') as f:
     cert = load_pem_x509_certificate(f.read())
     ext = cert.extensions.get_extension_for_oid(
         ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
