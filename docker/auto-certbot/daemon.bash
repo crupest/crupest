@@ -45,7 +45,7 @@ else
     printf "CRUPEST_AUTO_CERTBOT_RENEW_COMMAND is defined as:\n%s\n" "$CRUPEST_AUTO_CERTBOT_RENEW_COMMAND"
 fi
 
-mapfile -t domains <<< "$(./get-cert-domains.py "${CRUPEST_CERT_PATH}")"
+mapfile -t domains <<< "$(/get-cert-domains.py "${CRUPEST_CERT_PATH}")"
 
 for domain in "${domains[@]}"; do
     domain_options=("${domain_options[@]}" -d "$domain") 
