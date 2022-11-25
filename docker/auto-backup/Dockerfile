@@ -3,8 +3,8 @@ COPY AutoBackup /AutoBackup
 WORKDIR /AutoBackup
 RUN dotnet publish AutoBackup.csproj --configuration Release --output ./publish/ -r linux-x64 --self-contained false
 
-FROM mcr.microsoft.com/dotnet/aspnet:7.0-alpine
-RUN apk add --no-cache coreutils bash tar xz
+FROM mcr.microsoft.com/dotnet/runtime:7.0-alpine
+RUN apk add --no-cache tini coreutils bash tar xz
 ARG CRUPEST_AUTO_BACKUP_INIT_DELAY=0
 ARG CRUPEST_AUTO_BACKUP_INTERVAL=1d
 ARG CRUPEST_AUTO_BACKUP_COS_SECRET_ID
@@ -20,5 +20,5 @@ ENV CRUPEST_AUTO_BACKUP_BUCKET_NAME=${CRUPEST_AUTO_BACKUP_BUCKET_NAME}
 VOLUME [ "/data" ]
 COPY daemon.bash /daemon.bash
 COPY --from=build /AutoBackup/publish /AutoBackup
-STOPSIGNAL SIGINT
-ENTRYPOINT [ "/daemon.bash" ]
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD [ "/daemon.bash" ]
