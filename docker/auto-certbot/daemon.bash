@@ -58,7 +58,7 @@ if [ -n "$CRUPEST_AUTO_CERTBOT_POST_HOOK" ]; then
 fi
 
 # Use test server to test.
-certbot certonly  -n --agree-tos --test-cert --dry-run -m "$CRUPEST_EMAIL" --webroot -w /var/www/certbot "${options[@]}"
+certbot certonly  -n --agree-tos --force-renewal --test-cert --dry-run -m "$CRUPEST_EMAIL" --webroot -w /var/www/certbot "${options[@]}"
 
 function check_and_renew_cert {
     expire_info=$(openssl x509 -enddate -noout -in "$CRUPEST_CERT_PATH")
