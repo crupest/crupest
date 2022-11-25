@@ -7,7 +7,6 @@ import grp
 import sys
 import argparse
 import shutil
-import json
 import urllib.request
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
@@ -274,8 +273,8 @@ class ConfigVar:
 config_var_list: list = [
     ConfigVar("CRUPEST_DOMAIN", "domain name",
               "Please input your domain name:"),
-    # ConfigVar("CRUPEST_EMAIL", "admin email address",
-    #           "Please input your email address:"),
+    ConfigVar("CRUPEST_EMAIL", "admin email address",
+              "Please input your email address:"),
     ConfigVar("CRUPEST_USER", "your system account username",
               lambda: pwd.getpwuid(os.getuid()).pw_name),
     ConfigVar("CRUPEST_GROUP", "your system account group name",

@@ -17,8 +17,8 @@ function backup {
     # Output "Begin backup..." in yellow and restore default
     echo -e "\e[0;103m\e[K\e[1mBegin backup..." "\e[0m"
 
-    # Get current time and convert it to YYYY-MM-DDTHH:MM:SS
-    current_time=$(date +%Y-%m-%dT%H:%M:%S)
+    # Get current time and convert it to YYYY-MM-DDTHH:MM:SSZ
+    current_time=$(date +%Y-%m-%dT%H:%M:%SZ)
     echo "Current time: $current_time"
 
     echo "Create tar.xz for data..."
