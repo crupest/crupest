@@ -5,9 +5,10 @@ import os.path
 import sys
 import argparse
 import shutil
+import subprocess
 import urllib.request
 from rich.console import Console
-from rich.prompt import Prompt, Confirm
+from rich.prompt import Confirm
 from modules.path import *
 from modules.template import Template
 from modules.nginx import *
@@ -58,10 +59,13 @@ certbot_command_group.add_argument(
 certbot_parser.add_argument(
     "-t", "--test", action="store_true", default=False, help="Make the commands for test use.")
 
-clear_parser = subparsers .add_parser(
+clear_parser = subparsers.add_parser(
     "clear", help="Delete existing data so you can make a fresh start.")
 clear_parser.add_argument("-D", "--include-data-dir", action="store_true",
                           default=False, help="Also delete the data directory.")
+
+install_docker_parser = subparsers.add_parser(
+    "install-docker", help="Install docker and docker-compose.")
 
 args = parser.parse_args()
 
@@ -71,6 +75,17 @@ if args.action == "certbot":
 
 if not args.no_hello:
     console.print("Nice to see you! :waving_hand:", style="cyan")
+
+if args.action == "install-docker":
+    ensure_tmp_dir()
+    get_docker_path = os.path.join(tmp_dir, "get-docker.sh")
+    urllib.request.urlretrieve("https://get.docker.com", get_docker_path)
+    os.chmod(get_docker_path, 0o755)
+    subprocess.run(["sudo", "sh", get_docker_path], check=True)
+    subprocess.run(["sudo", "usermod", "-aG", "docker",
+                   os.getlogin()], check=True)
+    exit(0)
+
 
 if args.action == 'print-path':
     console.print("Project path =", project_dir)
