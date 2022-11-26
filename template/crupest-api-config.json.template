@@ -1,0 +1,8 @@
+{
+    "Todos": {
+        "Username": "$CRUPEST_GITHUB_USERNAME",
+        "ProjectNumber": "$CRUPEST_GITHUB_PROJECT_NUMBER",
+        "Token": "$CRUPEST_GITHUB_TOKEN",
+        "Count": "$CRUPEST_GITHUB_TODO_COUNT"
+    }
+}

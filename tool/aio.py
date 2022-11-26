@@ -2,8 +2,6 @@
 
 import os
 import os.path
-import pwd
-import grp
 import sys
 import argparse
 import shutil
@@ -14,6 +12,7 @@ from modules.path import *
 from modules.template import Template
 from modules.nginx import *
 from modules.configfile import *
+from modules.config import *
 
 console = Console()
 
@@ -248,57 +247,6 @@ console.print(
 for filename in template_name_list:
     console.print(f"- [magenta]{filename}.template[/]")
 
-
-class ConfigVar:
-    def __init__(self, name: str, description: str, default_value_generator, /, default_value_for_ask=None):
-        """Create a config var.
-
-        Args:
-            name (str): The name of the config var.
-            description (str): The description of the config var.
-            default_value_generator (typing.Callable([], str) | str): The default value generator of the config var. If it is a string, it will be used as the input prompt and let user input the value.
-        """
-        self.name = name
-        self.description = description
-        self.default_value_generator = default_value_generator
-        self.default_value_for_ask = default_value_for_ask
-
-    def get_default_value(self):
-        if isinstance(self.default_value_generator, str):
-            return Prompt.ask(self.default_value_generator, console=console, default=self.default_value_for_ask)
-        else:
-            return self.default_value_generator()
-
-
-config_var_list: list = [
-    ConfigVar("CRUPEST_DOMAIN", "domain name",
-              "Please input your domain name"),
-    ConfigVar("CRUPEST_EMAIL", "admin email address",
-              "Please input your email address"),
-    ConfigVar("CRUPEST_USER", "your system account username",
-              lambda: pwd.getpwuid(os.getuid()).pw_name),
-    ConfigVar("CRUPEST_GROUP", "your system account group name",
-              lambda: grp.getgrgid(os.getgid()).gr_name),
-    ConfigVar("CRUPEST_UID", "your system account uid",
-              lambda: str(os.getuid())),
-    ConfigVar("CRUPEST_GID", "your system account gid",
-              lambda: str(os.getgid())),
-    ConfigVar("CRUPEST_HALO_DB_PASSWORD",
-              "password for halo h2 database, once used never change it", lambda: os.urandom(8).hex()),
-    ConfigVar("CRUPEST_IN_CHINA",
-              "set to true if you are in China, some network optimization will be applied", lambda: "false"),
-    ConfigVar("CRUPEST_AUTO_BACKUP_COS_SECRET_ID",
-              "access key id for Tencent COS, used for auto backup", "Please input your Tencent COS access key id for backup"),
-    ConfigVar("CRUPEST_AUTO_BACKUP_COS_SECRET_KEY",
-              "access key secret for Tencent COS, used for auto backup", "Please input your Tencent COS access key for backup"),
-    ConfigVar("CRUPEST_AUTO_BACKUP_COS_REGION",
-              "region for Tencent COS, used for auto backup", "Please input your Tencent COS region for backup", "ap-hongkong"),
-    ConfigVar("CRUPEST_AUTO_BACKUP_BUCKET_NAME",
-              "bucket name for Tencent COS, used for auto backup", "Please input your Tencent COS bucket name for backup")
-]
-
-config_var_name_set = set([config_var.name for config_var in config_var_list])
-
 template_list: list = []
 config_var_name_set_in_template = set()
 for template_path in os.listdir(template_dir):
@@ -315,16 +263,23 @@ for key in config_var_name_set_in_template:
 console.print("")
 
 # check vars
-if not config_var_name_set_in_template == config_var_name_set:
-    console.print(
-        "The variables needed in templates are not same to the explicitly declared ones! There must be something wrong.", style="red")
-    console.print("The explicitly declared ones are:")
-    for key in config_var_name_set:
-        console.print(key, end=" ", style="magenta")
-    console.print(
-        "\nTry to check template files and edit the var list at the head of this script. Aborted! See you next time!")
-    exit(1)
+check_success, more, less = check_config_var_set(
+    config_var_name_set_in_template)
+if len(more) != 0:
+    console.print("There are more variables in templates than in config file:",
+                  style="red")
+    for key in more:
+        console.print(key, style="magenta")
+if len(less) != 0:
+    console.print("However, following config vars are not used:",
+                  style="yellow")
+    for key in less:
+        console.print(key, style="magenta")
 
+if not check_success:
+    console.print(
+        "Please check you config vars and make sure the needed ones are defined!", style="red")
+    exit(1)
 
 console.print("Now let's check if they are already generated...")
 
@@ -388,7 +343,7 @@ else:
         console.print(
             "Oops! It seems you have missed some keys in your config file. Let's add them!", style="green")
         for config_var in missed_config_vars:
-            config[config_var.name] = config_var.get_default_value()
+            config[config_var.name] = config_var.get_default_value(console)
         content = config_to_str(config)
         with open(config_file_path, "w") as f:
             f.write(content)
