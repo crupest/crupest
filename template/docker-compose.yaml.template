@@ -76,6 +76,19 @@ services:
       - timeline-network
       - code-server-network
       - auto-certbot-network
+      - crupest-api-network
+
+  crupest-api:
+    pull_policy: build
+    build:
+      context: ./docker/crupest-api
+      dockerfile: Dockerfile
+      pull: true
+    container_name: crupest-api
+    volumes:
+      - "./crupest-api-config.json:/config.json:ro"
+    networks:
+      - crupest-api-network
 
   auto-certbot:
     pull_policy: build
@@ -158,3 +171,4 @@ networks:
   timeline-network:
   code-server-network:
   auto-certbot-network:
+  crupest-api-network:
