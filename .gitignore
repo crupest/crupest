@@ -1,5 +1,7 @@
 docker-compose.yaml
 mailserver.env
+crupest-api-config.json
 data
 nginx-config
+log
 __pycache__
