@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+try:
+    import rich
+    import jsonschema
+except ImportError:
+    print("Some necessary modules can't be imported. Please run `pip install -r requirements.txt` to install them.")
+    exit(1)
+
 import datetime
 import os
 import os.path
