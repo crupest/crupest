@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const todoContainer = document.getElementById("todo-container");
 
   const res = await fetch("/api/todos");
-  const body = res.json();
+  const body = await res.json();
 
   if (res.status !== 200) {
     todoMessage.style.color = "red";
