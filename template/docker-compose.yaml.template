@@ -129,7 +129,7 @@ services:
         - "crupest/auto-backup:latest"
     container_name: auto-backup
     volumes:
-      - "./data:/data:ro"
+      - "./data:/data"
     restart: on-failure:3
 
   mailserver:
