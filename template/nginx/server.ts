@@ -15,12 +15,22 @@ export interface StaticFileSite {
   root: string;
 }
 
+export interface RedirectSite {
+  type: "redirect";
+  subdomain: string;
+  url: string;
+}
+
 export interface CertOnlySite {
   type: "cert-only";
   subdomain: string;
 }
 
-export type Site = ReverseProxySite | StaticFileSite | CertOnlySite;
+export type Site =
+  | ReverseProxySite
+  | StaticFileSite
+  | RedirectSite
+  | CertOnlySite;
 
 export type Sites = Site[];
 

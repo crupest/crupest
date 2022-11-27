@@ -15,6 +15,23 @@
             },
             "type": "object"
         },
+        "RedirectSite": {
+            "properties": {
+                "subdomain": {
+                    "type": "string"
+                },
+                "type": {
+                    "enum": [
+                        "redirect"
+                    ],
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
         "ReverseProxySite": {
             "properties": {
                 "subdomain": {
@@ -40,6 +57,22 @@
             },
             "type": "object"
         },
+        "Site": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/ReverseProxySite"
+                },
+                {
+                    "$ref": "#/definitions/StaticFileSite"
+                },
+                {
+                    "$ref": "#/definitions/RedirectSite"
+                },
+                {
+                    "$ref": "#/definitions/CertOnlySite"
+                }
+            ]
+        },
         "StaticFileSite": {
             "properties": {
                 "root": {
@@ -61,17 +94,7 @@
     "properties": {
         "sites": {
             "items": {
-                "anyOf": [
-                    {
-                        "$ref": "#/definitions/ReverseProxySite"
-                    },
-                    {
-                        "$ref": "#/definitions/StaticFileSite"
-                    },
-                    {
-                        "$ref": "#/definitions/CertOnlySite"
-                    }
-                ]
+                "$ref": "#/definitions/Site"
             },
             "type": "array"
         }
