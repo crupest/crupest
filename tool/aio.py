@@ -517,8 +517,24 @@ if os.path.isdir(data_dir):
         to_check = Confirm.ask(
             "I want to check your ssl certs, but I need to sudo. Do you want me check", console=console, default=False)
         if to_check:
-            get_cert_path(check_domain_is_defined())
-            # TODO: Do the check!
+            domain = check_domain_is_defined()
+            cert_path = get_cert_path(domain)
+            tmp_cert_path = os.path.join(tmp_dir, "fullchain.pem")
+            console.print("Temporarily copy cert to tmp...", style="yellow")
+            ensure_tmp_dir()
+            subprocess.run(
+                ["sudo", "cp", cert_path, tmp_cert_path], check=True)
+            subprocess.run(["sudo", "chown", os.geteuid(),
+                           tmp_cert_path], check=True)
+            cert_domains = set(get_cert_domains(tmp_cert_path, domain))
+            domains = set(list_domains())
+            if not cert_domains == domains:
+                console.print(
+                    "Cert domains are not equal to host domains. Run following command to recreate it.", style="red")
+                console.print(certbot_command_gen(
+                    domain, "create", standalone=True), soft_wrap=False, highlight=False)
+            console.print("Remove tmp cert...", style="yellow")
+            os.remove(tmp_cert_path)
 
     if not os.path.exists(os.path.join(data_dir, "code-server")):
         os.mkdir(os.path.join(data_dir, "code-server"))
