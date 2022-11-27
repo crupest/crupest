@@ -34,11 +34,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     body.forEach((item) => {
       const { status, title, color } = item;
       const li = document.createElement("li");
-      const span = document.createElement("span");
-      span.textContent = status;
-      span.style.color = color;
-      li.appendChild(span);
-      li.append(title);
+      const statusSpan = document.createElement("span");
+      const titleSpan = document.createElement("span");
+      statusSpan.textContent = status;
+      statusSpan.style.color = color;
+      titleSpan.textContent = title;
+      li.appendChild(statusSpan);
+      li.append(" : ");
+      li.append(titleSpan);
       todoContainer.appendChild(li);
     });
 
