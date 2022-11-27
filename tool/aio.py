@@ -3,6 +3,7 @@
 try:
     import rich
     import jsonschema
+    import cryptography
 except ImportError:
     print("Some necessary modules can't be imported. Please run `pip install -r requirements.txt` to install them.")
     exit(1)
@@ -512,6 +513,12 @@ if os.path.isdir(data_dir):
             "Looks like you haven't run certbot to get the init ssl certificates. You may want to run following code to get one:", style="cyan")
         console.print(certbot_command_gen(domain, "create"),
                       soft_wrap=True, highlight=False)
+    else:
+        to_check = Confirm.ask(
+            "I want to check your ssl certs, but I need to sudo. Do you want me check", console=console, default=False)
+        if to_check:
+            get_cert_path(check_domain_is_defined())
+            # TODO: Do the check!
 
     if not os.path.exists(os.path.join(data_dir, "code-server")):
         os.mkdir(os.path.join(data_dir, "code-server"))
