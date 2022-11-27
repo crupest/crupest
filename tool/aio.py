@@ -564,7 +564,7 @@ def check_ssl_cert():
         print_create_cert_message(domain)
     else:
         cert_domain_set = set(cert_domains)
-        domains = set(list_domains())
+        domains = set(list_domains(domain))
         if not cert_domain_set == domains:
             console.print(
                 "Cert domains are not equal to host domains. Run following command to recreate it.", style="red")
