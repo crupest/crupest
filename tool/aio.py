@@ -569,7 +569,7 @@ def check_ssl_cert():
             console.print(
                 "Cert domains are not equal to host domains. Run following command to recreate it.", style="red")
             console.print(certbot_command_gen(
-                domain, "create", standalone=True), soft_wrap=False, highlight=False)
+                domain, "create", standalone=True), soft_wrap=True, highlight=False)
         console.print("Remove tmp cert...", style="yellow")
         os.remove(tmp_cert_path)
 
