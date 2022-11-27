@@ -93,6 +93,8 @@ services:
 
   auto-certbot:
     pull_policy: build
+    depends_on:
+      - nginx
     build:
       context: ./docker/auto-certbot
       dockerfile: Dockerfile
