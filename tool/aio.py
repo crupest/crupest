@@ -53,7 +53,7 @@ list_domain_parser = subparsers.add_parser(
     "list-domain", help="Misc things about domains.")
 
 nginx_parser = subparsers.add_parser(
-    "nginx", help="Generate nginx config for a domain.")
+    "nginx", help="Generate nginx config.")
 
 certbot_parser = subparsers.add_parser(
     "certbot", help="Get some common certbot commands.")
@@ -78,15 +78,22 @@ clear_parser.add_argument("-D", "--include-data-dir", action="store_true",
 install_docker_parser = subparsers.add_parser(
     "install-docker", help="Install docker and docker-compose.")
 
-backup_docker_parser = subparsers.add_parser(
+backup_parser = subparsers.add_parser(
     "backup", help="Backup related things."
 )
 
-backup_command_group = backup_docker_parser.add_mutually_exclusive_group()
+backup_command_group = backup_parser.add_mutually_exclusive_group()
 backup_command_group.add_argument(
     "-R", "--restore", action="append", nargs="?", default=None, help="Restore data from url.")
 backup_command_group.add_argument(
     "-B", "--backup", action="append", nargs="?", default=None, help="Backup data to specified path.")
+
+docker_parser = subparsers.add_parser("docker", help="Docker related things.")
+docker_subparsers = docker_parser.add_subparsers(dest="docker_action")
+docker_subparsers.add_parser("up", help="Run docker compose up -d.")
+docker_subparsers.add_parser("down", help="Run docker compose down.")
+docker_subparsers.add_parser(
+    "prune", help="Run docker system prune -a -f.")
 
 args = parser.parse_args()
 
@@ -126,17 +133,17 @@ if not args.no_check_system:
     if not check_ubuntu():
         console.print("This script works well on Ubuntu 22.04. Otherwise you may encounter some problems. But I would like to improve some rational compatibility.", style="yellow")
 
-
-def print_order(number: int, total: int, *, console=console) -> None:
-    console.print(f"\[{number}/{total}]", end=" ", style="green")
-
-
 if args.action == "certbot":
     if args.create or args.renew or args.expand:
         args.no_hello = True
 
 if not args.no_hello:
     console.print("Nice to see you! :waving_hand:", style="cyan")
+
+
+def print_order(number: int, total: int, *, console=console) -> None:
+    console.print(f"\[{number}/{total}]", end=" ", style="green")
+
 
 if args.action == "install-docker":
     ensure_tmp_dir()
@@ -150,6 +157,31 @@ if args.action == "install-docker":
                    os.getlogin()], check=True)
     console.print(
         "Succeeded to install docker. Please re-login to take effect.", style="green")
+    exit(0)
+
+
+if args.action == "docker":
+    def run_in_dir(dir: str, func: callable):
+        old_dir = os.path.abspath(os.getcwd())
+        os.chdir(dir)
+        func()
+        os.chdir(old_dir)
+    match args.docker_action:
+        case "up":
+            def docker_compose_up():
+                subprocess.run(["docker", "compose", "up", "-d"], check=True)
+            run_in_dir(project_abs_path, docker_compose_up)
+        case "down":
+            def docker_compose_down():
+                subprocess.run(["docker", "compose", "down"], check=True)
+            run_in_dir(project_abs_path, docker_compose_down)
+        case "prune":
+            to_do = Confirm.ask("[yellow]Are you sure to prune docker?[/]")
+            if to_do:
+                subprocess.run(
+                    ["docker", "system", "prune", "-a", "-f"], check=True)
+        case _:
+            raise ValueError("Unknown docker action.")
     exit(0)
 
 if args.action == "backup":
