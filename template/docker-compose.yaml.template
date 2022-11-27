@@ -4,6 +4,7 @@ services:
     pull_policy: always
     container_name: halo
     restart: on-failure:3
+    init: true
     volumes:
       - ./data/halo:/root/.halo
       - /etc/timezone:/etc/timezone:ro
