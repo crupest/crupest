@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 from .template import Template
-from .path import project_abs_path, nginx_template_dir
+from .path import *
 import json
 import jsonschema
 import os
 import os.path
 import shutil
+from cryptography.x509 import *
+from cryptography.x509.oid import ExtensionOID
+
 
 with open(os.path.join(nginx_template_dir, 'server.json')) as f:
     server = json.load(f)
@@ -141,3 +144,25 @@ def nginx_config_dir_check(dir_path: str, domain: str) -> list:
         if basename not in good_files:
             bad_files.append(basename)
     return bad_files
+
+
+def get_cert_path(root_domain):
+    return os.path.join(data_dir, "certbot", "certs", "live", root_domain, "fullchain.pem")
+
+
+def get_cert_domains(cert_path, root_domain):
+
+    if not os.path.exists(cert_path):
+        return None
+
+    if not os.path.isfile(cert_path):
+        return None
+
+    with open(cert_path, 'rb') as f:
+        cert = load_pem_x509_certificate(f.read())
+        ext = cert.extensions.get_extension_for_oid(
+            ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
+        domains: list = ext.value.get_values_for_type(DNSName)
+        domains.remove(root_domain)
+        domains = [root_domain, *domains]
+        return domains
