@@ -5,4 +5,5 @@ data
 nginx-config
 log
 tmp
+backup
 __pycache__
