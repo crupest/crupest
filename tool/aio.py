@@ -557,7 +557,7 @@ def check_ssl_cert():
     ensure_tmp_dir()
     subprocess.run(
         ["sudo", "cp", cert_path, tmp_cert_path], check=True)
-    subprocess.run(["sudo", "chown", os.geteuid(),
+    subprocess.run(["sudo", "chown", str(os.geteuid()),
                    tmp_cert_path], check=True)
     cert_domains = get_cert_domains(tmp_cert_path, domain)
     if cert_domains is None:
@@ -595,8 +595,8 @@ if os.path.isdir(data_dir):
             to_fix = Confirm.ask(
                 "Do you want me to help you fix it?", console=console, default=True)
             if to_fix:
-                os.system(
-                    f"sudo chown -R {os.getuid()}:{os.getgid()} {os.path.join(data_dir, 'code-server')}")
+                subprocess.run(
+                    ["sudo", "chown", "-R", f"{os.getuid()}:{os.getgid()}", os.path.join(data_dir, 'code-server')], check=True)
 
 console.print(":beers: All done!", style="green")
 to_download_tools = Confirm.ask(
