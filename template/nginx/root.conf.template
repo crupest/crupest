@@ -1,5 +1,5 @@
 upstream crupest-api {
-    server crupest-api:5000
+    server crupest-api:5000;
 }
 
 server {
