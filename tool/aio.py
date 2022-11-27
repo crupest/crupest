@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import datetime
 import os
 import os.path
 import sys
@@ -67,6 +68,16 @@ clear_parser.add_argument("-D", "--include-data-dir", action="store_true",
 install_docker_parser = subparsers.add_parser(
     "install-docker", help="Install docker and docker-compose.")
 
+backup_docker_parser = subparsers.add_parser(
+    "backup", help="Backup related things."
+)
+
+backup_command_group = backup_docker_parser.add_mutually_exclusive_group()
+backup_command_group.add_argument(
+    "-R", "--restore", action="append", nargs="?", default=None, help="Restore data from url.")
+backup_command_group.add_argument(
+    "-B", "--backup", action="append", nargs="?", default=None, help="Backup data to specified path.")
+
 args = parser.parse_args()
 
 if args.action == "certbot":
@@ -82,10 +93,64 @@ if args.action == "install-docker":
     urllib.request.urlretrieve("https://get.docker.com", get_docker_path)
     os.chmod(get_docker_path, 0o755)
     subprocess.run(["sudo", "sh", get_docker_path], check=True)
+    subprocess.run(["sudo", "systemctl", "enable",
+                   "--now", "docker"], check=True)
     subprocess.run(["sudo", "usermod", "-aG", "docker",
                    os.getlogin()], check=True)
+    console.print(
+        "Succeeded to install docker. Please re-login to take effect.", style="green")
     exit(0)
 
+if args.action == "backup":
+    if not args.restore is None:
+        if args.restore[0] is None:
+            url = Prompt.ask(
+                "You don't specify the path to restore from. Please specify one. http and https are supported", console=console)
+        else:
+            url = args.restore[0]
+        if len(url) == 0:
+            console.print("You specify an empty url. Abort.", style="red")
+            exit(1)
+        if url.startswith("http://") or url.startswith("https://"):
+            download_path = os.path.join(tmp_dir, "data.tar.xz")
+            if os.path.exists(download_path):
+                to_remove = Confirm.ask(
+                    f"I want to download to {download_path}. However, there is already a file there. Do you want to remove it first", default=False)
+                if to_remove:
+                    os.remove(download_path)
+                else:
+                    console.print(
+                        "Aborted! Please check the file and try again.", style="cyan")
+                    exit(0)
+            urllib.request.urlretrieve(url, download_path)
+            url = download_path
+        subprocess.run(
+            ["sudo", "tar", "-xJf", url, "-C", project_dir], check=True)
+        exit(0)
+    elif not args.backup is None:
+        if args.backup[0] is None:
+            ensure_backup_dir()
+            now = datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+            path = Prompt.ask(
+                "You don't specify the path to backup to. Please specify one. http and https are NOT supported", console=console, default=os.path.join(backup_dir, now + ".tar.xz"))
+        else:
+            path = args.backup[0]
+        if len(path) == 0:
+            console.print("You specify an empty path. Abort.", style="red")
+            exit(1)
+        if os.path.exists(path):
+            console.print(
+                "A file is already there. Please remove it first. Abort!", style="red")
+            exit(1)
+        subprocess.run(
+            ["sudo", "tar", "-cJf", path, "data", "-C", project_dir],
+            check=True
+        )
+        exit(0)
+    else:
+        console.print(
+            "You should specify either -R or -B. Abort!", style="red")
+        exit(1)
 
 if args.action == 'print-path':
     console.print("Project path =", project_dir)
