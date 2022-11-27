@@ -26,6 +26,11 @@
             }
         },
         {
+            "type": "redirect",
+            "subdomain": "github",
+            "url": "https://github.com/crupest"
+        },
+        {
             "type": "cert-only",
             "subdomain": "mail"
         }
