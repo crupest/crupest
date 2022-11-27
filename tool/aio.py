@@ -126,6 +126,7 @@ if args.action == "backup":
             url = download_path
         subprocess.run(
             ["sudo", "tar", "-xJf", url, "-C", project_dir], check=True)
+        console.print("Succeeded to restore data.", style="green")
         exit(0)
     elif not args.backup is None:
         if args.backup[0] is None:
@@ -146,6 +147,7 @@ if args.action == "backup":
             ["sudo", "tar", "-cJf", path, "data", "-C", project_dir],
             check=True
         )
+        console.print("Succeeded to backup data.", style="green")
         exit(0)
     else:
         console.print(
