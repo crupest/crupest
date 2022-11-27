@@ -15,6 +15,7 @@ import argparse
 import shutil
 import subprocess
 import urllib.request
+import re
 from rich.console import Console
 from rich.prompt import Confirm
 from modules.path import *
@@ -25,15 +26,14 @@ from modules.config import *
 
 console = Console()
 
-
-def print_order(number: int, total: int, *, console=console) -> None:
-    console.print(f"\[{number}/{total}]", end=" ", style="green")
-
-
 parser = argparse.ArgumentParser(
     description="Crupest server all-in-one setup script. Have fun play with it!")
 parser.add_argument("--no-hello", action="store_true",
                     default=False, help="Do not print hello message.")
+parser.add_argument("--no-check-python-version", action="store_true",
+                    default=False, help="Do not check python version.")
+parser.add_argument("--no-check-system", action="store_true",
+                    default=False, help="Do not check system type.")
 
 subparsers = parser.add_subparsers(dest="action")
 
@@ -86,6 +86,33 @@ backup_command_group.add_argument(
     "-B", "--backup", action="append", nargs="?", default=None, help="Backup data to specified path.")
 
 args = parser.parse_args()
+
+if not args.no_check_python_version:
+    if sys.version_info < (3, 10):
+        console.print("This script works well on python 3.10 or higher. Otherwise you may encounter some problems. But I would like to improve some rational compatibility.", style="yellow")
+
+
+def check_ubuntu():
+    if not os.path.exists("/etc/os-release"):
+        return False
+    else:
+        with open("/etc/os-release", "r") as f:
+            content = f.read()
+            if re.match(r"NAME=\"?Ubuntu\"?", content, re.IGNORECASE) is None:
+                return False
+            if re.match(r"UBUNTU_CODENAME=\"?jammy\"?", re.IGNORECASE) is None:
+                return False
+    return True
+
+
+if not args.no_check_system:
+    if not check_ubuntu():
+        console.print("This script works well on Ubuntu 22.04. Otherwise you may encounter some problems. But I would like to improve some rational compatibility.", style="yellow")
+
+
+def print_order(number: int, total: int, *, console=console) -> None:
+    console.print(f"\[{number}/{total}]", end=" ", style="green")
+
 
 if args.action == "certbot":
     if args.create or args.renew or args.expand:
