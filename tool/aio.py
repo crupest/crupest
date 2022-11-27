@@ -122,9 +122,9 @@ def check_ubuntu():
     else:
         with open("/etc/os-release", "r") as f:
             content = f.read()
-            if re.match(r"NAME=\"?Ubuntu\"?", content, re.IGNORECASE) is None:
+            if re.search(r"NAME=\"?Ubuntu\"?", content, re.IGNORECASE) is None:
                 return False
-            if re.match(r"UBUNTU_CODENAME=\"?jammy\"?", re.IGNORECASE) is None:
+            if re.search(r"VERSION_ID=\"?22.04\"?", content, re.IGNORECASE) is None:
                 return False
     return True
 
