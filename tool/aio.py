@@ -35,6 +35,8 @@ parser.add_argument("--no-check-python-version", action="store_true",
                     default=False, help="Do not check python version.")
 parser.add_argument("--no-check-system", action="store_true",
                     default=False, help="Do not check system type.")
+parser.add_argument("-y", "--yes", action="store_true",
+                    default=False, help="Yes to all confirmation.")
 
 subparsers = parser.add_subparsers(dest="action")
 
@@ -87,6 +89,20 @@ backup_command_group.add_argument(
     "-B", "--backup", action="append", nargs="?", default=None, help="Backup data to specified path.")
 
 args = parser.parse_args()
+
+if args.yes:
+    old_ask = Confirm.ask
+
+    def new_ask(prompt, *args, console=console, default=None, **kwargs):
+        default_text = ""
+        if default is not None:
+            default_text = "(y)" if default else "(n)"
+        text = f"[prompt]{prompt}[/] [prompt.choices]\[y/n][/] [prompt.default]{default_text}[/]"
+        console.print(text)
+        return True
+
+    Confirm.ask = new_ask
+
 
 if not args.no_check_python_version:
     if sys.version_info < (3, 10):
@@ -493,8 +509,26 @@ if not os.path.exists(nginx_config_dir):
     to_gen_nginx_conf = Confirm.ask("It seems you haven't generate nginx config. Do you want to generate it?",
                                     default=True, console=console)
 else:
-    to_gen_nginx_conf = Confirm.ask("It seems you have already generated nginx config. Do you want to overwrite it?",
-                                    default=False, console=console)
+    # get the latest time of files in nginx template
+    template_time = 0
+    for path in os.listdir(nginx_template_dir):
+        template_time = max(template_time, os.stat(
+            os.path.join(nginx_template_dir, path)).st_mtime)
+    console.print(
+        f"Nginx template update time: {datetime.datetime.fromtimestamp(template_time)}")
+
+    nginx_config_time = 0
+    for path in os.listdir(nginx_config_dir):
+        nginx_config_time = max(nginx_config_time, os.stat(
+            os.path.join(nginx_config_dir, path)).st_mtime)
+    console.print(
+        f"Generated nginx template update time: {datetime.datetime.fromtimestamp(nginx_config_time)}")
+    if template_time > nginx_config_time:
+        to_gen_nginx_conf = Confirm.ask("It seems you have updated the nginx template and not regenerate config. Do you want to regenerate the nginx config?",
+                                        default=True, console=console)
+    else:
+        to_gen_nginx_conf = Confirm.ask("[yellow]It seems you have already generated nginx config. Do you want to overwrite it?[/]",
+                                        default=False, console=console)
 if to_gen_nginx_conf:
     domain = config["CRUPEST_DOMAIN"]
     generate_nginx_config(domain)
@@ -507,34 +541,47 @@ elif not os.path.isdir(data_dir):
     console.print(
         "ERROR: data dir is not a dir! Everything will be broken! Please delete it manually", style="red")
 
+
+def print_create_cert_message(domain):
+    console.print(
+        "Looks like you haven't run certbot to get the init ssl certificates. You may want to run following code to get one:", style="cyan")
+    console.print(certbot_command_gen(domain, "create"),
+                  soft_wrap=True, highlight=False)
+
+
+def check_ssl_cert():
+    domain = check_domain_is_defined()
+    cert_path = get_cert_path(domain)
+    tmp_cert_path = os.path.join(tmp_dir, "fullchain.pem")
+    console.print("Temporarily copy cert to tmp...", style="yellow")
+    ensure_tmp_dir()
+    subprocess.run(
+        ["sudo", "cp", cert_path, tmp_cert_path], check=True)
+    subprocess.run(["sudo", "chown", os.geteuid(),
+                   tmp_cert_path], check=True)
+    cert_domains = get_cert_domains(tmp_cert_path, domain)
+    if cert_domains is None:
+        print_create_cert_message(domain)
+    else:
+        cert_domain_set = set(cert_domains)
+        domains = set(list_domains())
+        if not cert_domain_set == domains:
+            console.print(
+                "Cert domains are not equal to host domains. Run following command to recreate it.", style="red")
+            console.print(certbot_command_gen(
+                domain, "create", standalone=True), soft_wrap=False, highlight=False)
+        console.print("Remove tmp cert...", style="yellow")
+        os.remove(tmp_cert_path)
+
+
 if os.path.isdir(data_dir):
     if not os.path.exists(os.path.join(data_dir, "certbot")):
-        console.print(
-            "Looks like you haven't run certbot to get the init ssl certificates. You may want to run following code to get one:", style="cyan")
-        console.print(certbot_command_gen(domain, "create"),
-                      soft_wrap=True, highlight=False)
+        print_create_cert_message(check_domain_is_defined())
     else:
         to_check = Confirm.ask(
             "I want to check your ssl certs, but I need to sudo. Do you want me check", console=console, default=False)
         if to_check:
-            domain = check_domain_is_defined()
-            cert_path = get_cert_path(domain)
-            tmp_cert_path = os.path.join(tmp_dir, "fullchain.pem")
-            console.print("Temporarily copy cert to tmp...", style="yellow")
-            ensure_tmp_dir()
-            subprocess.run(
-                ["sudo", "cp", cert_path, tmp_cert_path], check=True)
-            subprocess.run(["sudo", "chown", os.geteuid(),
-                           tmp_cert_path], check=True)
-            cert_domains = set(get_cert_domains(tmp_cert_path, domain))
-            domains = set(list_domains())
-            if not cert_domains == domains:
-                console.print(
-                    "Cert domains are not equal to host domains. Run following command to recreate it.", style="red")
-                console.print(certbot_command_gen(
-                    domain, "create", standalone=True), soft_wrap=False, highlight=False)
-            console.print("Remove tmp cert...", style="yellow")
-            os.remove(tmp_cert_path)
+            check_ssl_cert()
 
     if not os.path.exists(os.path.join(data_dir, "code-server")):
         os.mkdir(os.path.join(data_dir, "code-server"))
