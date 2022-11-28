@@ -34,7 +34,7 @@ def get_dkim_from_mailserver(domain: str) -> str | None:
                        capture_output=True, check=True)
     value = ""
     for match in re.finditer("\"(.*)\"", p.stdout.decode('utf-8')):
-        value += match.groups[1]
+        value += match.group(1)
     return value
 
 
