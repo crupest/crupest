@@ -3,7 +3,9 @@ server {
     listen [::]:443 ssl http2;
     server_name ${CRUPEST_NGINX_SUBDOMAIN}.${CRUPEST_DOMAIN};
 
-    return 301 ${CRUPEST_NGINX_URL}$request_uri;
+		location / {
+		    return 301 ${CRUPEST_NGINX_URL}$request_uri;
+		}
 }
 
 server {
@@ -11,9 +13,11 @@ server {
     listen [::]:80;
     server_name ${CRUPEST_NGINX_SUBDOMAIN}.${CRUPEST_DOMAIN};
 
+		location / {
+		    return 301 ${CRUPEST_NGINX_URL}$request_uri;
+		}
+
     location /.well-known/acme-challenge {
         root /srv/acme;
     }
-
-    return 301 ${CRUPEST_NGINX_URL}$request_uri;
 }
