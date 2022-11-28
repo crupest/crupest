@@ -30,10 +30,10 @@ def get_dkim_from_mailserver(domain: str) -> str | None:
     if not exists(dkim_path):
         return None
 
-    buffer = StringIO()
-    subprocess.run(["sudo", "cat", dkim_path], stdout=buffer, check=True)
+    p = subprocess.run(["sudo", "cat", dkim_path],
+                       capture_output=True, check=True)
     value = ""
-    for match in re.finditer("\"(.*)\"", str(buffer)):
+    for match in re.finditer("\"(.*)\"", p.stdout.decode('utf-8')):
         value += match.groups[1]
     return value
 
