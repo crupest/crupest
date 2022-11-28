@@ -4,7 +4,10 @@ COPY sites/www /sites/www
 WORKDIR /sites/www
 RUN pnpm install --frozen-lockfile && pnpm run build
 
-FROM klakegg/hugo AS build-blog
+FROM klakegg/ext-alpine AS build-blog
+# install git
+RUN apk add --no-cache git
+RUN git submodule update --init --recursive
 COPY sites/blog /hugo
 WORKDIR /hugo
 RUN hugo
