@@ -1,8 +1,8 @@
-## Hi! This is **crupest**!
+# Hi! This is **crupest**!
 
 Nice to meet you! 😊
 
-🔭 I'm currently working on [cru](https://github.com/crupest/cru), a C++ direct ui library. It is in embryonic form. But I'll keep develop it with my ❤️. Feel free to comment in the repo via issues.
+🏗️ I'm currently working on [cru](https://github.com/crupest/cru), a C++ direct ui library. It is in embryonic form. But I'll keep develop it with my ❤️. Feel free to comment in the repo via issues.
 
 🌱 I’m currently majoring in Computer Science And Technology at WHPU.
 
@@ -10,7 +10,7 @@ Nice to meet you! 😊
 
 💡 I love programing and every creative technologies and ideas.
 
-🎈 I also have a [blog](https://crupest.life) which includes some emotional essays (in Chinese) written by me. 
+🎈 I also have [a personal website](https://crupest.life) where you can get more information of me.
 
 💬 Contact me via my email, *crupest@outlook.com* , or open an issue in any of my repos.
 
