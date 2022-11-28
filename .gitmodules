@@ -1,3 +1,0 @@
-[submodule "docker/crupest-nginx/sites/blog"]
-	path = docker/crupest-nginx/sites/blog
-	url = https://github.com/crupest/blog.git
