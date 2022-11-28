@@ -11,19 +11,16 @@
         },
         {
             "type": "reverse-proxy",
-            "subdomain": "blog",
-            "upstream": {
-                "name": "halo",
-                "server": "halo:8090"
-            }
-        },
-        {
-            "type": "reverse-proxy",
             "subdomain": "timeline",
             "upstream": {
                 "name": "timeline",
                 "server": "timeline:5000"
             }
+        },
+        {
+            "type": "static-file",
+            "subdomain": "blog",
+            "root": "/srv/blog"
         },
         {
             "type": "redirect",
