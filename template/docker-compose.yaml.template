@@ -13,6 +13,7 @@ services:
       - timeline-network
 
   code-server:
+    image: crupest/arch-code-server:latest
     build:
       context: ./docker/arch-code-server
       dockerfile: Dockerfile
@@ -22,8 +23,6 @@ services:
         - CRUPEST_UID=$CRUPEST_UID
         - CRUPEST_GID=$CRUPEST_GID
         - USE_CHINA_MIRROR=$CRUPEST_IN_CHINA
-      tags:
-        - "crupest/arch-code-server:latest"
     container_name: code-server
     restart: on-failure:3
     volumes:
@@ -32,13 +31,12 @@ services:
       - code-server-network
 
   nginx:
+    image: crupest/arch-code-server:latest
     pull_policy: build
     build:
       context: ./docker/crupest-nginx
       dockerfile: Dockerfile
       pull: true
-      tags:
-        - "crupest/arch-code-server:latest"
     container_name: nginx
     restart: on-failure:3
     ports:
@@ -50,20 +48,18 @@ services:
       - "./data/certbot/certs:/etc/letsencrypt:ro"
       - "./data/certbot/webroot:/srv/acme:ro"
     networks:
-      - halo-network
       - timeline-network
       - code-server-network
       - auto-certbot-network
       - crupest-api-network
 
   crupest-api:
+    image: crupest/crupest-api:latest
     pull_policy: build
     build:
       context: ./docker/crupest-api
       dockerfile: Dockerfile
       pull: true
-      tags:
-        - "crupest/crupest-api:latest"
     container_name: crupest-api
     volumes:
       - "./crupest-api-config.json:/config.json:ro"
@@ -71,6 +67,7 @@ services:
       - crupest-api-network
 
   auto-certbot:
+    image: crupest/auto-certbot:latest
     pull_policy: build
     depends_on:
       - nginx
@@ -83,8 +80,6 @@ services:
         - CRUPEST_EMAIL=$CRUPEST_EMAIL
         - CRUPEST_AUTO_CERTBOT_ADDITIONAL_PACKAGES=docker-cli
         - CRUPEST_AUTO_CERTBOT_POST_HOOK=docker restart nginx
-      tags:
-        - "crupest/auto-certbot:latest"
     container_name: auto-certbot
     volumes:
       - "./data/certbot/certs:/etc/letsencrypt"
@@ -97,6 +92,7 @@ services:
       - auto-certbot-network
 
   auto-backup:
+    image: crupest/auto-backup:latest
     pull_policy: build
     build:
       context: ./docker/auto-backup
@@ -107,8 +103,6 @@ services:
         - CRUPEST_AUTO_BACKUP_COS_SECRET_KEY=${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}
         - CRUPEST_AUTO_BACKUP_COS_REGION=${CRUPEST_AUTO_BACKUP_COS_REGION}
         - CRUPEST_AUTO_BACKUP_BUCKET_NAME=${CRUPEST_AUTO_BACKUP_BUCKET_NAME}
-      tags:
-        - "crupest/auto-backup:latest"
     container_name: auto-backup
     volumes:
       - "./data:/data"
@@ -149,7 +143,6 @@ services:
       retries: 0
 
 networks:
-  halo-network:
   timeline-network:
   code-server-network:
   auto-certbot-network:
