@@ -1,18 +1,19 @@
 import pwd
 import grp
 import os
+import typing
 from rich.prompt import Prompt
 from .path import config_file_path
 
 
 class ConfigVar:
-    def __init__(self, name: str, description: str, default_value_generator, /, default_value_for_ask=None):
+    def __init__(self, name: str, description: str, default_value_generator: typing.Callable[[], str] | str, /, default_value_for_ask=str | None):
         """Create a config var.
 
         Args:
             name (str): The name of the config var.
             description (str): The description of the config var.
-            default_value_generator (typing.Callable([], str) | str): The default value generator of the config var. If it is a string, it will be used as the input prompt and let user input the value.
+            default_value_generator (typing.Callable[[], str] | str): The default value generator of the config var. If it is a string, it will be used as the input prompt and let user input the value.
         """
         self.name = name
         self.description = description

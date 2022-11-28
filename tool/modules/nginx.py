@@ -38,6 +38,10 @@ nginx_var_set = set.union(root_template.var_set,
                           static_file_template.var_set, reverse_proxy_template.var_set)
 
 
+def list_subdomain_names() -> list:
+    return [s["subdomain"] for s in server["sites"]]
+
+
 def list_subdomains(domain: str) -> list:
     return [f"{s['subdomain']}.{domain}" for s in server["sites"]]
 
