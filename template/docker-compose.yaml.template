@@ -13,9 +13,11 @@ services:
       - timeline-network
 
   code-server:
+    pull_policy: build
     build:
       context: ./docker/arch-code-server
       dockerfile: Dockerfile
+      pull: true
       args:
         - CRUPEST_USER=$CRUPEST_USER
         - CRUPEST_GROUP=$CRUPEST_GROUP
