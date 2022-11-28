@@ -5,11 +5,8 @@ WORKDIR /sites/www
 RUN pnpm install --frozen-lockfile && pnpm run build
 
 FROM klakegg/hugo:ext-alpine AS build-blog
-# install git
-RUN apk add --no-cache git
 COPY sites/blog /hugo
 WORKDIR /hugo
-RUN git submodule update --init --recursive
 RUN hugo
 
 FROM nginx:latest
