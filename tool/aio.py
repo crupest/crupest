@@ -26,6 +26,7 @@ from modules.backup import *
 from modules.download_tools import *
 from modules.helper import *
 from modules.test import *
+from modules.dns import *
 
 console = Console()
 
@@ -108,6 +109,10 @@ test_parser = subparsers.add_parser("test", help="Test things.")
 test_parser.add_argument(
     "test_action", help="Test action.", choices=["crupest-api"])
 
+dns_parser = subparsers.add_parser("dns", help="Generate dns zone.")
+
+dns_parser.add_argument("-i", "--ip", help="IP address of the server.")
+
 args = parser.parse_args()
 
 if args.yes:
@@ -123,9 +128,9 @@ if args.yes:
 
     Confirm.ask = new_ask
 
-if args.action == "certbot":
-    if args.create or args.renew or args.expand:
-        args.no_hello = True
+if (args.action == "certbot" and (args.create or args.renew or args.expand)) or (args.action == "dns" and args.ip is not None):
+    args.no_hello = True
+    args.no_bye_bye = True
 
 
 if not args.no_check_python_version:
@@ -479,7 +484,16 @@ def run():
                     test_crupest_api(console)
                 case _:
                     console.print("Test action invalid.", style="red")
-
+        case "dns":
+            domain = check_domain_is_defined()
+            if domain is not None:
+                if args.ip is None:
+                    ip = Prompt.ask(
+                        "Please enter your server ip", console=console)
+                else:
+                    ip = args.ip
+                console.print(generate_dns_zone_with_dkim(
+                    domain, ip), soft_wrap=True, highlight=False)
         case _:
             console.print("First let's check all the templates...")
 
