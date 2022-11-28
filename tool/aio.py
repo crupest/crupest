@@ -25,6 +25,7 @@ from modules.check import *
 from modules.backup import *
 from modules.download_tools import *
 from modules.helper import *
+from modules.test import *
 
 console = Console()
 
@@ -102,6 +103,10 @@ docker_subparsers.add_parser("up", help="Run docker compose up -d.")
 docker_subparsers.add_parser("down", help="Run docker compose down.")
 docker_subparsers.add_parser(
     "prune", help="Run docker system prune -a -f.")
+
+test_parser = subparsers.add_parser("test", help="Test things.")
+test_parser.add_argument(
+    "test_action", help="Test action.", choices=["crupest-api"])
 
 args = parser.parse_args()
 
@@ -468,6 +473,12 @@ def run():
                     "To renew certs previously created (nginx):", style="cyan")
                 console.print(certbot_command_gen(
                     domain, 'renew', test=is_test), soft_wrap=True)
+        case "test":
+            match args.test_action:
+                case "crupest-api":
+                    test_crupest_api(console)
+                case _:
+                    console.print("Test action invalid.", style="red")
 
         case _:
             console.print("First let's check all the templates...")
