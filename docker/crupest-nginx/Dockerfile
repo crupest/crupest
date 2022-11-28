@@ -5,10 +5,13 @@ WORKDIR /sites/www
 RUN pnpm install --frozen-lockfile && pnpm run build
 
 FROM klakegg/hugo:ext-alpine AS build-blog
-COPY sites/blog /hugo
-WORKDIR /hugo
+# install git
+RUN apk add --no-cache git
+WORKDIR /
+RUN git clone https://github.com/crupest/blog --recurse-submodules
+WORKDIR /blog
 RUN hugo
 
 FROM nginx:latest
 COPY --from=build-www /sites/www/dist /srv/www
-COPY --from=build-blog /hugo/public /srv/blog
+COPY --from=build-blog /blog/public /srv/blog
