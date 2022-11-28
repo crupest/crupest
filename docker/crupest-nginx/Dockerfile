@@ -8,7 +8,7 @@ FROM klakegg/hugo:ext-alpine AS build-blog
 # install git
 RUN apk add --no-cache git
 WORKDIR /
-RUN git clone https://github.com/crupest/blog && cd blog && git submodule update --init --recursive
+RUN git clone https://github.com/crupest/blog.git && cd blog && git submodule update --init --recursive
 WORKDIR /blog
 RUN hugo
 
