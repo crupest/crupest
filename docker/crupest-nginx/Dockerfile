@@ -4,7 +4,7 @@ COPY sites/www /sites/www
 WORKDIR /sites/www
 RUN pnpm install --frozen-lockfile && pnpm run build
 
-FROM klakegg/ext-alpine AS build-blog
+FROM klakegg/hugo:ext-alpine AS build-blog
 # install git
 RUN apk add --no-cache git
 RUN git submodule update --init --recursive
