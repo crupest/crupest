@@ -1,25 +1,4 @@
 services:
-  halo:
-    image: halohub/halo:latest
-    pull_policy: always
-    container_name: halo
-    restart: on-failure:3
-    init: true
-    volumes:
-      - ./data/halo:/root/.halo
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-    environment:
-      - SERVER_PORT=8090
-      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver
-      - SPRING_DATASOURCE_URL=jdbc:h2:file:~/.halo/db/halo
-      - SPRING_DATASOURCE_USERNAME=admin
-      - SPRING_DATASOURCE_PASSWORD=$CRUPEST_HALO_DB_PASSWORD
-      - HALO_ADMIN_PATH=admin
-      - HALO_CACHE=memory
-    networks:
-      - halo-network
-
   timeline:
     image: crupest/timeline:latest
     pull_policy: always
