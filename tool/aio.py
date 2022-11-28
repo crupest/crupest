@@ -129,7 +129,7 @@ if args.action == "certbot":
 
 
 if not args.no_check_python_version:
-    if not check_python_version():
+    if check_python_version():
         console.print("This script works well on python 3.10. Otherwise you may encounter some problems. But I would like to improve some rational compatibility.", style="yellow")
 
 if not args.no_check_system:
