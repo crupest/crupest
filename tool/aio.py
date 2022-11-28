@@ -113,6 +113,12 @@ dns_parser = subparsers.add_parser("dns", help="Generate dns zone.")
 
 dns_parser.add_argument("-i", "--ip", help="IP address of the server.")
 
+git_update_parser = subparsers.add_parser(
+    "git-update", help="Update git submodules.")
+
+up_parser = subparsers.add_parser(
+    "up", help="Do something necessary and then docker compose up.")
+
 args = parser.parse_args()
 
 if args.yes:
@@ -390,6 +396,19 @@ def clean(template_name_list):
             "Your workspace is clean now!", style="green")
 
 
+def git_update():
+    def do_it():
+        subprocess.run(["git", "submodule", "update",
+                       "--init", "--recursive"], check=True)
+    run_in_project_dir(do_it)
+
+
+def docker_compose_up():
+    def do_docker_compose_up():
+        subprocess.run(["docker", "compose", "up", "-d"], check=True)
+    run_in_dir(project_abs_path, do_docker_compose_up)
+
+
 action = args.action
 
 
@@ -404,10 +423,7 @@ def run():
 
             match docker_action:
                 case "up":
-                    def docker_compose_up():
-                        subprocess.run(
-                            ["docker", "compose", "up", "-d"], check=True)
-                    run_in_dir(project_abs_path, docker_compose_up)
+                    docker_compose_up()
                 case "down":
                     def docker_compose_down():
                         subprocess.run(
@@ -494,6 +510,14 @@ def run():
                     ip = args.ip
                 console.print(generate_dns_zone_with_dkim(
                     domain, ip), soft_wrap=True, highlight=False)
+
+        case "git-update":
+            git_update()
+
+        case "up":
+            git_update()
+            docker_compose_up()
+
         case _:
             console.print("First let's check all the templates...")
 
