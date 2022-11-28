@@ -164,7 +164,7 @@ def data_dir_check(domain):
             to_check = Confirm.ask(
                 "I want to check your ssl certs, but I need to sudo. Do you want me check", console=console, default=False)
             if to_check:
-                check_ssl_cert()
+                check_ssl_cert(domain, console)
 
     if not exists(join(data_dir, "code-server")):
         os.mkdir(join(data_dir, "code-server"))
