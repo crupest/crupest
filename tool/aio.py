@@ -349,8 +349,8 @@ def setup(template_name_list):
                 else:
                     to_gen_nginx_conf = Confirm.ask("[yellow]It seems you have already generated nginx config. Do you want to overwrite it?[/]",
                                                     default=False, console=console)
-                if to_gen_nginx_conf:
-                    nginx(domain, console)
+            if to_gen_nginx_conf:
+                nginx(domain, console)
     data_dir_check(domain)
 
 
