@@ -1,8 +1,7 @@
-FROM node:16
+FROM debian:latest
 
-RUN npm config set python python3 && npm install --global code-server --unsafe-perm
+RUN curl -fsSL https://code-server.dev/install.sh | sh
 ENV CODE_SERVER_CONFIG="/data/code-server-config.yaml"
-WORKDIR /root
 EXPOSE 8080
 VOLUME [ "/data" ]
 ENTRYPOINT [ "code-server", "--bind-addr", "0.0.0.0:8080" ]
