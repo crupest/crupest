@@ -15,11 +15,11 @@ services:
   code-server:
     pull_policy: build
     build:
-      context: ./docker/arch-code-server
+      context: ./docker/code-server
       dockerfile: Dockerfile
       pull: true
       tags:
-        - "crupest/arch-code-server:latest"
+        - "crupest/code-server:latest"
     container_name: code-server
     restart: on-failure:3
     volumes:
