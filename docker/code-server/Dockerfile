@@ -1,6 +1,8 @@
 FROM debian:latest
 
-RUN curl -fsSL https://code-server.dev/install.sh | sh
+COPY install-code-server.bash /install-code-server.bash
+RUN /install-code-server.bash
+
 ENV CODE_SERVER_CONFIG="/data/code-server-config.yaml"
 EXPOSE 8080
 VOLUME [ "/data" ]
