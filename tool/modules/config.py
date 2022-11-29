@@ -40,8 +40,6 @@ config_var_list: list = [
               lambda: str(os.getuid())),
     ConfigVar("CRUPEST_GID", "your system account gid",
               lambda: str(os.getgid())),
-    ConfigVar("CRUPEST_HALO_DB_PASSWORD",
-              "password for halo h2 database, once used never change it", lambda: os.urandom(8).hex()),
     ConfigVar("CRUPEST_IN_CHINA",
               "set to true if you are in China, some network optimization will be applied", lambda: "false"),
     ConfigVar("CRUPEST_AUTO_BACKUP_COS_SECRET_ID",
