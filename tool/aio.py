@@ -186,6 +186,7 @@ def run():
             install_docker()
             console.print(
                 "Succeeded to install docker. Please re-login to take effect.", style="green")
+
         case "docker":
             docker_action = args.docker_action
 
@@ -226,6 +227,7 @@ def run():
             domains = list_domains(domain)
             for domain in domains:
                 console.print(domain)
+
         case "nginx":
             domain = check_domain_is_defined()
             nginx(domain, console)
@@ -265,6 +267,7 @@ def run():
                     test_crupest_api(console)
                 case _:
                     console.print("Test action invalid.", style="red")
+
         case "dns":
             domain = check_domain_is_defined()
             if domain is not None:

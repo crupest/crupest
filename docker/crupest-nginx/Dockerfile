@@ -12,6 +12,6 @@ RUN git clone https://github.com/crupest/blog.git && cd blog && git submodule up
 WORKDIR /blog
 RUN hugo
 
-FROM nginx:latest
+FROM nginx:mainline-alpine
 COPY --from=build-www /sites/www/dist /srv/www
 COPY --from=build-blog /blog/public /srv/blog
