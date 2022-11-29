@@ -102,6 +102,17 @@ def check_nginx_config_dir(dir_path: str, domain: str) -> list:
     return bad_files
 
 
+def restart_nginx(force=False) -> bool:
+    if not force:
+        p = subprocess.run(['docker', "container", "ls",
+                           "-f", "name=nginx", "-q"], capture_output=True)
+        container: str = p.stdout.decode("utf-8")
+        if len(container.strip()) == 0:
+            return False
+    subprocess.run(['docker', 'restart', 'nginx'])
+    return True
+
+
 def nginx(domain: str, /, console) -> None:
     bad_files = check_nginx_config_dir(nginx_config_dir, domain)
     if len(bad_files) > 0:
@@ -124,6 +135,8 @@ def nginx(domain: str, /, console) -> None:
             f"Nginx config directory created at [magenta]{nginx_config_dir}[/]", style="green")
     generate_nginx_config(domain, dest=nginx_config_dir)
     console.print("Nginx config generated.", style="green")
+    if restart_nginx():
+        console.print('Nginx restarted.', style="green")
 
 
 def certbot_command_gen(domain: str, action, /, test=False, no_docker=False, *, standalone=None, email=None, agree_tos=False) -> str:
