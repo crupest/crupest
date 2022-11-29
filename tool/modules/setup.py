@@ -22,14 +22,6 @@ def get_template_name_list(console) -> list[str]:
 
 
 def data_dir_check(domain, console):
-    if not exists(data_dir):
-        console.print(
-            "Looks like you haven't generated data dir. I'll create it for you.", style="green")
-        os.mkdir(data_dir)
-    elif not isdir(data_dir):
-        console.print(
-            "ERROR: data dir is not a dir! Everything will be broken! Please delete it manually", style="red")
-
     if isdir(data_dir):
         if not exists(join(data_dir, "certbot")):
             print_create_cert_message(domain, console)
@@ -38,22 +30,6 @@ def data_dir_check(domain, console):
                 "I want to check your ssl certs, but I need to sudo. Do you want me check", console=console, default=False)
             if to_check:
                 check_ssl_cert(domain, console)
-
-    if not exists(join(data_dir, "code-server")):
-        os.mkdir(join(data_dir, "code-server"))
-        console.print(
-            "I also create data dir for code-server. Because letting docker create it would result in permission problem.", style="green")
-    else:
-        code_server_stat = os.stat(
-            join(data_dir, "code-server"))
-        if code_server_stat.st_uid == 0 or code_server_stat.st_gid == 0:
-            console.print(
-                "WARNING: The owner of data dir for code-server is root. This may cause permission problem. You had better change it.", style="yellow")
-            to_fix = Confirm.ask(
-                "Do you want me to help you fix it?", console=console, default=True)
-            if to_fix:
-                subprocess.run(
-                    ["sudo", "chown", "-R", f"{os.getuid()}:{os.getgid()}", join(data_dir, 'code-server')], check=True)
 
 
 def template_generate(console):
