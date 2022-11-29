@@ -281,13 +281,14 @@ def run():
 
         case "up":
             git_update()
+            template_generate(console)
             docker_compose_up()
 
         case "down":
             docker_compose_down()
 
         case "clear":
-            clear()
+            clear(console, args.include_data_dir)
 
         case _:
             template_generate(console)
