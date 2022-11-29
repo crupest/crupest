@@ -6,6 +6,9 @@ body {
   width: 100%;
   margin: 0;
   box-sizing: border-box;
+}
+
+#main-article {
   padding: 0 1em;
 }
 
