@@ -1,4 +1,4 @@
-FROM node:16-alpine
+FROM node:16
 
 RUN apk add --no-cache alpine-sdk bash libstdc++ libc6-compat && node --version
 RUN npm config set python python3 && npm install --global code-server --unsafe-perm
