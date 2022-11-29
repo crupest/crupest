@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM node:alpine
 
 RUN apk add --no-cache alpine-sdk bash libstdc++ libc6-compat && npm config set python python3 && npm install --global code-server --unsafe-perm
 WORKDIR /root
