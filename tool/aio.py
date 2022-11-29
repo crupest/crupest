@@ -119,6 +119,9 @@ git_update_parser = subparsers.add_parser(
 up_parser = subparsers.add_parser(
     "up", help="Do something necessary and then docker compose up.")
 
+down_parser = subparsers.add_parser(
+    "down", help="Do something necessary and then docker compose down.")
+
 args = parser.parse_args()
 
 if args.yes:
@@ -398,8 +401,7 @@ def clean(template_name_list):
 
 def git_update():
     def do_it():
-        subprocess.run(["git", "submodule", "update",
-                       "--init", "--recursive"], check=True)
+        subprocess.run(["git", "pull"], check=True)
     run_in_project_dir(do_it)
 
 
@@ -407,6 +409,13 @@ def docker_compose_up():
     def do_docker_compose_up():
         subprocess.run(["docker", "compose", "up", "-d"], check=True)
     run_in_dir(project_abs_path, do_docker_compose_up)
+
+
+def docker_compose_down():
+    def do_docker_compose_down():
+        subprocess.run(
+            ["docker", "compose", "down"], check=True)
+    run_in_dir(project_abs_path, do_docker_compose_down)
 
 
 action = args.action
@@ -425,10 +434,7 @@ def run():
                 case "up":
                     docker_compose_up()
                 case "down":
-                    def docker_compose_down():
-                        subprocess.run(
-                            ["docker", "compose", "down"], check=True)
-                    run_in_dir(project_abs_path, docker_compose_down)
+                    docker_compose_down()
                 case "prune":
                     to_do = Confirm.ask(
                         "[yellow]Are you sure to prune docker?[/]", console=console)
@@ -517,6 +523,9 @@ def run():
         case "up":
             git_update()
             docker_compose_up()
+
+        case "down":
+            docker_compose_down()
 
         case _:
             console.print("First let's check all the templates...")
