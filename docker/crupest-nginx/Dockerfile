@@ -6,4 +6,3 @@ RUN pnpm install --frozen-lockfile && pnpm run build
 
 FROM nginx:mainline-alpine
 COPY --from=build-www /sites/www/dist /srv/www
-COPY --from=build-blog /blog/public /srv/blog
