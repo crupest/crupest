@@ -5,6 +5,8 @@ set -e
 echo -e "\e[0;103m\e[K\e[1mBegin to build blog...\e[0m"
 echo "Begin time: $(date +%Y-%m-%dT%H:%M:%SZ)"
 
+mkdir -p /public
+
 # check /blog directory exists
 if [[ ! -d /blog ]]; then
     echo "Directory /blog not found, clone blog repository..."
@@ -21,7 +23,7 @@ fi
 
 # Now hugo it
 echo "Run hugo to generate blog..."
-hugo
+hugo -d /public
 
 echo "Finish time: $(date +%Y-%m-%dT%H:%M:%SZ)"
 echo -e "\e[0;102m\e[K\e[1mFinish build!\e[0m"
