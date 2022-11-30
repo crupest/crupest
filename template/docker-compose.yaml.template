@@ -75,7 +75,7 @@ services:
         - "crupest/crupest-api:latest"
     container_name: crupest-api
     volumes:
-      - "./crupest-api-config.json:/config.json:ro"
+      - "./crupest-api-config.json:/crupest-api-config.json:ro"
     networks:
       - crupest-api-network
 
