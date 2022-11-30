@@ -5,8 +5,10 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5188",
+      "workingDirectory": ".",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "CRUPEST_API_CONFIG_FILE": "dev-config.json"
       }
     }
   }
