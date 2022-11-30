@@ -38,7 +38,7 @@ services:
     container_name: crupest-blog
     restart: on-failure:3
     volumes:
-      - "blog-public:/blog"
+      - "blog-public:/public"
 
   nginx:
     pull_policy: build
