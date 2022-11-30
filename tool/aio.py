@@ -112,6 +112,9 @@ dns_parser.add_argument("-i", "--ip", help="IP address of the server.")
 git_update_parser = subparsers.add_parser(
     "git-update", help="Update git submodules.")
 
+update_blog_parser = subparsers.add_parser(
+    "update-blog", help="Update and regenerate blog.")
+
 up_parser = subparsers.add_parser(
     "up", help="Do something necessary and then docker compose up.")
 
@@ -161,6 +164,13 @@ def check_domain_is_defined():
 def git_update():
     def do_it():
         subprocess.run(["git", "pull"], check=True)
+    run_in_project_dir(do_it)
+
+
+def update_blog():
+    def do_it():
+        subprocess.run(["docker", "compose", "exec",
+                       "crupest-blog", "/update.bash"], check=True)
     run_in_project_dir(do_it)
 
 
@@ -281,6 +291,9 @@ def run():
 
         case "git-update":
             git_update()
+
+        case "update-blog":
+            update_blog()
 
         case "up":
             git_update()
