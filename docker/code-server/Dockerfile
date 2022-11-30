@@ -1,5 +1,6 @@
 FROM debian:latest
 
+WORKDIR /root
 COPY install-code-server.bash /install-code-server.bash
 RUN /install-code-server.bash
 
