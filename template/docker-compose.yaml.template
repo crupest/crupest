@@ -38,7 +38,7 @@ services:
     container_name: crupest-blog
     restart: on-failure:3
     volumes:
-      - "blog:/blog"
+      - "blog-public:/blog"
 
   nginx:
     pull_policy: build
@@ -58,7 +58,7 @@ services:
       - "./nginx-config:/etc/nginx/conf.d:ro"
       - "./data/certbot/certs:/etc/letsencrypt:ro"
       - "./data/certbot/webroot:/srv/acme:ro"
-      - "blog:/srv/blog:ro"
+      - "blog-public:/srv/blog:ro"
     networks:
       - timeline-network
       - code-server-network
