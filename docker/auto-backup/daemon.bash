@@ -41,7 +41,7 @@ function backup {
     echo "$destination" >> /data/backup.log
 
     # echo "Backup finished!" in green and restore default
-    echo -e "\e[0;102m\e[K\e[1mFinish backup!" "\e[0m"
+    echo -e "\e[0;102m\e[K\e[1mFinish backup!\e[0m"
 }
 
 echo "Initial delay: $CRUPEST_AUTO_BACKUP_INIT_DELAY"

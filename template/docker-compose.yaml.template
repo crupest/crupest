@@ -27,6 +27,19 @@ services:
     networks:
       - code-server-network
 
+  crupest-blog:
+    pull_policy: build
+    build:
+      context: ./docker/crupest-blog
+      dockerfile: Dockerfile
+      pull: true
+      tags:
+        - "crupest/crupest-blog:latest"
+    container_name: crupest-blog
+    restart: on-failure:3
+    volumes:
+      - "blog:/blog"
+
   nginx:
     pull_policy: build
     build:
@@ -45,6 +58,7 @@ services:
       - "./nginx-config:/etc/nginx/conf.d:ro"
       - "./data/certbot/certs:/etc/letsencrypt:ro"
       - "./data/certbot/webroot:/srv/acme:ro"
+      - "blog:/srv/blog:ro"
     networks:
       - timeline-network
       - code-server-network
@@ -148,3 +162,6 @@ networks:
   code-server-network:
   auto-certbot-network:
   crupest-api-network:
+
+volumes:
+  blog-public:
