@@ -1,4 +1,4 @@
-FROM klakegg/hugo:ext-alpine
+FROM klakegg/hugo:ext-alpine-ci
 # install git
 ARG CRUPEST_BLOG_UPDATE_INTERVAL=1d
 RUN apk add --no-cache coreutils tini bash git
