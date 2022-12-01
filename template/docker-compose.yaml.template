@@ -47,7 +47,7 @@ services:
       dockerfile: Dockerfile
       pull: true
       tags:
-        - "crupest/arch-code-server:latest"
+        - "crupest/crupest-nginx:latest"
     container_name: nginx
     restart: on-failure:3
     ports:
