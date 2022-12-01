@@ -11,3 +11,4 @@ VERSION=$(curl -s https://api.github.com/repos/coder/code-server/releases/latest
 
 curl -fOL "https://github.com/coder/code-server/releases/download/v${VERSION}/code-server_${VERSION}_amd64.deb"
 dpkg -i "code-server_${VERSION}_amd64.deb"
+rm "code-server_${VERSION}_amd64.deb"
