@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:7.0-alpine AS build
 COPY CrupestApi /CrupestApi
 WORKDIR /CrupestApi
-RUN dotnet publish CrupestApi/CrupestApi.csproj --configuration Release --output ./publish -r linux-x64 --self-contained false
+RUN dotnet publish CrupestApi/CrupestApi.csproj --configuration Release --output ./publish -r linux-x64
 
 FROM mcr.microsoft.com/dotnet/aspnet:7.0-alpine
 ENV ASPNETCORE_URLS=http://0.0.0.0:5000
