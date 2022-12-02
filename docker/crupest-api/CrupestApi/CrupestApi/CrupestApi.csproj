@@ -3,6 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="..\CrupestApi.Todos\CrupestApi.Todos.csproj" />
     <ProjectReference Include="..\CrupestApi.Files\CrupestApi.Files.csproj" />
+    <ProjectReference Include="..\CrupestApi.Commons\CrupestApi.Commons.csproj" />
+    <ProjectReference Include="..\CrupestApi.Secrets\CrupestApi.Secrets.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
