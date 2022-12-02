@@ -9,6 +9,7 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
+    <TargetType>exe</TargetType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>

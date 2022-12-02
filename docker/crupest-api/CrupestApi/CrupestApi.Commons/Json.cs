@@ -1,8 +1,7 @@
-using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 namespace CrupestApi.Commons;
-
 
 public static class CrupestApiJsonExtensions
 {
@@ -22,8 +21,8 @@ public static class CrupestApiJsonExtensions
 
     public static async Task WriteJsonAsync<T>(this HttpResponse response, T bodyObject, int statusCode = 200, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
     {
-        var jsonOptions = response.HttpContext.RequestServices.GetRequiredService<JsonSerializerOptions>();
-        byte[] json = JsonSerializer.SerializeToUtf8Bytes<T>(bodyObject, jsonOptions);
+        var jsonOptions = response.HttpContext.RequestServices.GetRequiredService<IOptionsSnapshot<JsonSerializerOptions>>();
+        byte[] json = JsonSerializer.SerializeToUtf8Bytes<T>(bodyObject, jsonOptions.Value);
 
         var byteCount = json.Length;
         response.StatusCode = statusCode;
