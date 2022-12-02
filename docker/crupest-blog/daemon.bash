@@ -8,8 +8,10 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+hugo --version
+
 while true; do
-    /update.bash
+    /scripts/update.bash
 
     # sleep for CRUPEST_AUTO_BACKUP_INTERVAL
     echo "Sleep for $CRUPEST_BLOG_UPDATE_INTERVAL for next build..."
