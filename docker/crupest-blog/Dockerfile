@@ -1,11 +1,10 @@
 FROM golang:alpine AS build-hugo
-WORKDIR /root
 RUN apk add --no-cache build-base git
 RUN CGO_ENABLED=1 go install --tags extended github.com/gohugoio/hugo@latest
-RUN /root/go/hugo version
+RUN /go/bin/hugo version
 
 FROM alpine:latest
-COPY --from=build-hugo /root/go/hugo /usr/bin/
+COPY --from=build-hugo /go/bin/hugo /usr/bin/
 # check hugo
 RUN hugo version
 ARG CRUPEST_BLOG_UPDATE_INTERVAL=1d
