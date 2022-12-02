@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using CrupestApi.Commons;
 using Dapper;
 using Microsoft.Data.Sqlite;
@@ -72,9 +74,38 @@ INSERT INTO secrets (Key, Secret, Description, ExpireTime, Revoked, CreateTime) 
         }
     }
 
-    public Task<SecretInfo> CreateSecretAsync(string key, string description, DateTime? expireTime = null)
+    private string GenerateRandomKey(int length)
     {
-        throw new NotImplementedException();
+        const string alphanum = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        using var randomNumberGenerator = RandomNumberGenerator.Create();
+        var result = new StringBuilder(length);
+        for (int i = 0; i < length; i++)
+        {
+            result.Append(alphanum[i]);
+        }
+        return result.ToString();
+    }
+
+    public async Task<SecretInfo> CreateSecretAsync(string key, string description, DateTime? expireTime = null)
+    {
+        var dbConnection = await EnsureDatabase();
+
+        var secret = GenerateRandomKey(16);
+        var now = DateTime.Now;
+
+        dbConnection.Execute(@"
+INSERT INTO secrets (Key, Secret, Description, ExpireTime, Revoked, CreateTime) VALUES (@Key, @Secret, @Description, @ExpireTime, 0, @CreateTime);
+        ",
+        new
+        {
+            Key = key,
+            Secret = secret,
+            Description = description,
+            ExpireTime = expireTime?.ToString("O"),
+            CreateTime = now.ToString("O"),
+        });
+
+        return new SecretInfo(key, secret, description, expireTime, false, now);
     }
 
     public Task<List<SecretInfo>> GetSecretListAsync(bool includeExpired = false, bool includeRevoked = false)
