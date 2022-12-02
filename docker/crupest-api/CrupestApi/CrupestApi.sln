@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrupestApi.Todos", "Crupest
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrupestApi.Secrets", "CrupestApi.Secrets\CrupestApi.Secrets.csproj", "{9A7CC9F9-70CB-408A-ADFC-5119C0BDB236}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrupestApi.Commons", "CrupestApi.Commons\CrupestApi.Commons.csproj", "{38083CCA-E56C-4D24-BAB6-EEC30E0F478F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{9A7CC9F9-70CB-408A-ADFC-5119C0BDB236}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A7CC9F9-70CB-408A-ADFC-5119C0BDB236}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A7CC9F9-70CB-408A-ADFC-5119C0BDB236}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38083CCA-E56C-4D24-BAB6-EEC30E0F478F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38083CCA-E56C-4D24-BAB6-EEC30E0F478F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38083CCA-E56C-4D24-BAB6-EEC30E0F478F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38083CCA-E56C-4D24-BAB6-EEC30E0F478F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

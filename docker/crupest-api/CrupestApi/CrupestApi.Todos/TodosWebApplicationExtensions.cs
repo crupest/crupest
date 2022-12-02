@@ -1,8 +1,4 @@
-using System;
-using System.Text.Json;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using CrupestApi.Commons;
 
 namespace CrupestApi.Todos;
 
@@ -15,24 +11,19 @@ public static class TodosWebApplicationExtensions
             throw new ArgumentNullException(nameof(app));
         }
 
-        app.MapGet(path, async ([FromServices] TodosService todosService) =>
+        app.MapGet(path, async (context) =>
         {
-            var jsonOptions = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
+            var todosService = context.RequestServices.GetRequiredService<TodosService>();
 
             try
             {
                 var todos = await todosService.GetTodosAsync();
-                return Results.Json(todos, jsonOptions, statusCode: 200);
+                await context.Response.WriteJsonAsync(todos);
+
             }
             catch (Exception e)
             {
-                return Results.Json(new
-                {
-                    e.Message
-                }, jsonOptions, statusCode: StatusCodes.Status503ServiceUnavailable);
+                await context.Response.WriteErrorMessageAsync(e.Message, statusCode: StatusCodes.Status503ServiceUnavailable);
             }
         });
 
