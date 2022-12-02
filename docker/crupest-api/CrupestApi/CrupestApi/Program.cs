@@ -8,6 +8,8 @@ string configFilePath = Environment.GetEnvironmentVariable("CRUPEST_API_CONFIG_F
 builder.Configuration.AddJsonFile(configFilePath, optional: false, reloadOnChange: true);
 
 builder.Services.AddJsonOptions();
+builder.Services.AddCrupestApiConfig();
+
 builder.Services.AddTodos();
 
 var app = builder.Build();
