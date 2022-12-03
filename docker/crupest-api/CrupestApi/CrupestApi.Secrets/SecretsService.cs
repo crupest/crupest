@@ -108,14 +108,42 @@ INSERT INTO secrets (Key, Secret, Description, ExpireTime, Revoked, CreateTime) 
         return new SecretInfo(key, secret, description, expireTime, false, now);
     }
 
-    public Task<List<SecretInfo>> GetSecretListAsync(bool includeExpired = false, bool includeRevoked = false)
+    public async Task<List<SecretInfo>> GetSecretListAsync(bool includeExpired = false, bool includeRevoked = false)
     {
-        throw new NotImplementedException();
+        var dbConnection = await EnsureDatabase();
+
+        var query = await dbConnection.QueryAsync<SecretInfo>(@"
+SELECT Key, Secret, Description, ExpireTime, Revoked, CreateTime FROM secrets
+WHERE @IncludeExpired OR ExpireTime IS NULL OR ExpireTime > @Now AND
+        @IncludeRevoked OR Revoked = 0;
+        ", new
+        {
+            IncludeExpired = includeExpired,
+            IncludeRevoked = includeRevoked,
+            Now = DateTime.Now.ToString("O"),
+        });
+
+        return query.ToList();
     }
 
-    public Task<List<SecretInfo>> GetSecretListByKeyAsync(string key, bool includeExpired = false, bool includeRevoked = false)
+    public async Task<List<SecretInfo>> GetSecretListByKeyAsync(string key, bool includeExpired = false, bool includeRevoked = false)
     {
-        throw new NotImplementedException();
+        var dbConnection = await EnsureDatabase();
+
+        var query = await dbConnection.QueryAsync<SecretInfo>(@"
+SELECT Key, Secret, Description, ExpireTime, Revoked, CreateTime FROM secrets
+WHERE Key = @Key AND
+(@IncludeExpired OR ExpireTime IS NULL OR ExpireTime > @Now) AND
+(@IncludeRevoked OR Revoked = 0);
+        ", new
+        {
+            Key = key,
+            IncludeExpired = includeExpired,
+            IncludeRevoked = includeRevoked,
+            Now = DateTime.Now.ToString("O"),
+        });
+
+        return query.ToList();
     }
 
     public Task<SecretInfo> ModifySecretAsync(string secret, SecretModifyRequest modifyRequest)
