@@ -11,12 +11,12 @@ VERSION=$(curl -s https://api.github.com/repos/gohugoio/hugo/releases/latest | g
 
 echo "The latest version of hugo is $VERSION."
 
-url="https://github.com/gohugoio/hugo/releases/download/v${VERSION}/hugo_${VERSION}_linux-amd64.deb"
+url="https://github.com/gohugoio/hugo/releases/download/v${VERSION}/hugo_extended_${VERSION}_linux-amd64.deb"
 
 echo "Download hugo from $url."
 
 curl -sSfOL "$url"
-dpkg -i "hugo_${VERSION}_linux-amd64.deb"
-rm "hugo_${VERSION}_linux-amd64.deb"
+dpkg -i "hugo_extended_${VERSION}_linux-amd64.deb"
+rm "hugo_extended_${VERSION}_linux-amd64.deb"
 
 echo "Hugo version: $(hugo version)."
