@@ -1,7 +1,7 @@
-FROM golang:alpine AS build-hugo
+FROM debian:latest
 ARG CRUPEST_BLOG_UPDATE_INTERVAL=1d
-RUN apk add --no-cache build-base coreutils tini bash git
-RUN CGO_ENABLED=1 go install --tags extended github.com/gohugoio/hugo@latest && hugo version
+COPY install-hugo.bash /install-hugo.bash
+RUN /install-hugo.bash && rm /install-hugo.bash
 ENV CRUPEST_BLOG_UPDATE_INTERVAL=${CRUPEST_BLOG_UPDATE_INTERVAL}
 COPY daemon.bash update.bash /scripts/
 VOLUME [ "/public" ]
