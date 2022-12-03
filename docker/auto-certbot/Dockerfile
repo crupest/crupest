@@ -16,5 +16,5 @@ ENV CRUPEST_AUTO_CERTBOT_POST_HOOK=${CRUPEST_AUTO_CERTBOT_POST_HOOK}
 COPY daemon.bash /daemon.bash
 COPY get-cert-domains.py /get-cert-domains.py
 VOLUME ["/var/www/certbot", "/etc/letsencrypt", "/var/lib/letsencrypt"]
-ENTRYPOINT ["/sbin/tini", "--"]
+ENTRYPOINT ["tini", "--"]
 CMD [ "/daemon.bash" ]

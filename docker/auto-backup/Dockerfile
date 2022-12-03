@@ -20,5 +20,5 @@ ENV CRUPEST_AUTO_BACKUP_BUCKET_NAME=${CRUPEST_AUTO_BACKUP_BUCKET_NAME}
 VOLUME [ "/data" ]
 COPY daemon.bash /daemon.bash
 COPY --from=build /AutoBackup/publish /AutoBackup
-ENTRYPOINT ["/sbin/tini", "--"]
+ENTRYPOINT ["tini", "--"]
 CMD [ "/daemon.bash" ]
