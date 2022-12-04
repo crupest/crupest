@@ -18,8 +18,16 @@ public static class CrupestApiJsonExtensions
         return services;
     }
 
+    public static async Task WriteJsonAsync<T>(this HttpResponse response, T bodyObject, int statusCode, HttpResponseAction? beforeWriteBody, CancellationToken cancellationToken = default)
+    {
+        await response.WriteJsonAsync(bodyObject, statusCode, (context) =>
+        {
+            beforeWriteBody?.Invoke(context);
+            return Task.CompletedTask;
+        }, cancellationToken);
+    }
 
-    public static async Task WriteJsonAsync<T>(this HttpResponse response, T bodyObject, int statusCode = 200, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
+    public static async Task WriteJsonAsync<T>(this HttpResponse response, T bodyObject, int statusCode = 200, AsyncHttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
     {
         var jsonOptions = response.HttpContext.RequestServices.GetRequiredService<IOptionsSnapshot<JsonSerializerOptions>>();
         byte[] json = JsonSerializer.SerializeToUtf8Bytes<T>(bodyObject, jsonOptions.Value);
@@ -35,5 +43,10 @@ public static class CrupestApiJsonExtensions
         }
 
         await response.Body.WriteAsync(json, cancellationToken);
+    }
+
+    public static async Task WriteMessageAsync(this HttpResponse response, string message, int statusCode = 200, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
+    {
+        await response.WriteJsonAsync(new ErrorBody(message), statusCode: statusCode, beforeWriteBody, cancellationToken);
     }
 }

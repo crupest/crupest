@@ -7,15 +7,15 @@ public class SecretInfo
         Key = key;
         Secret = secret;
         Description = description;
-        ExpireTime = expireTime;
+        ExpireTime = expireTime?.ToString("O");
         Revoked = revoked;
-        CreateTime = createdTime;
+        CreateTime = createdTime.ToString("O");
     }
 
     public string Key { get; set; }
     public string Secret { get; set; }
     public string Description { get; set; }
-    public DateTime? ExpireTime { get; set; }
+    public string? ExpireTime { get; set; }
     public bool Revoked { get; set; }
-    public DateTime CreateTime { get; set; }
+    public string CreateTime { get; set; }
 }
