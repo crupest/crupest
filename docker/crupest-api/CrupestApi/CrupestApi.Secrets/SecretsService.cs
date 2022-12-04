@@ -1,3 +1,5 @@
+using System.Data;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using CrupestApi.Commons;
@@ -86,6 +88,25 @@ INSERT INTO secrets (Key, Secret, Description, ExpireTime, Revoked, CreateTime) 
         return result.ToString();
     }
 
+    private async Task<SecretInfo> GetSecretAsync(IDbConnection dbConnection, string secret)
+    {
+        var result = await dbConnection.QueryFirstOrDefaultAsync<SecretInfo>(@"
+SELECT Id, Key, Secret, Description, ExpireTime, Revoked, CreateTime FROM secrets WHERE Secret = @Secret;
+        ", new
+        {
+            Secret = secret
+        });
+
+        return result;
+
+    }
+
+    public async Task<SecretInfo?> GetSecretAsync(string secret)
+    {
+        using var dbConnection = await EnsureDatabase();
+        return await GetSecretAsync(dbConnection, secret);
+    }
+
     public async Task<SecretInfo> CreateSecretAsync(string key, string description, DateTime? expireTime = null)
     {
         var dbConnection = await EnsureDatabase();
@@ -146,23 +167,148 @@ WHERE Key = @Key AND
         return query.ToList();
     }
 
-    public Task<SecretInfo> ModifySecretAsync(string secret, SecretModifyRequest modifyRequest)
+    public async Task<SecretInfo> ModifySecretAsync(string secret, SecretModifyRequest modifyRequest)
     {
-        throw new NotImplementedException();
+        var dbConnection = await EnsureDatabase();
+
+        var secretInfo = await GetSecretAsync(dbConnection, secret);
+
+        if (secretInfo is null)
+        {
+            throw new EntityNotExistException("Secret not found.");
+        }
+
+        var queryParams = new DynamicParameters();
+        var updateColumnList = new List<string>();
+
+        if (modifyRequest.Key is not null)
+        {
+            queryParams.Add("Key", modifyRequest.Key);
+            updateColumnList.Add("Key");
+        }
+
+        if (modifyRequest.Description is not null)
+        {
+            queryParams.Add("Description", modifyRequest.Description);
+            updateColumnList.Add("Description");
+        }
+
+        if (modifyRequest.SetExpireTime is true)
+        {
+            queryParams.Add("ExpireTime", modifyRequest.ExpireTime?.ToString("O"));
+            updateColumnList.Add("ExpireTime");
+        }
+
+        if (modifyRequest.Revoked is true && secretInfo.Revoked is not true)
+        {
+            queryParams.Add("Revoked", true);
+            updateColumnList.Add("Revoked");
+        }
+
+        if (updateColumnList.Count == 0)
+        {
+            return secretInfo;
+        }
+
+        queryParams.Add("Secret", secret);
+
+        var updateColumnString = updateColumnList.GenerateUpdateColumnString();
+
+        var changeCount = await dbConnection.ExecuteAsync($@"
+UPDATE secrets SET {updateColumnString} WHERE Secret = @Secret;
+        ", queryParams);
+
+        Debug.Assert(changeCount == 1);
+
+        return secretInfo;
     }
 
-    public Task RevokeSecretAsync(string secret)
+    public async Task RevokeSecretAsync(string secret)
     {
-        throw new NotImplementedException();
+        await ModifySecretAsync(secret, new SecretModifyRequest
+        {
+            Revoked = true,
+        });
     }
 
-    public Task<bool> VerifySecretAsync(string key, string secret)
+    public async Task VerifySecretAsync(string? key, string? secret)
     {
-        throw new NotImplementedException();
+        var dbConnection = await EnsureDatabase();
+
+        if (secret is null)
+        {
+            if (key is not null)
+            {
+                throw new VerifySecretException(key, "A secret with given key is needed.");
+            }
+        }
+
+        var entity = await dbConnection.QueryFirstOrDefaultAsync<SecretInfo>(@"
+SELECT Id, Key, Secret, Description, ExpireTime, Revoked, CreateTime FROM secrets WHERE Key = @Key AND Secret = @Secret
+        ", new
+        {
+            Key = key,
+            Secret = secret,
+        });
+
+        if (entity is null)
+        {
+            throw new VerifySecretException(key, "Secret token is invalid.");
+        }
+
+        if (entity.Revoked is true)
+        {
+            throw new VerifySecretException(key, "Secret token is revoked.");
+        }
+
+        if (entity.ExpireTime is not null && DateTime.ParseExact(entity.ExpireTime, "O", null) > DateTime.Now)
+        {
+            throw new VerifySecretException(key, "Secret token is expired.");
+        }
+
+        if (key is not null)
+        {
+            if (entity.Key != key)
+            {
+                throw new VerifySecretException(key, "Secret is not for this key", VerifySecretException.ErrorKind.Forbidden);
+            }
+        }
     }
 
-    public Task VerifySecretForHttpRequestAsync(HttpRequest request, string key, string queryKey = "secret")
+    public async Task VerifySecretForHttpRequestAsync(HttpRequest request, string? key, string queryKey = "secret")
     {
-        throw new NotImplementedException();
+        string? secret = null;
+
+        var authorizationHeaders = request.Headers.Authorization.ToList();
+        if (authorizationHeaders.Count > 1)
+        {
+            _logger.LogWarning("There are multiple Authorization headers in the request. Will use the last one.");
+        }
+        if (authorizationHeaders.Count > 0)
+        {
+            var authorizationHeader = authorizationHeaders[^1] ?? "";
+            if (!authorizationHeader.StartsWith("Bearer "))
+            {
+                throw new VerifySecretException(key, "Authorization header must start with 'Bearer '.");
+            }
+
+            secret = authorizationHeader.Substring("Bearer ".Length).Trim();
+        }
+
+        var secretQueryParam = request.Query[queryKey].ToList();
+        if (secretQueryParam.Count > 1)
+        {
+            _logger.LogWarning($"There are multiple '{queryKey}' query parameters in the request. Will use the last one.");
+        }
+        if (secretQueryParam.Count > 0)
+        {
+            if (secret is not null)
+            {
+                _logger.LogWarning("Secret found both in Authorization header and query parameter. Will use the one in query parameter.");
+            }
+            secret = secretQueryParam[^1] ?? "";
+        }
+
+        await VerifySecretAsync(key, secret);
     }
 }
