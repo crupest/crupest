@@ -7,18 +7,15 @@ namespace CrupestApi.Commons.Crud;
 
 public class CrudService<TEntity>
 {
+    protected readonly TableInfo _table;
     protected readonly IOptionsSnapshot<CrupestApiConfig> _crupestApiOptions;
     protected readonly ILogger<CrudService<TEntity>> _logger;
 
     public CrudService(IOptionsSnapshot<CrupestApiConfig> crupestApiOptions, ILogger<CrudService<TEntity>> logger)
     {
+        _table = new TableInfo(typeof(TEntity));
         _crupestApiOptions = crupestApiOptions;
         _logger = logger;
-    }
-
-    public virtual string GetTableName()
-    {
-        return typeof(TEntity).Name;
     }
 
     public virtual string GetDbConnectionString()
@@ -40,57 +37,17 @@ public class CrudService<TEntity>
         return connection;
     }
 
-    public virtual async Task<bool> CheckDatabaseExist(SqliteConnection connection)
-    {
-        var tableName = GetTableName();
-        var count = (await connection.QueryAsync<int>(
-            @"SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND tbl_name = @TableName;",
-            new { TableName = tableName })).Single();
-        if (count == 0)
-        {
-            return false;
-        }
-        else if (count > 1)
-        {
-            throw new DatabaseInternalException($"More than 1 table has name {tableName}. What happened?");
-        }
-        else
-        {
-            return true;
-        }
-    }
-
-    public string GetSqlType(Type type)
-    {
-        return ColumnTypeInfoRegistry.Singleton.GetSqlType(type);
-    }
-
-    public string GetCreateTableColumnSql()
-    {
-        var properties = typeof(TEntity).GetProperties();
-        var sql = string.Join(", ", properties.Select(p => $"{p.Name} {GetSqlType(p.PropertyType)}"));
-        return sql;
-    }
-
     public virtual async Task DoInitializeDatabase(SqliteConnection connection)
     {
         await using var transaction = await connection.BeginTransactionAsync();
-        var tableName = GetTableName();
-        var columnSql = GetCreateTableColumnSql();
-        var sql = $@"
-CREATE TABLE {tableName}(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    {columnSql}
-);
-        ";
-        await connection.ExecuteAsync(sql, transaction: transaction);
+        await connection.ExecuteAsync(_table.GenerateCreateTableSql(), transaction: transaction);
         await transaction.CommitAsync();
     }
 
     public virtual async Task<SqliteConnection> EnsureDatabase()
     {
         var connection = await CreateDbConnection();
-        var exist = await CheckDatabaseExist(connection);
+        var exist = await _table.CheckExistence(connection);
         if (!exist)
         {
             await DoInitializeDatabase(connection);
