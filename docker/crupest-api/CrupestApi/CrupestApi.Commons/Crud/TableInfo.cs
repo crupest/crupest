@@ -1,3 +1,4 @@
+using System.Text;
 using Dapper;
 using Microsoft.Data.Sqlite;
 
@@ -78,7 +79,21 @@ public class TableInfo
         }
     }
 
-    public string GenerateCreateTableSql()
+    public string GenerateCreateIndexSql()
+    {
+        var sb = new StringBuilder();
+
+        foreach (var column in ColumnInfos)
+        {
+            if (column.IndexType == ColumnIndexType.None) continue;
+
+            sb.Append($"CREATE {(column.IndexType == ColumnIndexType.Unique ? "UNIQUE" : "")} INDEX {TableName}_{column.SqlColumnName}_index ON {TableName} ({column.SqlColumnName});\n");
+        }
+
+        return sb.ToString();
+    }
+
+    public string GenerateCreateTableSql(bool createIndex = true)
     {
         var tableName = TableName;
         var columnSql = string.Join(",\n", ColumnInfos.Select(c => c.GenerateCreateTableColumnString()));
@@ -88,6 +103,11 @@ CREATE TABLE {tableName}(
     {columnSql}
 );
         ";
+
+        if (createIndex)
+        {
+            sql += GenerateCreateIndexSql();
+        }
 
         return sql;
     }
