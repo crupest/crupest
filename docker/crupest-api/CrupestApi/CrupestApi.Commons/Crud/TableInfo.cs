@@ -1,9 +1,20 @@
+using Dapper;
+using Microsoft.Data.Sqlite;
+
 namespace CrupestApi.Commons.Crud;
 
 public class TableInfo
 {
+    // For custom name.
     public TableInfo(Type entityType)
+        : this(entityType.Name, entityType)
     {
+
+    }
+
+    public TableInfo(string tableName, Type entityType)
+    {
+        TableName = tableName;
         EntityType = entityType;
 
         var properties = entityType.GetProperties();
@@ -38,6 +49,7 @@ public class TableInfo
     }
 
     public Type EntityType { get; }
+    public string TableName { get; }
     public IReadOnlyList<ColumnInfo> ColumnInfos { get; }
 
     public void CheckValidity()
@@ -68,6 +80,36 @@ public class TableInfo
 
     public string GenerateCreateTableSql()
     {
-        throw new NotImplementedException();
+        var tableName = TableName;
+        var columnSql = string.Join(",\n", ColumnInfos.Select(c => c.GenerateCreateTableColumnString()));
+
+        var sql = $@"
+CREATE TABLE {tableName}(
+    {columnSql}
+);
+        ";
+
+        return sql;
+    }
+
+    public async Task<bool> CheckExistence(SqliteConnection connection)
+    {
+        var tableName = TableName;
+        var count = (await connection.QueryAsync<int>(
+            @"SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND tbl_name = @TableName;",
+            new { TableName = tableName })).Single();
+        if (count == 0)
+        {
+            return false;
+        }
+        else if (count > 1)
+        {
+            throw new DatabaseInternalException($"More than 1 table has name {tableName}. What happened?");
+        }
+        else
+        {
+            return true;
+        }
+
     }
 }

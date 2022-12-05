@@ -38,6 +38,7 @@ public interface IColumnTypeInfo
 
 public interface IBuiltinColumnTypeInfo : IColumnTypeInfo
 {
+    /// To use for non-builtin type, use <see cref="ColumnTypeInfoRegistry.GetSqlType(IColumnTypeInfo)" /> because we need registry to query more information. 
     string GetSqlType();
 }
 
@@ -188,11 +189,11 @@ public class ColumnTypeInfoRegistry
         return GetByDataType(type) ?? throw new Exception("Unsupported type.");
     }
 
-    public string GetSqlType(Type type)
+    public string GetSqlType(IColumnTypeInfo columnTypeInfo)
     {
         EnsureValidity();
 
-        IColumnTypeInfo? current = GetByDataType(type);
+        IColumnTypeInfo? current = columnTypeInfo;
         if (current is null)
         {
             throw new Exception("Unsupported type for sql.");
@@ -205,6 +206,11 @@ public class ColumnTypeInfoRegistry
         }
 
         return ((IBuiltinColumnTypeInfo)current).GetSqlType();
+    }
+
+    public string GetSqlType(Type type)
+    {
+        return GetSqlType(GetRequiredByDataType(type));
     }
 
     public void Validate()

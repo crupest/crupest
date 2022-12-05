@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 
 namespace CrupestApi.Commons.Crud;
 
@@ -15,8 +16,13 @@ public class ColumnInfo
     }
 
     // A column with no property.
-    public ColumnInfo(Type entityType, string sqlColumnName, bool isPrimaryKey, bool isAutoIncrement, IColumnTypeInfo typeInfo)
+    public ColumnInfo(Type entityType, string sqlColumnName, bool isPrimaryKey, bool isAutoIncrement, IColumnTypeInfo typeInfo, ColumnTypeInfoRegistry? typeRegistry = null)
     {
+        if (typeRegistry is null)
+        {
+            typeRegistry = ColumnTypeInfoRegistry.Singleton;
+        }
+
         EntityType = entityType;
         PropertyName = null;
         PropertyType = typeof(int);
@@ -26,10 +32,16 @@ public class ColumnInfo
         Nullable = false;
         IsPrimaryKey = isPrimaryKey;
         IsAutoIncrement = isAutoIncrement;
+        TypeRegistry = typeRegistry;
     }
 
-    public ColumnInfo(Type entityType, string entityPropertyName)
+    public ColumnInfo(Type entityType, string entityPropertyName, ColumnTypeInfoRegistry? typeRegistry = null)
     {
+        if (typeRegistry is null)
+        {
+            typeRegistry = ColumnTypeInfoRegistry.Singleton;
+        }
+
         EntityType = entityType;
         PropertyName = entityPropertyName;
 
@@ -52,8 +64,9 @@ public class ColumnInfo
             SqlColumnName = columnAttribute.DatabaseName ?? PropertyName;
             Nullable = !columnAttribute.NonNullable;
         }
-        ColumnTypeInfo = ColumnTypeInfoRegistry.Singleton.GetRequiredByDataType(PropertyRealType);
 
+        ColumnTypeInfo = typeRegistry.GetRequiredByDataType(PropertyRealType);
+        TypeRegistry = typeRegistry;
     }
 
     public Type EntityType { get; }
@@ -62,8 +75,37 @@ public class ColumnInfo
     public Type PropertyType { get; }
     public Type PropertyRealType { get; }
     public string SqlColumnName { get; }
+    public ColumnTypeInfoRegistry TypeRegistry { get; set; }
     public IColumnTypeInfo ColumnTypeInfo { get; }
     public bool Nullable { get; }
     public bool IsPrimaryKey { get; }
     public bool IsAutoIncrement { get; }
+
+    public string SqlType => TypeRegistry.GetSqlType(ColumnTypeInfo);
+
+    public string GenerateCreateTableColumnString()
+    {
+        StringBuilder result = new StringBuilder();
+        result.Append(SqlColumnName);
+        result.Append(' ');
+        result.Append(SqlType);
+        if (IsPrimaryKey)
+        {
+            result.Append(' ');
+            result.Append("PRIMARY KEY");
+        }
+        else if (!Nullable)
+        {
+            result.Append(' ');
+            result.Append(" NOT NULL");
+        }
+
+        if (IsAutoIncrement)
+        {
+            result.Append(' ');
+            result.Append("AUTOINCREMENT");
+        }
+
+        return result.ToString();
+    }
 }
