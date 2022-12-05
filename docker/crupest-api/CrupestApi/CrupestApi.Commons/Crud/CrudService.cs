@@ -60,30 +60,15 @@ public class CrudService<TEntity>
         }
     }
 
-    public string GetDatabaseTypeName(Type type)
+    public string GetSqlType(Type type)
     {
-        if (type == typeof(int))
-        {
-            return "INTEGER";
-        }
-        else if (type == typeof(double))
-        {
-            return "REAL";
-        }
-        else if (type == typeof(bool))
-        {
-            return "BOOLEAN";
-        }
-        else
-        {
-            throw new DatabaseInternalException($"Type {type} is not supported.");
-        }
+        return ColumnTypeInfoRegistry.Singleton.GetSqlType(type);
     }
 
     public string GetCreateTableColumnSql()
     {
         var properties = typeof(TEntity).GetProperties();
-        var sql = string.Join(", ", properties.Select(p => $"{p.Name} {GetDatabaseTypeName(p.PropertyType)}"));
+        var sql = string.Join(", ", properties.Select(p => $"{p.Name} {GetSqlType(p.PropertyType)}"));
         return sql;
     }
 
