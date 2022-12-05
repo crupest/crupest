@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace CrupestApi.Commons;
+namespace CrupestApi.Commons.Crud;
 
 public interface IColumnTypeInfo
 {
@@ -15,7 +15,7 @@ public interface IColumnTypeInfo
 
         IColumnTypeInfo current = this;
 
-        while (!typeof(BuiltinColumnTypeInfo<>).IsInstanceOfType(current))
+        while (current is not IBuiltinColumnTypeInfo)
         {
             var dataType = GetDataType();
 
@@ -86,7 +86,12 @@ public class BuiltinColumnTypeInfo<T> : IBuiltinColumnTypeInfo
     }
 }
 
-public abstract class CustomColumnTypeInfo<TDataType, TDatabaseType> : IColumnTypeInfo
+public interface ICustomColumnTypeInfo : IColumnTypeInfo
+{
+
+}
+
+public abstract class CustomColumnTypeInfo<TDataType, TDatabaseType> : ICustomColumnTypeInfo
  where TDataType : notnull where TDatabaseType : notnull
 {
 
@@ -105,13 +110,13 @@ public abstract class CustomColumnTypeInfo<TDataType, TDatabaseType> : IColumnTy
 
     object IColumnTypeInfo.ConvertToDatabase(object data)
     {
-        Debug.Assert(typeof(TDataType).IsInstanceOfType(data));
+        Debug.Assert(data is TDataType);
         return ConvertToDatabase((TDataType)data);
     }
 
     object IColumnTypeInfo.ConvertFromDatabase(object databaseData)
     {
-        Debug.Assert(typeof(TDatabaseType).IsInstanceOfType(databaseData));
+        Debug.Assert(databaseData is TDatabaseType);
         return ConvertFromDatabase((TDatabaseType)databaseData);
     }
 }
@@ -155,8 +160,6 @@ public class ColumnTypeInfoRegistry
         Singleton.Validate();
     }
 
-
-
     private readonly List<IColumnTypeInfo> _list;
     private readonly Dictionary<Type, IColumnTypeInfo> _map;
     private bool _dirty = false;
@@ -180,6 +183,11 @@ public class ColumnTypeInfoRegistry
         return _map.GetValueOrDefault(type);
     }
 
+    public IColumnTypeInfo GetRequiredByDataType(Type type)
+    {
+        return GetByDataType(type) ?? throw new Exception("Unsupported type.");
+    }
+
     public string GetSqlType(Type type)
     {
         EnsureValidity();
@@ -190,7 +198,7 @@ public class ColumnTypeInfoRegistry
             throw new Exception("Unsupported type for sql.");
         }
 
-        while (!typeof(IBuiltinColumnTypeInfo).IsInstanceOfType(current))
+        while (current is not IBuiltinColumnTypeInfo)
         {
             current = GetByDataType(current.GetDatabaseType());
             Debug.Assert(current is not null);
