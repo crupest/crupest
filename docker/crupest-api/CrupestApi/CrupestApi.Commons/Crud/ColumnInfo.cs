@@ -16,7 +16,7 @@ public class ColumnInfo
     }
 
     // A column with no property.
-    public ColumnInfo(Type entityType, string sqlColumnName, bool isPrimaryKey, bool isAutoIncrement, IColumnTypeInfo typeInfo, ColumnTypeInfoRegistry? typeRegistry = null)
+    public ColumnInfo(Type entityType, string sqlColumnName, bool isPrimaryKey, bool isAutoIncrement, IColumnTypeInfo typeInfo, ColumnIndexType indexType = ColumnIndexType.None, ColumnTypeInfoRegistry? typeRegistry = null)
     {
         if (typeRegistry is null)
         {
@@ -33,6 +33,7 @@ public class ColumnInfo
         IsPrimaryKey = isPrimaryKey;
         IsAutoIncrement = isAutoIncrement;
         TypeRegistry = typeRegistry;
+        IndexType = indexType;
     }
 
     public ColumnInfo(Type entityType, string entityPropertyName, ColumnTypeInfoRegistry? typeRegistry = null)
@@ -58,11 +59,13 @@ public class ColumnInfo
         {
             SqlColumnName = PropertyName;
             Nullable = true;
+            IndexType = ColumnIndexType.None;
         }
         else
         {
             SqlColumnName = columnAttribute.DatabaseName ?? PropertyName;
             Nullable = !columnAttribute.NonNullable;
+            IndexType = columnAttribute.IndexType;
         }
 
         ColumnTypeInfo = typeRegistry.GetRequiredByDataType(PropertyRealType);
@@ -80,6 +83,7 @@ public class ColumnInfo
     public bool Nullable { get; }
     public bool IsPrimaryKey { get; }
     public bool IsAutoIncrement { get; }
+    public ColumnIndexType IndexType { get; }
 
     public string SqlType => TypeRegistry.GetSqlType(ColumnTypeInfo);
 
