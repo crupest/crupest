@@ -6,6 +6,8 @@ namespace CrupestApi.Commons.Crud;
 
 public class TableInfo
 {
+    private readonly Lazy<List<string>> _lazyColumnNameList;
+
     // For custom name.
     public TableInfo(Type entityType)
         : this(entityType.Name, entityType)
@@ -47,11 +49,14 @@ public class TableInfo
         ColumnInfos = columnInfos;
 
         CheckValidity();
+
+        _lazyColumnNameList = new Lazy<List<string>>(() => ColumnInfos.Select(c => c.SqlColumnName).ToList());
     }
 
     public Type EntityType { get; }
     public string TableName { get; }
     public IReadOnlyList<ColumnInfo> ColumnInfos { get; }
+    public IReadOnlyList<string> ColumnNameList => _lazyColumnNameList.Value;
 
     public void CheckValidity()
     {
@@ -130,6 +135,58 @@ CREATE TABLE {tableName}(
         {
             return true;
         }
+    }
 
+    public string GenerateSelectSql(WhereClause? whereClause, OrderByClause? orderByClause, int? skip, int? limit, out DynamicParameters parameters)
+    {
+        if (whereClause is not null)
+        {
+            var relatedFields = ((IWhereClause)whereClause).GetRelatedColumns();
+            if (relatedFields is not null)
+            {
+                foreach (var field in relatedFields)
+                {
+                    if (!ColumnNameList.Contains(field))
+                    {
+                        throw new ArgumentException($"Field {field} is not in the table.");
+                    }
+                }
+            }
+        }
+
+        parameters = new DynamicParameters();
+
+        StringBuilder result = new StringBuilder()
+            .Append("SELECT * FROM ")
+            .Append(TableName);
+
+        if (whereClause is not null)
+        {
+            result.Append(' ');
+            result.Append(whereClause.GenerateSql(parameters));
+        }
+
+        if (orderByClause is not null)
+        {
+            result.Append(' ');
+            result.Append(orderByClause.GenerateSql());
+        }
+
+
+        if (limit is not null)
+        {
+            result.Append(" LIMIT @Limit");
+            parameters.Add("Limit", limit.Value);
+        }
+
+        if (skip is not null)
+        {
+            result.Append(" OFFSET @Skip");
+            parameters.Add("Skip", skip.Value);
+        }
+
+        result.Append(';');
+
+        return result.ToString();
     }
 }

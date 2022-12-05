@@ -53,4 +53,13 @@ public class CrudService<TEntity>
         }
         return connection;
     }
+
+
+    public virtual async Task<IEnumerable<TEntity>> QueryAsync(WhereClause? where = null, OrderByClause? orderBy = null, int? skip = null, int? limit = null)
+    {
+        var connection = await EnsureDatabase();
+        DynamicParameters parameters;
+        var sql = _table.GenerateSelectSql(where, orderBy, skip, limit, out parameters);
+        return await connection.QueryAsync<TEntity>(sql, parameters);
+    }
 }
