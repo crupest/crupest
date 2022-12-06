@@ -45,6 +45,22 @@ public class UpdateClause
         Items.AddRange(items);
     }
 
+    public UpdateClause Add(params UpdateItem[] items)
+    {
+        Items.AddRange(items);
+        return this;
+    }
+
+    public UpdateClause Add(string column, object? value)
+    {
+        return Add(new UpdateItem(column, value));
+    }
+
+    public static UpdateClause Create(params UpdateItem[] items)
+    {
+        return new UpdateClause(items);
+    }
+
     public List<string> GetRelatedColumns()
     {
         return Items.Select(i => i.ColumnName).ToList();
