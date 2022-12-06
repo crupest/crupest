@@ -57,7 +57,7 @@ public static class DynamicParametersExtensions
     public static string AddRandomNameParameter(this DynamicParameters parameters, object? value)
     {
         var parameterName = IWhereClause.GenerateRandomParameterName(parameters);
-        parameters.Add(parameterName, ColumnTypeInfoRegistry.Singleton.ConvertToUnderlineRecursive(value));
+        parameters.Add(parameterName, ColumnTypeRegistry.Instance.ConvertToUnderline(value));
         return parameterName;
     }
 }

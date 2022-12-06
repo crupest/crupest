@@ -42,7 +42,7 @@ public class TableInfo
         if (!hasPrimaryKey)
         {
             if (hasId) throw new Exception("A column named id already exists but is not primary key.");
-            var columnInfo = new ColumnInfo(entityType, "id", true, true, ColumnTypeInfoRegistry.Singleton.GetRequiredByDataType(typeof(int)));
+            var columnInfo = new ColumnInfo(entityType, "id", true, true, ColumnTypeRegistry.Instance.GetRequired<int>());
             columnInfos.Add(columnInfo);
         }
 

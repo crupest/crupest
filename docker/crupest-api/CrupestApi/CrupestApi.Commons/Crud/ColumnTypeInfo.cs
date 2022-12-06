@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Text.Json;
@@ -5,157 +6,148 @@ using System.Text.Json.Serialization;
 
 namespace CrupestApi.Commons.Crud;
 
-public interface IColumnTypeInfo
+/// <summary> Represents a type of one column. </summary>
+public abstract class ColumnTypeInfo
 {
-    JsonConverter? GetOptionalJsonConverter()
+    protected ColumnTypeInfo(Type supportedType)
     {
-        return null;
+        SupportedType = supportedType;
     }
 
-    Type GetPropertyType();
-    Type GetUnderlineType();
-    object ConvertToUnderline(object data);
-    object ConvertFromUnderline(object databaseData);
+    public Type SupportedType { get; }
 
-    void Validate(IReadOnlyDictionary<Type, IColumnTypeInfo> typeInfoMap)
+    public bool IsOfSupportedType(object value)
     {
-        var typeSet = new HashSet<Type>();
-
-        IColumnTypeInfo current = this;
-
-        while (current is not IBuiltinColumnTypeInfo)
-        {
-            var dataType = GetPropertyType();
-
-            if (typeSet.Contains(dataType))
-            {
-                throw new Exception("Circular reference detected.");
-            }
-            typeSet.Add(dataType);
-
-            var databaseType = GetUnderlineType();
-            if (!typeInfoMap.ContainsKey(databaseType))
-            {
-                throw new Exception("Broken type chain.");
-            }
-
-            current = typeInfoMap[databaseType];
-        }
+        return value is not null && SupportedType.IsAssignableFrom(value.GetType());
     }
+
+    public abstract BasicColumnTypeInfo UnderlineType { get; }
+
+    public abstract IReadOnlyList<DerivedColumnTypeInfo> DerivedTypes { get; }
+
+    public abstract string SqlType { get; }
+
+    public abstract DbType DbType { get; }
+
+    /// <summary>
+    /// An optional json converter for this type.
+    /// </summary>
+    /// <returns>The converter if this type needs a json converter. Otherwise null.</returns>
+    public abstract JsonConverter? GetJsonConverter();
+
+    /// <summary>
+    /// Convert a value into underline type. 
+    /// </summary>
+    public abstract object? ConvertToUnderline(object? value);
+
+    /// <summary>
+    /// Convert to a value of this type from value of underline type.
+    /// </summary>
+    public abstract object? ConvertFromUnderline(object? underlineValue);
 }
 
-public interface IBuiltinColumnTypeInfo : IColumnTypeInfo
+public class BasicColumnTypeInfo : ColumnTypeInfo
 {
-    /// To use for non-builtin type, use <see cref="ColumnTypeInfoRegistry.GetSqlTypeRecursive(IColumnTypeInfo)" /> because we need registry to query more information. 
-    string GetSqlType();
-    // To use for non-builtin type, use <see cref="ColumnTypeInfoRegistry.GetDbType(IColumnTypeInfo)" /> because we need registry to query more information.
-    DbType GetDbType();
-}
+    public static BasicColumnTypeInfo<char> CharColumnTypeInfo { get; } = new BasicColumnTypeInfo<char>("INTEGER", DbType.Int32);
+    public static BasicColumnTypeInfo<short> ShortColumnTypeInfo { get; } = new BasicColumnTypeInfo<short>("INTEGER", DbType.Int32);
+    public static BasicColumnTypeInfo<int> IntColumnTypeInfo { get; } = new BasicColumnTypeInfo<int>("INTEGER", DbType.Int32);
+    public static BasicColumnTypeInfo<long> LongColumnTypeInfo { get; } = new BasicColumnTypeInfo<long>("INTEGER", DbType.Int64);
+    public static BasicColumnTypeInfo<float> FloatColumnTypeInfo { get; } = new BasicColumnTypeInfo<float>("REAL", DbType.Double);
+    public static BasicColumnTypeInfo<double> DoubleColumnTypeInfo { get; } = new BasicColumnTypeInfo<double>("REAL", DbType.Double);
+    public static BasicColumnTypeInfo<string> StringColumnTypeInfo { get; } = new BasicColumnTypeInfo<string>("TEXT", DbType.String);
+    public static BasicColumnTypeInfo<byte[]> ByteColumnTypeInfo { get; } = new BasicColumnTypeInfo<byte[]>("BLOB", DbType.Binary);
 
-public class BuiltinColumnTypeInfo<T> : IBuiltinColumnTypeInfo
-{
     private readonly string _sqlType;
     private readonly DbType _dbType;
+    internal List<DerivedColumnTypeInfo> _derivedTypes = new List<DerivedColumnTypeInfo>();
 
-    public BuiltinColumnTypeInfo(string sqlType, DbType dbType)
+    public BasicColumnTypeInfo(Type type, string sqlType, DbType dbType)
+    : base(type)
     {
         _sqlType = sqlType;
         _dbType = dbType;
     }
 
-    public Type GetPropertyType()
+    public override BasicColumnTypeInfo UnderlineType => this;
+
+    public override IReadOnlyList<DerivedColumnTypeInfo> DerivedTypes => _derivedTypes;
+
+    public override string SqlType => _sqlType;
+
+    public override DbType DbType => _dbType;
+
+    public override object? ConvertToUnderline(object? value)
     {
-        return typeof(T);
+        Debug.Assert(value is null || SupportedType.IsInstanceOfType(value));
+        return value;
     }
 
-    public Type GetUnderlineType()
+    public override object? ConvertFromUnderline(object? underlineValue)
     {
-        return typeof(T);
+        Debug.Assert(underlineValue is null || SupportedType.IsInstanceOfType(underlineValue));
+        return underlineValue;
     }
 
-    public string GetSqlType()
+    public override JsonConverter? GetJsonConverter()
     {
-        return _sqlType;
-    }
-
-    public DbType GetDbType()
-    {
-        return _dbType;
-    }
-
-    public T ConvertToDatabase(T data)
-    {
-        return data;
-    }
-
-    public T ConvertFromDatabase(T databaseData)
-    {
-        return databaseData;
-    }
-
-    object IColumnTypeInfo.ConvertToUnderline(object data)
-    {
-        return data;
-    }
-
-    object IColumnTypeInfo.ConvertFromUnderline(object databaseData)
-    {
-        return databaseData;
+        return null;
     }
 }
 
-public interface ICustomColumnTypeInfo : IColumnTypeInfo
+public class BasicColumnTypeInfo<T> : BasicColumnTypeInfo
 {
-
+    public BasicColumnTypeInfo(string sqlType, DbType dbType) : base(typeof(T), sqlType, dbType) { }
 }
 
-public abstract class CustomColumnTypeInfo<TPropertyType, TUnderlineType> : ICustomColumnTypeInfo
- where TPropertyType : notnull where TUnderlineType : notnull
+public abstract class DerivedColumnTypeInfo : ColumnTypeInfo
 {
-
-    public Type GetPropertyType()
+    protected DerivedColumnTypeInfo(Type supportedType, BasicColumnTypeInfo underlineType)
+        : base(supportedType)
     {
-        return typeof(TPropertyType);
+        UnderlineType = underlineType;
+        UnderlineType._derivedTypes.Add(this);
     }
 
-    public Type GetUnderlineType()
-    {
-        return typeof(TUnderlineType);
-    }
+    public override BasicColumnTypeInfo UnderlineType { get; }
 
-    public abstract TUnderlineType ConvertToUnderline(TPropertyType data);
-    public abstract TPropertyType ConvertFromUnderline(TUnderlineType databaseData);
+    private static readonly List<DerivedColumnTypeInfo> _emptyList = new List<DerivedColumnTypeInfo>();
 
-    object IColumnTypeInfo.ConvertToUnderline(object data)
-    {
-        Debug.Assert(data is TPropertyType);
-        return ConvertToUnderline((TPropertyType)data);
-    }
+    public override IReadOnlyList<DerivedColumnTypeInfo> DerivedTypes => _emptyList;
 
-    object IColumnTypeInfo.ConvertFromUnderline(object databaseData)
-    {
-        Debug.Assert(databaseData is TUnderlineType);
-        return ConvertFromUnderline((TUnderlineType)databaseData);
-    }
+    public override string SqlType => UnderlineType!.SqlType;
+
+    public override DbType DbType => UnderlineType!.DbType;
 }
 
-public class DateTimeColumnTypeInfo : CustomColumnTypeInfo<DateTime, long>
+public class DateTimeColumnTypeInfo : DerivedColumnTypeInfo
 {
     private readonly DateTimeJsonConverter _jsonConverter = new DateTimeJsonConverter();
 
-    public JsonConverter GetJsonConverter()
+    public DateTimeColumnTypeInfo()
+        : base(typeof(DateTime), BasicColumnTypeInfo.LongColumnTypeInfo)
+    {
+
+    }
+
+    public override JsonConverter GetJsonConverter()
     {
         return _jsonConverter;
     }
 
-    public override long ConvertToUnderline(DateTime data)
+    public override object? ConvertToUnderline(object? value)
     {
-        return new DateTimeOffset(data).ToUnixTimeSeconds();
+        if (value is null) return null;
+
+        Debug.Assert(value is DateTime);
+        return new DateTimeOffset((DateTime)value).ToUnixTimeSeconds();
     }
 
-    public override DateTime ConvertFromUnderline(long databaseData)
+    public override object? ConvertFromUnderline(object? underlineValue)
     {
-        return DateTimeOffset.FromUnixTimeSeconds(databaseData).LocalDateTime;
+        if (underlineValue is null) return null;
+
+        Debug.Assert(typeof(long).IsAssignableFrom(underlineValue.GetType()));
+        return DateTimeOffset.FromUnixTimeSeconds((long)underlineValue).LocalDateTime;
     }
 }
 
@@ -179,162 +171,87 @@ public class DateTimeJsonConverter : JsonConverter<DateTime>
     }
 }
 
-public class ColumnTypeInfoRegistry
+public class ColumnTypeRegistry
 {
-    public static IReadOnlyList<IColumnTypeInfo> BuiltinList = new List<IColumnTypeInfo>()
+    public static IReadOnlyList<BasicColumnTypeInfo> BasicTypeList = new List<BasicColumnTypeInfo>()
     {
-        new BuiltinColumnTypeInfo<char>("INTEGER", DbType.Int32),
-        new BuiltinColumnTypeInfo<short>("INTEGER", DbType.Int32),
-        new BuiltinColumnTypeInfo<int>("INTEGER", DbType.Int32),
-        new BuiltinColumnTypeInfo<long>("INTEGER", DbType.Int64),
-        new BuiltinColumnTypeInfo<float>("REAL", DbType.Double),
-        new BuiltinColumnTypeInfo<double>("REAL", DbType.Double),
-        new BuiltinColumnTypeInfo<string>("TEXT", DbType.String),
-        new BuiltinColumnTypeInfo<byte[]>("BLOB", DbType.Binary),
+        BasicColumnTypeInfo.CharColumnTypeInfo,
+        BasicColumnTypeInfo.ShortColumnTypeInfo,
+        BasicColumnTypeInfo.IntColumnTypeInfo,
+        BasicColumnTypeInfo.LongColumnTypeInfo,
+        BasicColumnTypeInfo.FloatColumnTypeInfo,
+        BasicColumnTypeInfo.DoubleColumnTypeInfo,
+        BasicColumnTypeInfo.StringColumnTypeInfo,
+        BasicColumnTypeInfo.ByteColumnTypeInfo,
     };
 
+    public static ColumnTypeRegistry Instance { get; }
 
-    public static IReadOnlyList<IColumnTypeInfo> CustomList = new List<IColumnTypeInfo>()
+    static ColumnTypeRegistry()
     {
-        new DateTimeColumnTypeInfo(),
-    };
+        Instance = new ColumnTypeRegistry();
 
-    public static ColumnTypeInfoRegistry Singleton { get; }
-
-    static ColumnTypeInfoRegistry()
-    {
-        Singleton = new ColumnTypeInfoRegistry();
-
-        foreach (var builtinColumnTypeInfo in BuiltinList)
+        foreach (var basicColumnTypeInfo in BasicTypeList)
         {
-            Singleton.Register(builtinColumnTypeInfo);
+            Instance.Register(basicColumnTypeInfo);
         }
 
-        foreach (var customColumnTypeInfo in CustomList)
-        {
-            Singleton.Register(customColumnTypeInfo);
-        }
-
-        Singleton.Validate();
+        Instance.Register(new DateTimeColumnTypeInfo());
     }
 
-    private readonly List<IColumnTypeInfo> _list;
-    private readonly Dictionary<Type, IColumnTypeInfo> _map;
-    private bool _dirty = false;
+    private readonly List<ColumnTypeInfo> _list;
+    private readonly Dictionary<Type, ColumnTypeInfo> _map;
 
-    public ColumnTypeInfoRegistry()
+    public ColumnTypeRegistry()
     {
-        _list = new List<IColumnTypeInfo>();
-        _map = new Dictionary<Type, IColumnTypeInfo>();
+        _list = new List<ColumnTypeInfo>();
+        _map = new Dictionary<Type, ColumnTypeInfo>();
     }
 
-    public void Register(IColumnTypeInfo columnTypeInfo)
+    public void Register(ColumnTypeInfo columnTypeInfo)
     {
         Debug.Assert(!_list.Contains(columnTypeInfo));
+        Debug.Assert(!_map.ContainsKey(columnTypeInfo.SupportedType));
         _list.Add(columnTypeInfo);
-        _map.Add(columnTypeInfo.GetPropertyType(), columnTypeInfo);
-        _dirty = true;
+        _map.Add(columnTypeInfo.SupportedType, columnTypeInfo);
     }
 
-    public IColumnTypeInfo? GetByDataType(Type type)
+    public ColumnTypeInfo? Get(Type type)
     {
         return _map.GetValueOrDefault(type);
     }
 
-    public IColumnTypeInfo GetRequiredByDataType(Type type)
+    public ColumnTypeInfo? Get<T>()
     {
-        return GetByDataType(type) ?? throw new Exception("Unsupported type.");
+        return Get(typeof(T));
     }
 
-    public string GetSqlTypeRecursive(IColumnTypeInfo columnTypeInfo)
+    public ColumnTypeInfo GetRequired(Type type)
     {
-        EnsureValidity();
-
-        IColumnTypeInfo? current = columnTypeInfo;
-        while (current is not IBuiltinColumnTypeInfo)
-        {
-            current = GetByDataType(current.GetUnderlineType());
-            Debug.Assert(current is not null);
-        }
-
-        return ((IBuiltinColumnTypeInfo)current).GetSqlType();
+        return Get(type) ?? throw new Exception("Unsupported type.");
     }
 
-    public DbType GetDbTypeRecursive(IColumnTypeInfo columnTypeInfo)
+    public ColumnTypeInfo GetRequired<T>()
     {
-        EnsureValidity();
-
-        IColumnTypeInfo? current = columnTypeInfo;
-        if (current is not IBuiltinColumnTypeInfo)
-        {
-            current = GetByDataType(current.GetUnderlineType());
-            Debug.Assert(current is not null);
-        }
-
-        return ((IBuiltinColumnTypeInfo)current).GetDbType();
-    }
-
-    public object? ConvertToUnderlineRecursive(object? value)
-    {
-        EnsureValidity();
-
-        if (value is null)
-        {
-            return null;
-        }
-
-        IColumnTypeInfo? current = GetByDataType(value.GetType());
-        if (current is null)
-        {
-            return value;
-        }
-
-        while (current is not IBuiltinColumnTypeInfo)
-        {
-            value = current.ConvertToUnderline(value);
-            current = GetByDataType(current.GetUnderlineType());
-            Debug.Assert(current is not null);
-        }
-
-        return value;
-    }
-
-    public string GetSqlType(Type type)
-    {
-        return GetSqlTypeRecursive(GetRequiredByDataType(type));
-    }
-
-    public DbType GetDbType(Type type)
-    {
-        return GetDbTypeRecursive(GetRequiredByDataType(type));
+        return GetRequired(typeof(T));
     }
 
     public object? ConvertToUnderline(object? value)
     {
-        return ConvertToUnderlineRecursive(value);
-    }
+        if (value is null) return null;
 
-    public void Validate()
-    {
-        foreach (var columnTypeInfo in _list)
-        {
-            columnTypeInfo.Validate(_map);
-        }
-    }
+        var type = value.GetType();
+        var columnTypeInfo = Get(type);
+        if (columnTypeInfo is null) throw new Exception("Unsupported type.");
 
-    public void EnsureValidity()
-    {
-        if (_dirty)
-        {
-            Validate();
-        }
+        return columnTypeInfo.ConvertToUnderline(value);
     }
 
     public IEnumerable<JsonConverter> GetJsonConverters()
     {
         foreach (var columnTypeInfo in _list)
         {
-            var converter = columnTypeInfo.GetOptionalJsonConverter();
+            var converter = columnTypeInfo.GetJsonConverter();
             if (converter is not null)
                 yield return converter;
         }
