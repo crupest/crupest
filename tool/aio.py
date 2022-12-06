@@ -170,7 +170,7 @@ def git_update():
 def update_blog():
     def do_it():
         subprocess.run(["docker", "compose", "exec",
-                       "crupest-blog", "/update.bash"], check=True)
+                       "crupest-blog", "/scripts/update.bash"], check=True)
     run_in_project_dir(do_it)
 
 
