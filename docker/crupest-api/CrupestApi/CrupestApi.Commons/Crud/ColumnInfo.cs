@@ -1,7 +1,11 @@
+using System.Data;
 using System.Reflection;
 using System.Text;
 
 namespace CrupestApi.Commons.Crud;
+
+public delegate Task EntityPreSave(object? entity, ColumnInfo column, TableInfo table, IDbConnection connection);
+public delegate Task EntityPostGet(object? entity, ColumnInfo column, TableInfo table, IDbConnection connection);
 
 public class ColumnInfo
 {
@@ -24,7 +28,7 @@ public class ColumnInfo
         }
 
         EntityType = entityType;
-        PropertyName = null;
+        PropertyName = sqlColumnName;
         PropertyType = typeof(int);
         PropertyRealType = typeof(int);
         SqlColumnName = sqlColumnName;
@@ -45,36 +49,55 @@ public class ColumnInfo
 
         EntityType = entityType;
         PropertyName = entityPropertyName;
+        PropertyInfo = entityType.GetProperty(entityPropertyName);
 
-        var property = entityType.GetProperty(entityPropertyName);
-
-        if (property is null)
+        if (PropertyInfo is null)
             throw new Exception("Public property with given name does not exist.");
 
-        PropertyType = property.PropertyType;
+        PropertyType = PropertyInfo.PropertyType;
         PropertyRealType = ExtractRealTypeFromNullable(PropertyType);
 
-        var columnAttribute = property.GetCustomAttribute<ColumnAttribute>();
+        var columnAttribute = PropertyInfo.GetCustomAttribute<ColumnAttribute>();
         if (columnAttribute is null)
         {
             SqlColumnName = PropertyName;
             Nullable = true;
             IndexType = ColumnIndexType.None;
+            DefaultEmptyForString = false;
         }
         else
         {
             SqlColumnName = columnAttribute.DatabaseName ?? PropertyName;
             Nullable = !columnAttribute.NonNullable;
             IndexType = columnAttribute.IndexType;
+            DefaultEmptyForString = columnAttribute.DefaultEmptyForString;
         }
 
         ColumnTypeInfo = typeRegistry.GetRequiredByDataType(PropertyRealType);
         TypeRegistry = typeRegistry;
+
+        if (DefaultEmptyForString)
+        {
+            EntityPostGet += (entity, column, _, _) =>
+            {
+                var pi = column.PropertyInfo;
+                if (pi is not null && column.ColumnTypeInfo.GetDatabaseType() == typeof(string))
+                {
+                    var value = pi.GetValue(entity);
+                    if (value is null)
+                    {
+                        pi.SetValue(entity, string.Empty);
+                    }
+                }
+                return Task.CompletedTask;
+            };
+        }
     }
 
     public Type EntityType { get; }
     // If null, there is no corresponding property.
-    public string? PropertyName { get; }
+    public PropertyInfo? PropertyInfo { get; } = null;
+    public string PropertyName { get; }
     public Type PropertyType { get; }
     public Type PropertyRealType { get; }
     public string SqlColumnName { get; }
@@ -84,6 +107,10 @@ public class ColumnInfo
     public bool IsPrimaryKey { get; }
     public bool IsAutoIncrement { get; }
     public ColumnIndexType IndexType { get; }
+    public bool DefaultEmptyForString { get; }
+
+    public event EntityPreSave? EntityPreSave;
+    public event EntityPostGet? EntityPostGet;
 
     public string SqlType => TypeRegistry.GetSqlType(ColumnTypeInfo);
 

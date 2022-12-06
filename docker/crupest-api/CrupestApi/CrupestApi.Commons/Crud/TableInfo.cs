@@ -190,6 +190,46 @@ CREATE TABLE {tableName}(
         return result.ToString();
     }
 
+    public InsertClause GenerateInsertClauseFromObject(object value)
+    {
+        var insertClause = InsertClause.Create();
+
+        foreach (var column in ColumnInfos)
+        {
+            var propertyInfo = column.PropertyInfo;
+            if (propertyInfo is null)
+            {
+                propertyInfo = EntityType.GetProperty(column.PropertyName);
+            }
+            if (propertyInfo is null)
+            {
+                if (column.IsAutoIncrement)
+                {
+                    continue;
+                }
+                else
+                {
+                    throw new Exception($"Property {column.PropertyName} not found.");
+                }
+            }
+
+            var propertyValue = propertyInfo.GetValue(value);
+            if (propertyValue is null)
+            {
+                if (column.IsAutoIncrement)
+                {
+                    continue;
+                }
+                else
+                {
+                    insertClause.Add(column.SqlColumnName, propertyValue);
+                }
+            }
+        }
+
+        return insertClause;
+    }
+
     public string GenerateInsertSql(InsertClause insertClause, out DynamicParameters parameters)
     {
         var relatedColumns = insertClause.GetRelatedColumns();
@@ -235,6 +275,34 @@ CREATE TABLE {tableName}(
         sb.Append(TableName);
         sb.Append(" SET ");
         sb.Append(updateClause.GenerateSql(parameters));
+        if (whereClause is not null)
+        {
+            sb.Append(" WHERE ");
+            sb.Append(whereClause.GenerateSql(parameters));
+        }
+        sb.Append(';');
+
+        return sb.ToString();
+    }
+
+    public string GenerateDeleteSql(WhereClause? whereClause, out DynamicParameters parameters)
+    {
+        if (whereClause is not null)
+        {
+            var relatedColumns = ((IWhereClause)whereClause).GetRelatedColumns() ?? new List<string>();
+            foreach (var column in relatedColumns)
+            {
+                if (!ColumnNameList.Contains(column))
+                {
+                    throw new ArgumentException($"Column {column} is not in the table.");
+                }
+            }
+        }
+
+        parameters = new DynamicParameters();
+
+        StringBuilder sb = new StringBuilder("DELETE FROM ");
+        sb.Append(TableName);
         if (whereClause is not null)
         {
             sb.Append(" WHERE ");

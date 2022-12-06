@@ -1,9 +1,16 @@
 using System.Diagnostics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CrupestApi.Commons.Crud;
 
 public interface IColumnTypeInfo
 {
+    JsonConverter? GetOptionalJsonConverter()
+    {
+        return null;
+    }
+
     Type GetDataType();
     Type GetDatabaseType();
     object ConvertToDatabase(object data);
@@ -122,6 +129,46 @@ public abstract class CustomColumnTypeInfo<TDataType, TDatabaseType> : ICustomCo
     }
 }
 
+public class DateTimeColumnTypeInfo : CustomColumnTypeInfo<DateTime, long>
+{
+    private readonly DateTimeJsonConverter _jsonConverter = new DateTimeJsonConverter();
+
+    public JsonConverter GetJsonConverter()
+    {
+        return _jsonConverter;
+    }
+
+    public override long ConvertToDatabase(DateTime data)
+    {
+        return new DateTimeOffset(data).ToUnixTimeSeconds();
+    }
+
+    public override DateTime ConvertFromDatabase(long databaseData)
+    {
+        return DateTimeOffset.FromUnixTimeSeconds(databaseData).LocalDateTime;
+    }
+}
+
+public class DateTimeJsonConverter : JsonConverter<DateTime>
+{
+    public override bool HandleNull => false;
+
+    public override bool CanConvert(Type typeToConvert)
+    {
+        return typeToConvert == typeof(DateTime);
+    }
+
+    public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64()).LocalDateTime;
+    }
+
+    public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
+    {
+        writer.WriteNumberValue(new DateTimeOffset(value).ToUnixTimeSeconds());
+    }
+}
+
 public class ColumnTypeInfoRegistry
 {
     public static IReadOnlyList<IColumnTypeInfo> BuiltinList = new List<IColumnTypeInfo>()
@@ -139,7 +186,7 @@ public class ColumnTypeInfoRegistry
 
     public static IReadOnlyList<IColumnTypeInfo> CustomList = new List<IColumnTypeInfo>()
     {
-        // TODO: Add custom ones.
+        new DateTimeColumnTypeInfo(),
     };
 
     public static ColumnTypeInfoRegistry Singleton { get; }
@@ -229,4 +276,13 @@ public class ColumnTypeInfoRegistry
         }
     }
 
+    public IEnumerable<JsonConverter> GetJsonConverters()
+    {
+        foreach (var columnTypeInfo in _list)
+        {
+            var converter = columnTypeInfo.GetOptionalJsonConverter();
+            if (converter is not null)
+                yield return converter;
+        }
+    }
 }

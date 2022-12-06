@@ -28,4 +28,7 @@ public class ColumnAttribute : Attribute, IColumnMetadata
     public bool IsAutoIncrement { get; set; }
 
     public ColumnIndexType IndexType { get; set; } = ColumnIndexType.None;
+
+    // Use empty string for default value of string type.
+    public bool DefaultEmptyForString { get; set; }
 }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CrupestApi.Commons.Crud;
 using Microsoft.Extensions.Options;
 
 namespace CrupestApi.Commons;
@@ -13,6 +14,10 @@ public static class CrupestApiJsonExtensions
             config.AllowTrailingCommas = true;
             config.PropertyNameCaseInsensitive = true;
             config.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            foreach (var converter in ColumnTypeInfoRegistry.Singleton.GetJsonConverters())
+            {
+                config.Converters.Add(converter);
+            }
         });
 
         return services;
