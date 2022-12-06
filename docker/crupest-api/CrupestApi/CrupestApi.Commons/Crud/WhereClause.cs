@@ -53,7 +53,7 @@ public interface IWhereClause
 
 public static class DynamicParametersExtensions
 {
-    public static string AddRandomNameParameter(this DynamicParameters parameters, object value)
+    public static string AddRandomNameParameter(this DynamicParameters parameters, object? value)
     {
         var parameterName = IWhereClause.GenerateRandomParameterName(parameters);
         parameters.Add(parameterName, value);
