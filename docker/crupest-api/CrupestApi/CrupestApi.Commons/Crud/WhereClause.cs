@@ -213,6 +213,11 @@ public class WhereClause : IWhereClause
         return new WhereClause(clauses);
     }
 
+    public WhereClause Add(string column, string op, object value)
+    {
+        return Add(CompareWhereClause.Create(column, op, value));
+    }
+
     public WhereClause Eq(string column, object value)
     {
         return Add(CompareWhereClause.Eq(column, value));

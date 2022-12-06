@@ -8,13 +8,13 @@ public class CrudService<TEntity>
 {
     protected readonly TableInfo _table;
     protected readonly IOptionsSnapshot<CrupestApiConfig> _crupestApiOptions;
-    protected readonly ILogger<CrudService<TEntity>> _logger;
+    private readonly ILogger<CrudService<TEntity>> _logger;
 
-    public CrudService(IOptionsSnapshot<CrupestApiConfig> crupestApiOptions, ILogger<CrudService<TEntity>> logger)
+    public CrudService(ServiceProvider services)
     {
         _table = new TableInfo(typeof(TEntity));
-        _crupestApiOptions = crupestApiOptions;
-        _logger = logger;
+        _crupestApiOptions = services.GetRequiredService<IOptionsSnapshot<CrupestApiConfig>>();
+        _logger = services.GetRequiredService<ILogger<CrudService<TEntity>>>();
     }
 
     public virtual string GetDbConnectionString()
@@ -76,6 +76,14 @@ public class CrudService<TEntity>
         var connection = await EnsureDatabase();
         DynamicParameters parameters;
         var sql = _table.GenerateUpdateSql(where, update, out parameters);
+        return await connection.ExecuteAsync(sql, parameters);
+    }
+
+    public virtual async Task<int> DeleteAsync(WhereClause? where)
+    {
+        var connection = await EnsureDatabase();
+        DynamicParameters parameters;
+        var sql = _table.GenerateDeleteSql(where, out parameters);
         return await connection.ExecuteAsync(sql, parameters);
     }
 }

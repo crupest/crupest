@@ -3,18 +3,20 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using CrupestApi.Commons;
+using CrupestApi.Commons.Crud;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Options;
 
 namespace CrupestApi.Secrets;
 
-public class SecretsService : ISecretsService
+public class SecretsService : CrudService<SecretInfo>, ISecretsService
 {
     private readonly IOptionsSnapshot<CrupestApiConfig> _crupestApiConfig;
     private readonly ILogger<SecretsService> _logger;
 
-    public SecretsService(IOptionsSnapshot<CrupestApiConfig> crupestApiConfig, ILogger<SecretsService> logger)
+    public SecretsService(IOptionsSnapshot<CrupestApiConfig> crupestApiConfig, ILogger<SecretsService> logger, ServiceProvider services)
+    : base(services)
     {
         _crupestApiConfig = crupestApiConfig;
         _logger = logger;
@@ -25,55 +27,15 @@ public class SecretsService : ISecretsService
         return Path.Combine(_crupestApiConfig.Value.DataDir, "secrets.db");
     }
 
-    private async Task<SqliteConnection> EnsureDatabase()
+    public override string GetDbConnectionString()
     {
-        var dataSource = GetDatabasePath();
-        var connectionStringBuilder = new SqliteConnectionStringBuilder()
+        var fileName = GetDatabasePath();
+
+        return new SqliteConnectionStringBuilder()
         {
-            DataSource = dataSource
-        };
-
-        if (!File.Exists(dataSource))
-        {
-            _logger.LogInformation("Data source {0} does not exist. Create one.", dataSource);
-            connectionStringBuilder.Mode = SqliteOpenMode.ReadWriteCreate;
-            var connectionString = connectionStringBuilder.ToString();
-            var connection = new SqliteConnection(connectionString);
-            var transaction = await connection.BeginTransactionAsync();
-
-            connection.Execute(@"
-CREATE TABLE secrets (
-    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-    Key TEXT NOT NULL,
-    Secret TEXT NOT NULL,
-    Description TEXT NOT NULL,
-    ExpireTime TEXT,
-    Revoked INTEGER NOT NULL,
-    CreateTime TEXT NOT NULL
-);
-
-CREATE INDEX secrets_key ON secrets (key);
-
-INSERT INTO secrets (Key, Secret, Description, ExpireTime, Revoked, CreateTime) VALUES (@SecretManagementKey, 'crupest', 'This is the default secret management key.', NULL, 0, @CreateTime);
-            ",
-            new
-            {
-                SecretManagementKey = SecretsConstants.SecretManagementKey,
-                CreateTime = DateTime.Now.ToString("O"),
-            });
-
-            await transaction.CommitAsync();
-
-            _logger.LogInformation("{0} created with 'crupest' as the default secret management value. Please immediate revoke it and create a new one.", dataSource);
-            return connection;
-        }
-        else
-        {
-            _logger.LogInformation("Data source {0} already exists. Will use it.");
-            connectionStringBuilder.Mode = SqliteOpenMode.ReadWrite;
-            var connectionString = connectionStringBuilder.ToString();
-            return new SqliteConnection(connectionString);
-        }
+            DataSource = fileName,
+            Mode = SqliteOpenMode.ReadWriteCreate
+        }.ToString();
     }
 
     private string GenerateRandomKey(int length)
@@ -88,83 +50,43 @@ INSERT INTO secrets (Key, Secret, Description, ExpireTime, Revoked, CreateTime) 
         return result.ToString();
     }
 
-    private async Task<SecretInfo> GetSecretAsync(IDbConnection dbConnection, string secret)
+    public async Task<SecretInfo> CreateSecretAsync(SecretInfo secretInfo)
     {
-        var result = await dbConnection.QueryFirstOrDefaultAsync<SecretInfo>(@"
-SELECT Id, Key, Secret, Description, ExpireTime, Revoked, CreateTime FROM secrets WHERE Secret = @Secret;
-        ", new
+        if (secretInfo.Secret is not null)
         {
-            Secret = secret
-        });
+            throw new ArgumentException("Secret is auto generated. Don't specify it explicit.")
+        }
 
-        return result;
+        secretInfo.Secret = GenerateRandomKey(16);
+        secretInfo.CreateTime = DateTime.Now;
 
-    }
+        await InsertAsync(_table.GenerateInsertClauseFromObject(secretInfo));
 
-    public async Task<SecretInfo?> GetSecretAsync(string secret)
-    {
-        using var dbConnection = await EnsureDatabase();
-        return await GetSecretAsync(dbConnection, secret);
-    }
-
-    public async Task<SecretInfo> CreateSecretAsync(string key, string description, DateTime? expireTime = null)
-    {
-        var dbConnection = await EnsureDatabase();
-
-        var secret = GenerateRandomKey(16);
-        var now = DateTime.Now;
-
-        dbConnection.Execute(@"
-INSERT INTO secrets (Key, Secret, Description, ExpireTime, Revoked, CreateTime) VALUES (@Key, @Secret, @Description, @ExpireTime, 0, @CreateTime);
-        ",
-        new
-        {
-            Key = key,
-            Secret = secret,
-            Description = description,
-            ExpireTime = expireTime?.ToString("O"),
-            CreateTime = now.ToString("O"),
-        });
-
-        return new SecretInfo(key, secret, description, expireTime, false, now);
+        return secretInfo;
     }
 
     public async Task<List<SecretInfo>> GetSecretListAsync(bool includeExpired = false, bool includeRevoked = false)
     {
-        var dbConnection = await EnsureDatabase();
-
-        var query = await dbConnection.QueryAsync<SecretInfo>(@"
-SELECT Key, Secret, Description, ExpireTime, Revoked, CreateTime FROM secrets
-WHERE @IncludeExpired OR ExpireTime IS NULL OR ExpireTime > @Now AND
-        @IncludeRevoked OR Revoked = 0;
-        ", new
-        {
-            IncludeExpired = includeExpired,
-            IncludeRevoked = includeRevoked,
-            Now = DateTime.Now.ToString("O"),
-        });
-
-        return query.ToList();
+        return (await QueryAsync()).ToList();
     }
 
     public async Task<List<SecretInfo>> GetSecretListByKeyAsync(string key, bool includeExpired = false, bool includeRevoked = false)
     {
-        var dbConnection = await EnsureDatabase();
+        WhereClause where = WhereClause.Create();
 
-        var query = await dbConnection.QueryAsync<SecretInfo>(@"
-SELECT Key, Secret, Description, ExpireTime, Revoked, CreateTime FROM secrets
-WHERE Key = @Key AND
-(@IncludeExpired OR ExpireTime IS NULL OR ExpireTime > @Now) AND
-(@IncludeRevoked OR Revoked = 0);
-        ", new
+        where.Eq(nameof(SecretInfo.Key), key);
+
+        if (!includeExpired)
         {
-            Key = key,
-            IncludeExpired = includeExpired,
-            IncludeRevoked = includeRevoked,
-            Now = DateTime.Now.ToString("O"),
-        });
+            where.Add(nameof(SecretInfo.ExpireTime), "<=", )
+        }
 
-        return query.ToList();
+        if (!includeRevoked)
+        {
+            where.Eq(nameof(SecretInfo.Revoked), false);
+        }
+
+        return (await QueryAsync(where)).ToList();
     }
 
     public async Task<SecretInfo> ModifySecretAsync(string secret, SecretModifyRequest modifyRequest)
