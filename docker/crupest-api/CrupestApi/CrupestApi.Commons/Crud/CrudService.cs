@@ -62,4 +62,12 @@ public class CrudService<TEntity>
         var sql = _table.GenerateSelectSql(where, orderBy, skip, limit, out parameters);
         return await connection.QueryAsync<TEntity>(sql, parameters);
     }
+
+    public virtual async Task<int> UpdateAsync(WhereClause? where, UpdateClause update)
+    {
+        var connection = await EnsureDatabase();
+        DynamicParameters parameters;
+        var sql = _table.GenerateUpdateSql(where, update, out parameters);
+        return await connection.ExecuteAsync(sql, parameters);
+    }
 }

@@ -189,4 +189,34 @@ CREATE TABLE {tableName}(
 
         return result.ToString();
     }
+
+    public string GenerateUpdateSql(WhereClause? whereClause, UpdateClause updateClause, out DynamicParameters parameters)
+    {
+        var relatedColumns = new HashSet<string>();
+        if (whereClause is not null)
+            relatedColumns.UnionWith(((IWhereClause)whereClause).GetRelatedColumns() ?? Enumerable.Empty<string>());
+        relatedColumns.UnionWith(updateClause.GetRelatedColumns());
+        foreach (var column in relatedColumns)
+        {
+            if (!ColumnNameList.Contains(column))
+            {
+                throw new ArgumentException($"Field {column} is not in the table.");
+            }
+        }
+
+        parameters = new DynamicParameters();
+
+        StringBuilder sb = new StringBuilder("UPDATE ");
+        sb.Append(TableName);
+        sb.Append(" SET ");
+        sb.Append(updateClause.GenerateSql(parameters));
+        if (whereClause is not null)
+        {
+            sb.Append(" WHERE ");
+            sb.Append(whereClause.GenerateSql(parameters));
+        }
+        sb.Append(';');
+
+        return sb.ToString();
+    }
 }
