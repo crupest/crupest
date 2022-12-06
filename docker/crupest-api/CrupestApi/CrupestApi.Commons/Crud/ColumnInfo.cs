@@ -20,11 +20,11 @@ public class ColumnInfo
     }
 
     // A column with no property.
-    public ColumnInfo(Type entityType, string sqlColumnName, bool isPrimaryKey, bool isAutoIncrement, IColumnTypeInfo typeInfo, ColumnIndexType indexType = ColumnIndexType.None, ColumnTypeInfoRegistry? typeRegistry = null)
+    public ColumnInfo(Type entityType, string sqlColumnName, bool isPrimaryKey, bool isAutoIncrement, ColumnTypeInfo typeInfo, ColumnIndexType indexType = ColumnIndexType.None, ColumnTypeRegistry? typeRegistry = null)
     {
         if (typeRegistry is null)
         {
-            typeRegistry = ColumnTypeInfoRegistry.Singleton;
+            typeRegistry = ColumnTypeRegistry.Instance;
         }
 
         EntityType = entityType;
@@ -40,11 +40,11 @@ public class ColumnInfo
         IndexType = indexType;
     }
 
-    public ColumnInfo(Type entityType, string entityPropertyName, ColumnTypeInfoRegistry? typeRegistry = null)
+    public ColumnInfo(Type entityType, string entityPropertyName, ColumnTypeRegistry? typeRegistry = null)
     {
         if (typeRegistry is null)
         {
-            typeRegistry = ColumnTypeInfoRegistry.Singleton;
+            typeRegistry = ColumnTypeRegistry.Instance;
         }
 
         EntityType = entityType;
@@ -73,25 +73,8 @@ public class ColumnInfo
             DefaultEmptyForString = columnAttribute.DefaultEmptyForString;
         }
 
-        ColumnTypeInfo = typeRegistry.GetRequiredByDataType(PropertyRealType);
+        ColumnTypeInfo = typeRegistry.GetRequired(PropertyRealType);
         TypeRegistry = typeRegistry;
-
-        if (DefaultEmptyForString)
-        {
-            EntityPostGet += (entity, column, _, _) =>
-            {
-                var pi = column.PropertyInfo;
-                if (pi is not null && column.ColumnTypeInfo.GetUnderlineType() == typeof(string))
-                {
-                    var value = pi.GetValue(entity);
-                    if (value is null)
-                    {
-                        pi.SetValue(entity, string.Empty);
-                    }
-                }
-                return Task.CompletedTask;
-            };
-        }
     }
 
     public Type EntityType { get; }
@@ -101,18 +84,17 @@ public class ColumnInfo
     public Type PropertyType { get; }
     public Type PropertyRealType { get; }
     public string SqlColumnName { get; }
-    public ColumnTypeInfoRegistry TypeRegistry { get; set; }
-    public IColumnTypeInfo ColumnTypeInfo { get; }
+    public ColumnTypeRegistry TypeRegistry { get; set; }
+    public ColumnTypeInfo ColumnTypeInfo { get; }
     public bool Nullable { get; }
     public bool IsPrimaryKey { get; }
     public bool IsAutoIncrement { get; }
     public ColumnIndexType IndexType { get; }
+
+    // TODO: Implement this behavior.
     public bool DefaultEmptyForString { get; }
 
-    public event EntityPreSave? EntityPreSave;
-    public event EntityPostGet? EntityPostGet;
-
-    public string SqlType => TypeRegistry.GetSqlTypeRecursive(ColumnTypeInfo);
+    public string SqlType => ColumnTypeInfo.SqlType;
 
     public string GenerateCreateTableColumnString()
     {
