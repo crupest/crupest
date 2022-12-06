@@ -81,7 +81,7 @@ public class ColumnInfo
             EntityPostGet += (entity, column, _, _) =>
             {
                 var pi = column.PropertyInfo;
-                if (pi is not null && column.ColumnTypeInfo.GetDatabaseType() == typeof(string))
+                if (pi is not null && column.ColumnTypeInfo.GetUnderlineType() == typeof(string))
                 {
                     var value = pi.GetValue(entity);
                     if (value is null)
@@ -112,7 +112,7 @@ public class ColumnInfo
     public event EntityPreSave? EntityPreSave;
     public event EntityPostGet? EntityPostGet;
 
-    public string SqlType => TypeRegistry.GetSqlType(ColumnTypeInfo);
+    public string SqlType => TypeRegistry.GetSqlTypeRecursive(ColumnTypeInfo);
 
     public string GenerateCreateTableColumnString()
     {

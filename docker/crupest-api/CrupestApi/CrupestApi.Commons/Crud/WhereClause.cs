@@ -1,3 +1,4 @@
+using System.Data;
 using System.Diagnostics;
 using Dapper;
 
@@ -56,7 +57,7 @@ public static class DynamicParametersExtensions
     public static string AddRandomNameParameter(this DynamicParameters parameters, object? value)
     {
         var parameterName = IWhereClause.GenerateRandomParameterName(parameters);
-        parameters.Add(parameterName, value);
+        parameters.Add(parameterName, ColumnTypeInfoRegistry.Singleton.ConvertToUnderlineRecursive(value));
         return parameterName;
     }
 }
