@@ -1,3 +1,5 @@
+using Dapper;
+
 namespace CrupestApi.Commons.Crud;
 
 public class OrderByItem
@@ -17,16 +19,19 @@ public class OrderByItem
     }
 }
 
-public class OrderByClause : List<OrderByItem>
+public interface IOrderByClause : IClause
 {
-    public OrderByClause(IEnumerable<OrderByItem> items)
-        : base(items)
-    {
-    }
+    List<OrderByItem> Items { get; }
+    (string sql, DynamicParameters parameters) GenerateSql(string? dbProviderId = null);
+}
+
+public class OrderByClause : IOrderByClause
+{
+    public List<OrderByItem> Items { get; } = new List<OrderByItem>();
 
     public OrderByClause(params OrderByItem[] items)
-        : base(items)
     {
+        Items.AddRange(items);
     }
 
     public static OrderByClause Create(params OrderByItem[] items)
@@ -34,8 +39,13 @@ public class OrderByClause : List<OrderByItem>
         return new OrderByClause(items);
     }
 
-    public string GenerateSql()
+    public List<string> GetRelatedColumns()
     {
-        return "ORDER BY " + string.Join(", ", this.Select(i => i.GenerateSql()));
+        return Items.Select(x => x.ColumnName).ToList();
+    }
+
+    public (string sql, DynamicParameters parameters) GenerateSql(string? dbProviderId = null)
+    {
+        return ("ORDER BY " + string.Join(", ", Items.Select(i => i.GenerateSql())), new DynamicParameters());
     }
 }

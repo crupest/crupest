@@ -11,34 +11,20 @@ public class InsertItem
         Value = value;
     }
 
-    public InsertItem(KeyValuePair<string, object?> pair)
-    {
-        ColumnName = pair.Key;
-        Value = pair.Value;
-    }
-
     public string ColumnName { get; set; }
     public object? Value { get; set; }
-
-    public static implicit operator KeyValuePair<string, object?>(InsertItem item)
-    {
-        return new(item.ColumnName, item.Value);
-    }
-
-    public static implicit operator InsertItem(KeyValuePair<string, object?> pair)
-    {
-        return new(pair);
-    }
 }
 
-public class InsertClause
+public interface IInsertClause : IClause
+{
+    List<InsertItem> Items { get; }
+    string GenerateColumnListSql(string? dbProviderId = null);
+    (string sql, DynamicParameters parameters) GenerateValueListSql(string? dbProviderId = null);
+}
+
+public class InsertClause : IInsertClause
 {
     public List<InsertItem> Items { get; } = new List<InsertItem>();
-
-    public InsertClause(IEnumerable<InsertItem> items)
-    {
-        Items.AddRange(items);
-    }
 
     public InsertClause(params InsertItem[] items)
     {
@@ -66,13 +52,14 @@ public class InsertClause
         return Items.Select(i => i.ColumnName).ToList();
     }
 
-    public string GenerateColumnListSql()
+    public string GenerateColumnListSql(string? dbProviderId = null)
     {
         return string.Join(", ", Items.Select(i => i.ColumnName));
     }
 
-    public string GenerateValueListSql(DynamicParameters parameters)
+    public (string sql, DynamicParameters parameters) GenerateValueListSql(string? dbProviderId = null)
     {
+        var parameters = new DynamicParameters();
         var sb = new StringBuilder();
         for (var i = 0; i < Items.Count; i++)
         {
@@ -83,6 +70,6 @@ public class InsertClause
                 sb.Append(", ");
         }
 
-        return sb.ToString();
+        return (sb.ToString(), parameters);
     }
 }

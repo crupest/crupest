@@ -11,26 +11,11 @@ public class UpdateItem
         Value = value;
     }
 
-    public UpdateItem(KeyValuePair<string, object?> pair)
-    {
-        ColumnName = pair.Key;
-        Value = pair.Value;
-    }
-
     public string ColumnName { get; set; }
     public object? Value { get; set; }
-
-    public static implicit operator KeyValuePair<string, object?>(UpdateItem item)
-    {
-        return new(item.ColumnName, item.Value);
-    }
-
-    public static implicit operator UpdateItem(KeyValuePair<string, object?> pair)
-    {
-        return new(pair);
-    }
 }
 
+// TODO: Continue...
 public class UpdateClause
 {
     public List<UpdateItem> Items { get; } = new List<UpdateItem>();

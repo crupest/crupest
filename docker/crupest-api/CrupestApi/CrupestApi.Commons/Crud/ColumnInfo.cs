@@ -1,113 +1,68 @@
-using System.Data;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 
 namespace CrupestApi.Commons.Crud;
 
-public delegate Task EntityPreSave(object? entity, ColumnInfo column, TableInfo table, IDbConnection connection);
-public delegate Task EntityPostGet(object? entity, ColumnInfo column, TableInfo table, IDbConnection connection);
-
 public class ColumnInfo
 {
-    private Type ExtractRealTypeFromNullable(Type type)
-    {
-        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
-        {
-            return type.GetGenericArguments()[0];
-        }
+    private readonly AggregateColumnMetadata _metadata = new AggregateColumnMetadata();
 
-        return type;
+    public ColumnInfo(Type entityType, IColumnMetadata metadata, Type clrType, IColumnTypeProvider typeProvider)
+    {
+        EntityType = entityType;
+        _metadata.Add(metadata);
+        ColumnType = typeProvider.Get(clrType);
     }
 
-    // A column with no property.
-    public ColumnInfo(Type entityType, string sqlColumnName, bool isPrimaryKey, bool isAutoIncrement, ColumnTypeInfo typeInfo, ColumnIndexType indexType = ColumnIndexType.None, ColumnTypeRegistry? typeRegistry = null)
+    public ColumnInfo(PropertyInfo propertyInfo, IColumnTypeProvider typeProvider)
     {
-        if (typeRegistry is null)
+        EntityType = propertyInfo.DeclaringType!;
+        ColumnType = typeProvider.Get(propertyInfo.PropertyType);
+
+        var columnAttribute = propertyInfo.GetCustomAttribute<ColumnAttribute>();
+        if (columnAttribute is not null)
         {
-            typeRegistry = ColumnTypeRegistry.Instance;
+            _metadata.Add(columnAttribute);
         }
-
-        EntityType = entityType;
-        PropertyName = sqlColumnName;
-        PropertyType = typeof(int);
-        PropertyRealType = typeof(int);
-        SqlColumnName = sqlColumnName;
-        ColumnTypeInfo = typeInfo;
-        Nullable = false;
-        IsPrimaryKey = isPrimaryKey;
-        IsAutoIncrement = isAutoIncrement;
-        TypeRegistry = typeRegistry;
-        IndexType = indexType;
-    }
-
-    public ColumnInfo(Type entityType, string entityPropertyName, ColumnTypeRegistry? typeRegistry = null)
-    {
-        if (typeRegistry is null)
-        {
-            typeRegistry = ColumnTypeRegistry.Instance;
-        }
-
-        EntityType = entityType;
-        PropertyName = entityPropertyName;
-        PropertyInfo = entityType.GetProperty(entityPropertyName);
-
-        if (PropertyInfo is null)
-            throw new Exception("Public property with given name does not exist.");
-
-        PropertyType = PropertyInfo.PropertyType;
-        PropertyRealType = ExtractRealTypeFromNullable(PropertyType);
-
-        var columnAttribute = PropertyInfo.GetCustomAttribute<ColumnAttribute>();
-        if (columnAttribute is null)
-        {
-            SqlColumnName = PropertyName;
-            Nullable = true;
-            IndexType = ColumnIndexType.None;
-            DefaultEmptyForString = false;
-        }
-        else
-        {
-            SqlColumnName = columnAttribute.DatabaseName ?? PropertyName;
-            Nullable = !columnAttribute.NonNullable;
-            IndexType = columnAttribute.IndexType;
-            DefaultEmptyForString = columnAttribute.DefaultEmptyForString;
-        }
-
-        ColumnTypeInfo = typeRegistry.GetRequired(PropertyRealType);
-        TypeRegistry = typeRegistry;
     }
 
     public Type EntityType { get; }
     // If null, there is no corresponding property.
     public PropertyInfo? PropertyInfo { get; } = null;
-    public string PropertyName { get; }
-    public Type PropertyType { get; }
-    public Type PropertyRealType { get; }
-    public string SqlColumnName { get; }
-    public ColumnTypeRegistry TypeRegistry { get; set; }
-    public ColumnTypeInfo ColumnTypeInfo { get; }
-    public bool Nullable { get; }
-    public bool IsPrimaryKey { get; }
-    public bool IsAutoIncrement { get; }
-    public ColumnIndexType IndexType { get; }
 
-    // TODO: Implement this behavior.
-    public bool DefaultEmptyForString { get; }
+    public IColumnMetadata Metadata => _metadata;
 
-    public string SqlType => ColumnTypeInfo.SqlType;
+    public IColumnTypeInfo ColumnType { get; }
 
-    public string GenerateCreateTableColumnString()
+    public string ColumnName
+    {
+        get
+        {
+            object? value = Metadata.GetValueOrDefault(ColumnMetadataKeys.ColumnName);
+            Debug.Assert(value is null || value is string);
+            return (string?)value ?? PropertyInfo?.Name ?? throw new Exception("Failed to get column name.");
+        }
+    }
+
+    public bool IsPrimaryKey => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsPrimaryKey) is true;
+    public bool IsAutoIncrement => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsAutoIncrement) is true;
+    public bool IsNotNull => IsPrimaryKey || Metadata.GetValueOrDefault(ColumnMetadataKeys.NotNull) is true;
+
+    public ColumnIndexType Index => Metadata.GetValueOrDefault<ColumnIndexType?>(ColumnMetadataKeys.Index) ?? ColumnIndexType.None;
+
+    public string GenerateCreateTableColumnString(string? dbProviderId = null)
     {
         StringBuilder result = new StringBuilder();
-        result.Append(SqlColumnName);
+        result.Append(ColumnName);
         result.Append(' ');
-        result.Append(SqlType);
+        result.Append(ColumnType.GetSqlTypeString(dbProviderId));
         if (IsPrimaryKey)
         {
             result.Append(' ');
             result.Append("PRIMARY KEY");
         }
-        else if (!Nullable)
+        else if (IsNotNull)
         {
             result.Append(' ');
             result.Append(" NOT NULL");

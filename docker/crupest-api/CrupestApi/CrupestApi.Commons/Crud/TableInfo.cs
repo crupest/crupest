@@ -1,3 +1,4 @@
+using System.Data;
 using System.Text;
 using Dapper;
 using Microsoft.Data.Sqlite;
@@ -6,17 +7,18 @@ namespace CrupestApi.Commons.Crud;
 
 public class TableInfo
 {
+    private readonly IColumnTypeProvider _columnTypeProvider;
     private readonly Lazy<List<string>> _lazyColumnNameList;
 
-    // For custom name.
-    public TableInfo(Type entityType)
-        : this(entityType.Name, entityType)
+    public TableInfo(Type entityType, IColumnTypeProvider columnTypeProvider)
+        : this(entityType.Name, entityType, columnTypeProvider)
     {
 
     }
 
-    public TableInfo(string tableName, Type entityType)
+    public TableInfo(string tableName, Type entityType, IColumnTypeProvider columnTypeProvider)
     {
+        _columnTypeProvider = columnTypeProvider;
         TableName = tableName;
         EntityType = entityType;
 
@@ -29,11 +31,11 @@ public class TableInfo
 
         foreach (var property in properties)
         {
-            var columnInfo = new ColumnInfo(entityType, property.Name);
+            var columnInfo = new ColumnInfo(property, _columnTypeProvider);
             columnInfos.Add(columnInfo);
             if (columnInfo.IsPrimaryKey)
                 hasPrimaryKey = true;
-            if (columnInfo.SqlColumnName.Equals("id", StringComparison.OrdinalIgnoreCase))
+            if (columnInfo.ColumnName.Equals("id", StringComparison.OrdinalIgnoreCase))
             {
                 hasId = true;
             }
@@ -42,7 +44,7 @@ public class TableInfo
         if (!hasPrimaryKey)
         {
             if (hasId) throw new Exception("A column named id already exists but is not primary key.");
-            var columnInfo = new ColumnInfo(entityType, "id", true, true, ColumnTypeRegistry.Instance.GetRequired<int>());
+            var columnInfo = CreateAutoIdColumn();
             columnInfos.Add(columnInfo);
         }
 
@@ -51,6 +53,19 @@ public class TableInfo
         CheckValidity();
 
         _lazyColumnNameList = new Lazy<List<string>>(() => ColumnInfos.Select(c => c.SqlColumnName).ToList());
+    }
+
+    private ColumnInfo CreateAutoIdColumn()
+    {
+        return new ColumnInfo(EntityType,
+                new ColumnAttribute
+                {
+                    ColumnName = "Id",
+                    NotNull = true,
+                    IsPrimaryKey = true,
+                    IsAutoIncrement = true,
+                },
+            typeof(long), _columnTypeProvider);
     }
 
     public Type EntityType { get; }
@@ -78,30 +93,30 @@ public class TableInfo
 
         foreach (var column in ColumnInfos)
         {
-            if (sqlNameSet.Contains(column.SqlColumnName))
-                throw new Exception($"Two columns have the same sql name '{column.SqlColumnName}'.");
-            sqlNameSet.Add(column.SqlColumnName);
+            if (sqlNameSet.Contains(column.ColumnName))
+                throw new Exception($"Two columns have the same sql name '{column.ColumnName}'.");
+            sqlNameSet.Add(column.ColumnName);
         }
     }
 
-    public string GenerateCreateIndexSql()
+    public string GenerateCreateIndexSql(string? dbProviderId = null)
     {
         var sb = new StringBuilder();
 
         foreach (var column in ColumnInfos)
         {
-            if (column.IndexType == ColumnIndexType.None) continue;
+            if (column.Index == ColumnIndexType.None) continue;
 
-            sb.Append($"CREATE {(column.IndexType == ColumnIndexType.Unique ? "UNIQUE" : "")} INDEX {TableName}_{column.SqlColumnName}_index ON {TableName} ({column.SqlColumnName});\n");
+            sb.Append($"CREATE {(column.Index == ColumnIndexType.Unique ? "UNIQUE" : "")} INDEX {TableName}_{column.ColumnName}_index ON {TableName} ({column.ColumnName});\n");
         }
 
         return sb.ToString();
     }
 
-    public string GenerateCreateTableSql(bool createIndex = true)
+    public string GenerateCreateTableSql(bool createIndex = true, string? dbProviderId = null)
     {
         var tableName = TableName;
-        var columnSql = string.Join(",\n", ColumnInfos.Select(c => c.GenerateCreateTableColumnString()));
+        var columnSql = string.Join(",\n", ColumnInfos.Select(c => c.GenerateCreateTableColumnString(dbProviderId)));
 
         var sql = $@"
 CREATE TABLE {tableName}(
@@ -111,25 +126,25 @@ CREATE TABLE {tableName}(
 
         if (createIndex)
         {
-            sql += GenerateCreateIndexSql();
+            sql += GenerateCreateIndexSql(dbProviderId);
         }
 
         return sql;
     }
 
-    public async Task<bool> CheckExistence(SqliteConnection connection)
+    public bool CheckExistence(IDbConnection connection)
     {
         var tableName = TableName;
-        var count = (await connection.QueryAsync<int>(
+        var count = connection.QuerySingle<int>(
             @"SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND tbl_name = @TableName;",
-            new { TableName = tableName })).Single();
+            new { TableName = tableName });
         if (count == 0)
         {
             return false;
         }
         else if (count > 1)
         {
-            throw new DatabaseInternalException($"More than 1 table has name {tableName}. What happened?");
+            throw new Exception($"More than 1 table has name {tableName}. What happened?");
         }
         else
         {
@@ -137,24 +152,27 @@ CREATE TABLE {tableName}(
         }
     }
 
-    public string GenerateSelectSql(WhereClause? whereClause, OrderByClause? orderByClause, int? skip, int? limit, out DynamicParameters parameters)
+    public void CheckRelatedColumns(IClause? clause)
     {
-        if (whereClause is not null)
+        if (clause is not null)
         {
-            var relatedFields = ((IWhereClause)whereClause).GetRelatedColumns();
-            if (relatedFields is not null)
+            var relatedColumns = clause.GetRelatedColumns();
+            foreach (var column in relatedColumns)
             {
-                foreach (var field in relatedFields)
+                if (!ColumnNameList.Contains(column))
                 {
-                    if (!ColumnNameList.Contains(field))
-                    {
-                        throw new ArgumentException($"Field {field} is not in the table.");
-                    }
+                    throw new ArgumentException($"Column {column} is not in the table.");
                 }
             }
         }
+    }
 
-        parameters = new DynamicParameters();
+    public (string sql, DynamicParameters parameters) GenerateSelectSql(IWhereClause? whereClause, IOrderByClause? orderByClause = null, int? skip = null, int? limit = null, string? dbProviderId = null)
+    {
+        CheckRelatedColumns(whereClause);
+        CheckRelatedColumns(orderByClause);
+
+        var parameters = new DynamicParameters();
 
         StringBuilder result = new StringBuilder()
             .Append("SELECT * FROM ")
@@ -163,15 +181,18 @@ CREATE TABLE {tableName}(
         if (whereClause is not null)
         {
             result.Append(' ');
-            result.Append(whereClause.GenerateSql(parameters));
+            var (whereSql, whereParameters) = whereClause.GenerateSql(dbProviderId);
+            parameters.AddDynamicParams(whereParameters);
+            result.Append(whereSql);
         }
 
         if (orderByClause is not null)
         {
             result.Append(' ');
-            result.Append(orderByClause.GenerateSql());
+            var (orderBySql, orderByParameters) = orderByClause.GenerateSql(dbProviderId);
+            parameters.AddDynamicParams(orderByClause);
+            result.Append(orderBySql);
         }
-
 
         if (limit is not null)
         {
@@ -187,7 +208,7 @@ CREATE TABLE {tableName}(
 
         result.Append(';');
 
-        return result.ToString();
+        return (result.ToString(), parameters);
     }
 
     public InsertClause GenerateInsertClauseFromObject(object value)
@@ -196,11 +217,7 @@ CREATE TABLE {tableName}(
 
         foreach (var column in ColumnInfos)
         {
-            var propertyInfo = column.PropertyInfo;
-            if (propertyInfo is null)
-            {
-                propertyInfo = EntityType.GetProperty(column.PropertyName);
-            }
+            var propertyInfo = EntityType.GetProperty(column.ColumnName);
             if (propertyInfo is null)
             {
                 if (column.IsAutoIncrement)
@@ -209,7 +226,7 @@ CREATE TABLE {tableName}(
                 }
                 else
                 {
-                    throw new Exception($"Property {column.PropertyName} not found.");
+                    throw new Exception($"Property {column.ColumnName} not found.");
                 }
             }
 
@@ -222,7 +239,7 @@ CREATE TABLE {tableName}(
                 }
                 else
                 {
-                    insertClause.Add(column.SqlColumnName, propertyValue);
+                    insertClause.Add(column.ColumnName, propertyValue);
                 }
             }
         }
@@ -230,36 +247,33 @@ CREATE TABLE {tableName}(
         return insertClause;
     }
 
-    public string GenerateInsertSql(InsertClause insertClause, out DynamicParameters parameters)
+    public (string sql, DynamicParameters parameters) GenerateInsertSql(IInsertClause insertClause, string? dbProviderId = null)
     {
-        var relatedColumns = insertClause.GetRelatedColumns();
-        foreach (var column in relatedColumns)
-        {
-            if (!ColumnNameList.Contains(column))
-            {
-                throw new ArgumentException($"Column {column} is not in the table.");
-            }
-        }
+        CheckRelatedColumns(insertClause);
 
-        parameters = new DynamicParameters();
+        var parameters = new DynamicParameters();
 
         var result = new StringBuilder()
             .Append("INSERT INTO ")
             .Append(TableName)
             .Append(" (")
-            .Append(insertClause.GenerateColumnListSql())
-            .Append(") VALUES (")
-            .Append(insertClause.GenerateValueListSql(parameters))
-            .Append(");");
+            .Append(insertClause.GenerateColumnListSql(dbProviderId))
+            .Append(") VALUES (");
 
-        return result.ToString();
+        var (valueSql, valueParameters) = insertClause.GenerateValueListSql(dbProviderId);
+        result.Append(valueSql).Append(");");
+
+        parameters.AddDynamicParams(valueParameters);
+
+        return (result.ToString(), parameters);
     }
 
-    public string GenerateUpdateSql(WhereClause? whereClause, UpdateClause updateClause, out DynamicParameters parameters)
+    // TODO: Continue...
+    public string GenerateUpdateSql(IWhereClause? whereClause, UpdateClause updateClause)
     {
         var relatedColumns = new HashSet<string>();
         if (whereClause is not null)
-            relatedColumns.UnionWith(((IWhereClause)whereClause).GetRelatedColumns() ?? Enumerable.Empty<string>());
+            relatedColumns.UnionWith(((IClause)whereClause).GetRelatedColumns() ?? Enumerable.Empty<string>());
         relatedColumns.UnionWith(updateClause.GetRelatedColumns());
         foreach (var column in relatedColumns)
         {
@@ -289,7 +303,7 @@ CREATE TABLE {tableName}(
     {
         if (whereClause is not null)
         {
-            var relatedColumns = ((IWhereClause)whereClause).GetRelatedColumns() ?? new List<string>();
+            var relatedColumns = ((IClause)whereClause).GetRelatedColumns() ?? new List<string>();
             foreach (var column in relatedColumns)
             {
                 if (!ColumnNameList.Contains(column))
