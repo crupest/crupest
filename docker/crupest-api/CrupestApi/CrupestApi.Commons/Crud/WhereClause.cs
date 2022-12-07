@@ -1,128 +1,108 @@
 using System.Data;
-using System.Diagnostics;
+using System.Text;
 using Dapper;
 
 namespace CrupestApi.Commons.Crud;
 
-public interface IWhereClause
+public interface IWhereClause : IClause
 {
-    string GenerateSql(DynamicParameters parameters);
+    (string sql, DynamicParameters parameters) GenerateSql(string? dbProviderId = null);
+}
 
-    IEnumerable<IWhereClause>? GetSubclauses()
+public class CompositeWhereClause : IWhereClause
+{
+    public CompositeWhereClause(string concatOp, bool parenthesesSubclause, params IWhereClause[] subclauses)
     {
-        return null;
+        ConcatOp = concatOp;
+        ParenthesesSubclause = parenthesesSubclause;
+        Subclauses = subclauses;
     }
 
-    IEnumerable<string>? GetRelatedColumns()
+    public string ConcatOp { get; }
+    public bool ParenthesesSubclause { get; }
+    public IWhereClause[] Subclauses { get; }
+
+    public (string sql, DynamicParameters parameters) GenerateSql(string? dbProviderId = null)
     {
+        var parameters = new DynamicParameters();
+        var sql = new StringBuilder();
         var subclauses = GetSubclauses();
-        if (subclauses is null) return null;
-        var result = new List<string>();
-        foreach (var subclause in subclauses)
+        if (subclauses is null) return ("", parameters);
+        var first = true;
+        foreach (var subclause in Subclauses)
         {
-            var columns = subclause.GetRelatedColumns();
-            if (columns is not null)
-                result.AddRange(columns);
+            var (subSql, subParameters) = subclause.GenerateSql(dbProviderId);
+            if (subSql is null) continue;
+            if (first)
+            {
+                first = false;
+            }
+            else
+            {
+                sql.Append($" {ConcatOp} ");
+            }
+            if (ParenthesesSubclause)
+            {
+                sql.Append("(");
+            }
+            sql.Append(subSql);
+            if (ParenthesesSubclause)
+            {
+                sql.Append(")");
+            }
+            parameters.AddDynamicParams(subParameters);
         }
-        return result;
+        return (sql.ToString(), parameters);
     }
 
-    public static string RandomKey(int length)
+    public object GetSubclauses()
     {
-        // I think it's safe to use random here because it's just to differentiate the parameters.
-        // TODO: Consider data race!
-        var random = new Random();
-        var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        var result = new string(Enumerable.Repeat(chars, length)
-            .Select(s => s[random.Next(s.Length)]).ToArray());
-        return result;
-    }
-
-    public static string GenerateRandomParameterName(DynamicParameters parameters)
-    {
-        var parameterName = IWhereClause.RandomKey(10);
-        int retryTimes = 1;
-        while (parameters.ParameterNames.Contains(parameterName))
-        {
-            retryTimes++;
-            Debug.Assert(retryTimes <= 100);
-            parameterName = IWhereClause.RandomKey(10);
-        }
-        return parameterName;
+        return Subclauses;
     }
 }
 
-public static class DynamicParametersExtensions
+public class AndWhereClause : CompositeWhereClause
 {
-    public static string AddRandomNameParameter(this DynamicParameters parameters, object? value)
-    {
-        var parameterName = IWhereClause.GenerateRandomParameterName(parameters);
-        parameters.Add(parameterName, ColumnTypeRegistry.Instance.ConvertToUnderline(value));
-        return parameterName;
-    }
-}
-
-public class AndWhereClause : IWhereClause
-{
-    public List<IWhereClause> Clauses { get; } = new List<IWhereClause>();
-
-    public IEnumerable<IWhereClause> GetSubclauses()
-    {
-        return Clauses;
-    }
-
-    public AndWhereClause(IEnumerable<IWhereClause> clauses)
-    {
-        Clauses.AddRange(clauses);
-    }
-
     public AndWhereClause(params IWhereClause[] clauses)
+    : this(true, clauses)
     {
-        Clauses.AddRange(clauses);
+
+    }
+
+    public AndWhereClause(bool parenthesesSubclause, params IWhereClause[] clauses)
+    : base("AND", parenthesesSubclause, clauses)
+    {
+
     }
 
     public static AndWhereClause Create(params IWhereClause[] clauses)
     {
         return new AndWhereClause(clauses);
     }
-
-    public string GenerateSql(DynamicParameters parameters)
-    {
-        return string.Join(" AND ", Clauses.Select(c => $"({c.GenerateSql(parameters)})"));
-    }
 }
 
-public class OrWhereClause : IWhereClause
+public class OrWhereClause : CompositeWhereClause
 {
-    public List<IWhereClause> Clauses { get; } = new List<IWhereClause>();
-
-    public IEnumerable<IWhereClause> GetSubclauses()
-    {
-        return Clauses;
-    }
-
-    public OrWhereClause(IEnumerable<IWhereClause> clauses)
-    {
-        Clauses.AddRange(clauses);
-    }
-
     public OrWhereClause(params IWhereClause[] clauses)
+        : this(true, clauses)
     {
-        Clauses.AddRange(clauses);
+
+    }
+
+    public OrWhereClause(bool parenthesesSubclause, params IWhereClause[] clauses)
+        : base("OR", parenthesesSubclause, clauses)
+    {
+
     }
 
     public static OrWhereClause Create(params IWhereClause[] clauses)
     {
         return new OrWhereClause(clauses);
     }
-
-    public string GenerateSql(DynamicParameters parameters)
-    {
-        return string.Join(" OR ", Clauses.Select(c => $"({c.GenerateSql(parameters)})"));
-    }
 }
 
-public class CompareWhereClause : IWhereClause
+// It's simple because it only compare column and value but not expressions.
+public class SimpleCompareWhereClause : IWhereClause
 {
     public string Column { get; }
     public string Operator { get; }
@@ -134,114 +114,52 @@ public class CompareWhereClause : IWhereClause
     }
 
     // It's user's responsibility to keep column safe, with proper escape.
-    public CompareWhereClause(string column, string @operator, object value)
+    public SimpleCompareWhereClause(string column, string op, object value)
     {
         Column = column;
-        Operator = @operator;
+        Operator = op;
         Value = value;
     }
 
-    public static CompareWhereClause Create(string column, string @operator, object value)
+    public static SimpleCompareWhereClause Create(string column, string op, object value)
     {
-        return new CompareWhereClause(column, @operator, value);
+        return new SimpleCompareWhereClause(column, op, value);
     }
 
-    public static CompareWhereClause Eq(string column, object value)
+    public static SimpleCompareWhereClause Eq(string column, object value)
     {
-        return new CompareWhereClause(column, "=", value);
+        return new SimpleCompareWhereClause(column, "=", value);
     }
 
-    public static CompareWhereClause Neq(string column, object value)
+    public static SimpleCompareWhereClause Neq(string column, object value)
     {
-        return new CompareWhereClause(column, "<>", value);
+        return new SimpleCompareWhereClause(column, "<>", value);
     }
 
-    public static CompareWhereClause Gt(string column, object value)
+    public static SimpleCompareWhereClause Gt(string column, object value)
     {
-        return new CompareWhereClause(column, ">", value);
+        return new SimpleCompareWhereClause(column, ">", value);
     }
 
-    public static CompareWhereClause Gte(string column, object value)
+    public static SimpleCompareWhereClause Gte(string column, object value)
     {
-        return new CompareWhereClause(column, ">=", value);
+        return new SimpleCompareWhereClause(column, ">=", value);
     }
 
-    public static CompareWhereClause Lt(string column, object value)
+    public static SimpleCompareWhereClause Lt(string column, object value)
     {
-        return new CompareWhereClause(column, "<", value);
+        return new SimpleCompareWhereClause(column, "<", value);
     }
 
-    public static CompareWhereClause Lte(string column, object value)
+    public static SimpleCompareWhereClause Lte(string column, object value)
     {
-        return new CompareWhereClause(column, "<=", value);
+        return new SimpleCompareWhereClause(column, "<=", value);
     }
 
-    public string GenerateSql(DynamicParameters parameters)
+    public (string sql, DynamicParameters parameters) GenerateSql(string? dbProviderId = null)
     {
+        var parameters = new DynamicParameters();
         var parameterName = parameters.AddRandomNameParameter(Value);
-        return $"{Column} {Operator} @{parameterName}";
-    }
-}
-
-public class WhereClause : IWhereClause
-{
-    public DynamicParameters Parameters { get; } = new DynamicParameters();
-    public List<IWhereClause> Clauses { get; } = new List<IWhereClause>();
-
-    public WhereClause(IEnumerable<IWhereClause> clauses)
-    {
-        Clauses.AddRange(clauses);
-    }
-
-    public WhereClause(params IWhereClause[] clauses)
-    {
-        Clauses.AddRange(clauses);
-    }
-
-    public IEnumerable<IWhereClause> GetSubclauses()
-    {
-        return Clauses;
-    }
-
-    public WhereClause Add(params IWhereClause[] clauses)
-    {
-        Clauses.AddRange(clauses);
-        return this;
-    }
-
-    public static WhereClause Create(params IWhereClause[] clauses)
-    {
-        return new WhereClause(clauses);
-    }
-
-    public WhereClause Add(string column, string op, object value)
-    {
-        return Add(CompareWhereClause.Create(column, op, value));
-    }
-
-    public WhereClause Eq(string column, object value)
-    {
-        return Add(CompareWhereClause.Eq(column, value));
-    }
-
-    public WhereClause Neq(string column, object value)
-    {
-        return Add(CompareWhereClause.Neq(column, value));
-    }
-
-    public WhereClause Eq(IEnumerable<KeyValuePair<string, object>> columnValueMap)
-    {
-        var clauses = columnValueMap.Select(kv => (IWhereClause)CompareWhereClause.Eq(kv.Key, kv.Value)).ToArray();
-        return Add(clauses);
-    }
-
-    public string GenerateSql(DynamicParameters dynamicParameters)
-    {
-        return string.Join(" AND ", Clauses.Select(c => $"({c.GenerateSql(Parameters)})"));
-    }
-
-    public string GenerateSql()
-    {
-        return GenerateSql(Parameters);
+        return ($"{Column} {Operator} @{parameterName}", parameters);
     }
 }
