@@ -4,20 +4,42 @@ using System.Text;
 
 namespace CrupestApi.Commons.Crud;
 
+public class ColumnHooks
+{
+    public delegate void ColumnHookAction(ColumnInfo column, ref object? value);
+
+    public ColumnHooks(ColumnHookAction afterGet, ColumnHookAction beforeSet)
+    {
+        AfterGet = afterGet;
+        BeforeSet = beforeSet;
+    }
+
+    // Called after SELECT.
+    public ColumnHookAction AfterGet;
+
+    // Called before UPDATE and INSERT.
+    public ColumnHookAction BeforeSet;
+}
+
 public class ColumnInfo
 {
     private readonly AggregateColumnMetadata _metadata = new AggregateColumnMetadata();
 
-    public ColumnInfo(Type entityType, IColumnMetadata metadata, Type clrType, IColumnTypeProvider typeProvider)
+    public ColumnInfo(TableInfo table, IColumnMetadata metadata, Type clrType, IColumnTypeProvider typeProvider)
     {
-        EntityType = entityType;
+        Table = table;
         _metadata.Add(metadata);
         ColumnType = typeProvider.Get(clrType);
+
+        Hooks = new ColumnHooks(
+            new ColumnHooks.ColumnHookAction(OnAfterGet),
+            new ColumnHooks.ColumnHookAction(OnBeforeSet)
+        );
     }
 
-    public ColumnInfo(PropertyInfo propertyInfo, IColumnTypeProvider typeProvider)
+    public ColumnInfo(TableInfo table, PropertyInfo propertyInfo, IColumnTypeProvider typeProvider)
     {
-        EntityType = propertyInfo.DeclaringType!;
+        Table = table;
         ColumnType = typeProvider.Get(propertyInfo.PropertyType);
 
         var columnAttribute = propertyInfo.GetCustomAttribute<ColumnAttribute>();
@@ -25,15 +47,40 @@ public class ColumnInfo
         {
             _metadata.Add(columnAttribute);
         }
+
+        Hooks = new ColumnHooks(
+            new ColumnHooks.ColumnHookAction(OnAfterGet),
+            new ColumnHooks.ColumnHookAction(OnBeforeSet)
+        );
     }
 
-    public Type EntityType { get; }
+    public TableInfo Table { get; }
     // If null, there is no corresponding property.
     public PropertyInfo? PropertyInfo { get; } = null;
 
     public IColumnMetadata Metadata => _metadata;
 
     public IColumnTypeInfo ColumnType { get; }
+
+    public ColumnHooks Hooks { get; }
+
+    private void TryCoerceStringFromNullToEmpty(ref object? value)
+    {
+        if (ColumnType.ClrType == typeof(string) && (Metadata.GetValueOrDefault<bool?>(ColumnMetadataKeys.DefaultEmptyForString) ?? false) && value is null)
+        {
+            value = "";
+        }
+    }
+
+    protected void OnAfterGet(ColumnInfo column, ref object? value)
+    {
+        TryCoerceStringFromNullToEmpty(ref value);
+    }
+
+    protected void OnBeforeSet(ColumnInfo column, ref object? value)
+    {
+        TryCoerceStringFromNullToEmpty(ref value);
+    }
 
     public string ColumnName
     {

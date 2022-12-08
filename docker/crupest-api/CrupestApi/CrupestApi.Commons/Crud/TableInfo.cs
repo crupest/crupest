@@ -1,7 +1,8 @@
 using System.Data;
+using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using Dapper;
-using Microsoft.Data.Sqlite;
 
 namespace CrupestApi.Commons.Crud;
 
@@ -29,15 +30,26 @@ public class TableInfo
         bool hasPrimaryKey = false;
         bool hasId = false;
 
+        List<PropertyInfo> columnProperties = new();
+        List<PropertyInfo> nonColumnProperties = new();
+
         foreach (var property in properties)
         {
-            var columnInfo = new ColumnInfo(property, _columnTypeProvider);
-            columnInfos.Add(columnInfo);
-            if (columnInfo.IsPrimaryKey)
-                hasPrimaryKey = true;
-            if (columnInfo.ColumnName.Equals("id", StringComparison.OrdinalIgnoreCase))
+            if (PropertyIsColumn(property))
             {
-                hasId = true;
+                var columnInfo = new ColumnInfo(this, property, _columnTypeProvider);
+                columnInfos.Add(columnInfo);
+                if (columnInfo.IsPrimaryKey)
+                    hasPrimaryKey = true;
+                if (columnInfo.ColumnName.Equals("id", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasId = true;
+                }
+                columnProperties.Add(property);
+            }
+            else
+            {
+                nonColumnProperties.Add(property);
             }
         }
 
@@ -49,15 +61,17 @@ public class TableInfo
         }
 
         ColumnInfos = columnInfos;
+        ColumnProperties = columnProperties;
+        NonColumnProperties = nonColumnProperties;
 
         CheckValidity();
 
-        _lazyColumnNameList = new Lazy<List<string>>(() => ColumnInfos.Select(c => c.SqlColumnName).ToList());
+        _lazyColumnNameList = new Lazy<List<string>>(() => ColumnInfos.Select(c => c.ColumnName).ToList());
     }
 
     private ColumnInfo CreateAutoIdColumn()
     {
-        return new ColumnInfo(EntityType,
+        return new ColumnInfo(this,
                 new ColumnAttribute
                 {
                     ColumnName = "Id",
@@ -71,7 +85,28 @@ public class TableInfo
     public Type EntityType { get; }
     public string TableName { get; }
     public IReadOnlyList<ColumnInfo> ColumnInfos { get; }
+    public IReadOnlyList<PropertyInfo> ColumnProperties { get; }
+    public IReadOnlyList<PropertyInfo> NonColumnProperties { get; }
     public IReadOnlyList<string> ColumnNameList => _lazyColumnNameList.Value;
+
+    protected bool PropertyIsColumn(PropertyInfo property)
+    {
+        var columnAttribute = property.GetCustomAttribute<ColumnAttribute>();
+        if (columnAttribute is null) return false;
+        return true;
+    }
+
+    public ColumnInfo GetColumn(string columnName)
+    {
+        foreach (var column in ColumnInfos)
+        {
+            if (column.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase))
+            {
+                return column;
+            }
+        }
+        throw new KeyNotFoundException("No such column with given name.");
+    }
 
     public void CheckValidity()
     {
@@ -152,6 +187,17 @@ CREATE TABLE {tableName}(
         }
     }
 
+    public void CheckColumnName(string columnName)
+    {
+        foreach (var c in columnName)
+        {
+            if (char.IsWhiteSpace(c))
+            {
+                throw new Exception("White space found in column name, which might be an sql injection attack!");
+            }
+        }
+    }
+
     public void CheckRelatedColumns(IClause? clause)
     {
         if (clause is not null)
@@ -159,6 +205,7 @@ CREATE TABLE {tableName}(
             var relatedColumns = clause.GetRelatedColumns();
             foreach (var column in relatedColumns)
             {
+                CheckColumnName(column);
                 if (!ColumnNameList.Contains(column))
                 {
                     throw new ArgumentException($"Column {column} is not in the table.");
@@ -268,62 +315,137 @@ CREATE TABLE {tableName}(
         return (result.ToString(), parameters);
     }
 
-    // TODO: Continue...
-    public string GenerateUpdateSql(IWhereClause? whereClause, UpdateClause updateClause)
+    public (string sql, DynamicParameters parameters) GenerateUpdateSql(IWhereClause? whereClause, IUpdateClause updateClause)
     {
-        var relatedColumns = new HashSet<string>();
-        if (whereClause is not null)
-            relatedColumns.UnionWith(((IClause)whereClause).GetRelatedColumns() ?? Enumerable.Empty<string>());
-        relatedColumns.UnionWith(updateClause.GetRelatedColumns());
-        foreach (var column in relatedColumns)
-        {
-            if (!ColumnNameList.Contains(column))
-            {
-                throw new ArgumentException($"Column {column} is not in the table.");
-            }
-        }
+        CheckRelatedColumns(whereClause);
+        CheckRelatedColumns(updateClause);
 
-        parameters = new DynamicParameters();
+        var parameters = new DynamicParameters();
 
         StringBuilder sb = new StringBuilder("UPDATE ");
         sb.Append(TableName);
         sb.Append(" SET ");
-        sb.Append(updateClause.GenerateSql(parameters));
+        var (updateSql, updateParameters) = updateClause.GenerateSql();
+        sb.Append(updateSql);
+        parameters.AddDynamicParams(updateParameters);
         if (whereClause is not null)
         {
             sb.Append(" WHERE ");
-            sb.Append(whereClause.GenerateSql(parameters));
+            var (whereSql, whereParameters) = whereClause.GenerateSql();
+            sb.Append(whereSql);
+            parameters.AddDynamicParams(whereParameters);
         }
         sb.Append(';');
 
-        return sb.ToString();
+        return (sb.ToString(), parameters);
     }
 
-    public string GenerateDeleteSql(WhereClause? whereClause, out DynamicParameters parameters)
+    public (string sql, DynamicParameters parameters) GenerateDeleteSql(IWhereClause? whereClause)
     {
-        if (whereClause is not null)
-        {
-            var relatedColumns = ((IClause)whereClause).GetRelatedColumns() ?? new List<string>();
-            foreach (var column in relatedColumns)
-            {
-                if (!ColumnNameList.Contains(column))
-                {
-                    throw new ArgumentException($"Column {column} is not in the table.");
-                }
-            }
-        }
+        CheckRelatedColumns(whereClause);
 
-        parameters = new DynamicParameters();
+        var parameters = new DynamicParameters();
 
         StringBuilder sb = new StringBuilder("DELETE FROM ");
         sb.Append(TableName);
         if (whereClause is not null)
         {
             sb.Append(" WHERE ");
-            sb.Append(whereClause.GenerateSql(parameters));
+            var (whereSql, whereParameters) = whereClause.GenerateSql();
+            parameters.AddDynamicParams(whereParameters);
+            sb.Append(whereSql);
         }
         sb.Append(';');
 
-        return sb.ToString();
+        return (sb.ToString(), parameters);
     }
+
+    private object? ClearNonColumnProperties(object? entity)
+    {
+        Debug.Assert(entity is null || entity.GetType() == EntityType);
+        if (entity is null) return entity;
+        foreach (var property in NonColumnProperties)
+        {
+            // Clear any non-column properties.
+            property.SetValue(entity, Activator.CreateInstance(property.PropertyType));
+        }
+        return entity;
+    }
+
+    private object? CallColumnHook(object? entity, string hookName)
+    {
+        Debug.Assert(entity is null || entity.GetType() == EntityType);
+        if (entity is null) return entity;
+        foreach (var column in ColumnInfos)
+        {
+            var property = column.PropertyInfo;
+            if (property is not null)
+            {
+                var value = property.GetValue(entity);
+
+                switch (hookName)
+                {
+                    case "AfterGet":
+                        column.Hooks.AfterGet(column, ref value);
+                        break;
+                    case "BeforeSet":
+                        column.Hooks.BeforeSet(column, ref value);
+                        break;
+                    default:
+                        throw new Exception("Unknown hook.");
+                };
+
+                property.SetValue(entity, value);
+            }
+
+        }
+        return entity;
+    }
+
+    public virtual IEnumerable<object?> Select(IDbConnection dbConnection, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
+    {
+        var (sql, parameters) = GenerateSelectSql(where, orderBy, skip, limit);
+        return dbConnection.Query(EntityType, sql, parameters).Select(e => CallColumnHook(ClearNonColumnProperties(e), "AfterGet"));
+    }
+
+    public virtual int Insert(IDbConnection dbConnection, IInsertClause insert)
+    {
+        var (sql, parameters) = GenerateInsertSql(insert);
+
+        foreach (var item in insert.Items)
+        {
+            var column = GetColumn(item.ColumnName);
+            var value = item.Value;
+            column.Hooks.BeforeSet?.Invoke(column, ref value);
+            item.Value = value;
+        }
+
+        return dbConnection.Execute(sql, parameters);
+    }
+
+    public virtual int Update(IDbConnection dbConnection, IWhereClause? where, IUpdateClause update)
+    {
+        var (sql, parameters) = GenerateUpdateSql(where, update);
+
+        foreach (var item in update.Items)
+        {
+            var column = GetColumn(item.ColumnName);
+            var value = item.Value;
+            column.Hooks.BeforeSet?.Invoke(column, ref value);
+            item.Value = value;
+        }
+        return dbConnection.Execute(sql, parameters);
+    }
+
+    public virtual int Delete(IDbConnection dbConnection, IWhereClause? where)
+    {
+        var (sql, parameters) = GenerateDeleteSql(where);
+        return dbConnection.Execute(sql, parameters);
+    }
+}
+
+// TODO: Implement and register this service.
+public interface ITableInfoFactory
+{
+    TableInfo Get(Type type);
 }

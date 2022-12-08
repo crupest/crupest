@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace CrupestApi.Commons.Crud;
 
+// TODO: Implement this.
 public interface IColumnTypeInfo
 {
     Type ClrType { get; }
@@ -40,6 +41,7 @@ public interface IColumnTypeInfo
     }
 }
 
+// TODO: Implement and register this service.
 public interface IColumnTypeProvider
 {
     IColumnTypeInfo Get(Type clrType);
