@@ -15,8 +15,13 @@ public class UpdateItem
     public object? Value { get; set; }
 }
 
-// TODO: Continue...
-public class UpdateClause
+public interface IUpdateClause : IClause
+{
+    List<UpdateItem> Items { get; }
+    (string sql, DynamicParameters parameters) GenerateSql();
+}
+
+public class UpdateClause : IUpdateClause
 {
     public List<UpdateItem> Items { get; } = new List<UpdateItem>();
 
@@ -51,8 +56,10 @@ public class UpdateClause
         return Items.Select(i => i.ColumnName).ToList();
     }
 
-    public string GenerateSql(DynamicParameters parameters)
+    public (string sql, DynamicParameters parameters) GenerateSql()
     {
+        var parameters = new DynamicParameters();
+
         StringBuilder result = new StringBuilder();
 
         foreach (var item in Items)
@@ -66,6 +73,6 @@ public class UpdateClause
             result.Append($"{item.ColumnName} = @{parameterName}");
         }
 
-        return result.ToString();
+        return (result.ToString(), parameters);
     }
 }
