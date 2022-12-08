@@ -1,15 +1,67 @@
 using System.Data;
 using System.Diagnostics;
+using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace CrupestApi.Commons.Crud;
 
-// TODO: Implement this.
 public interface IColumnTypeInfo
 {
+    public static IColumnTypeInfo IntColumnTypeInfo { get; } = new SimpleColumnTypeInfo<int>();
+    public static IColumnTypeInfo ShortColumnTypeInfo { get; } = new SimpleColumnTypeInfo<short>();
+    public static IColumnTypeInfo SByteColumnTypeInfo { get; } = new SimpleColumnTypeInfo<sbyte>();
+    public static IColumnTypeInfo LongColumnTypeInfo { get; } = new SimpleColumnTypeInfo<long>();
+    public static IColumnTypeInfo FloatColumnTypeInfo { get; } = new SimpleColumnTypeInfo<float>();
+    public static IColumnTypeInfo DoubleColumnTypeInfo { get; } = new SimpleColumnTypeInfo<double>();
+    public static IColumnTypeInfo StringColumnTypeInfo { get; } = new SimpleColumnTypeInfo<string>();
+    public static IColumnTypeInfo BytesColumnTypeInfo { get; } = new SimpleColumnTypeInfo<byte[]>();
+    public static IColumnTypeInfo DateTimeColumnTypeInfo { get; } = new DateTimeColumnTypeInfo();
+
     Type ClrType { get; }
     Type DatabaseClrType { get; }
-    DbType DbType { get; }
+    DbType DbType
+    {
+        get
+        {
+            if (DatabaseClrType == typeof(int))
+            {
+                return DbType.Int32;
+            }
+            else if (DatabaseClrType == typeof(long))
+            {
+                return DbType.Int64;
+            }
+            else if (DatabaseClrType == typeof(short))
+            {
+                return DbType.Int16;
+            }
+            else if (DatabaseClrType == typeof(sbyte))
+            {
+                return DbType.SByte;
+            }
+            else if (DatabaseClrType == typeof(double))
+            {
+                return DbType.Double;
+            }
+            else if (DatabaseClrType == typeof(float))
+            {
+                return DbType.Single;
+            }
+            else if (DatabaseClrType == typeof(string))
+            {
+                return DbType.String;
+            }
+            else if (DatabaseClrType == typeof(byte[]))
+            {
+                return DbType.Binary;
+            }
+            else
+            {
+                throw new Exception("Can't deduce DbType.");
+            }
+        }
+    }
 
     string GetSqlTypeString(string? dbProviderId = null)
     {
@@ -18,13 +70,16 @@ public interface IColumnTypeInfo
         {
             DbType.String => "TEXT",
             DbType.Int16 or DbType.Int32 or DbType.Int64 => "INTEGER",
-            DbType.Double => "REAL",
+            DbType.Single or DbType.Double => "REAL",
             DbType.Binary => "BLOB",
             _ => throw new Exception($"Unsupported DbType: {DbType}"),
         };
     }
 
-    JsonConverter? JsonConverter { get; }
+    JsonConverter? JsonConverter
+    {
+        get { return null; }
+    }
 
     // You must override this method if ClrType != DatabaseClrType
     object? ConvertFromDatabase(object? databaseValue)
@@ -41,8 +96,89 @@ public interface IColumnTypeInfo
     }
 }
 
-// TODO: Implement and register this service.
 public interface IColumnTypeProvider
 {
     IColumnTypeInfo Get(Type clrType);
+}
+
+public class SimpleColumnTypeInfo<T> : IColumnTypeInfo
+{
+    public Type ClrType => typeof(T);
+    public Type DatabaseClrType => typeof(T);
+}
+
+public class DateTimeColumnTypeInfo : IColumnTypeInfo
+{
+    private DateTimeJsonConverter _jsonConverter = new DateTimeJsonConverter();
+
+    public Type ClrType => typeof(DateTime);
+    public Type DatabaseClrType => typeof(string);
+
+    public JsonConverter JsonConverter => _jsonConverter;
+
+    public object? ConvertToDatabase(object? value)
+    {
+        if (value is null) return null;
+        Debug.Assert(value is DateTime);
+        return ((DateTime)value).ToUniversalTime().ToString("sZ");
+    }
+
+    public object? ConvertFromDatabase(object? databaseValue)
+    {
+        if (databaseValue is null) return null;
+        Debug.Assert(databaseValue is string);
+        return DateTime.ParseExact((string)databaseValue, "sZ", null, DateTimeStyles.AssumeUniversal);
+    }
+}
+
+public class DateTimeJsonConverter : JsonConverter<DateTime>
+{
+    public override bool HandleNull => false;
+
+    public override bool CanConvert(Type typeToConvert)
+    {
+        return typeToConvert == typeof(DateTime);
+    }
+
+    public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var s = reader.GetString();
+        if (s is null) throw new Exception("Can't convert null to DateTime.");
+        return DateTime.ParseExact(s, "uZ", null, DateTimeStyles.AssumeUniversal);
+    }
+
+    public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value.ToUniversalTime().ToString("uZ"));
+    }
+}
+
+public class ColumnTypeProvider : IColumnTypeProvider
+{
+    private Dictionary<Type, IColumnTypeInfo> _typeMap = new Dictionary<Type, IColumnTypeInfo>();
+
+    public ColumnTypeProvider()
+    {
+        _typeMap.Add(IColumnTypeInfo.IntColumnTypeInfo.ClrType, IColumnTypeInfo.IntColumnTypeInfo);
+        _typeMap.Add(IColumnTypeInfo.ShortColumnTypeInfo.ClrType, IColumnTypeInfo.ShortColumnTypeInfo);
+        _typeMap.Add(IColumnTypeInfo.SByteColumnTypeInfo.ClrType, IColumnTypeInfo.SByteColumnTypeInfo);
+        _typeMap.Add(IColumnTypeInfo.LongColumnTypeInfo.ClrType, IColumnTypeInfo.LongColumnTypeInfo);
+        _typeMap.Add(IColumnTypeInfo.FloatColumnTypeInfo.ClrType, IColumnTypeInfo.FloatColumnTypeInfo);
+        _typeMap.Add(IColumnTypeInfo.DoubleColumnTypeInfo.ClrType, IColumnTypeInfo.DoubleColumnTypeInfo);
+        _typeMap.Add(IColumnTypeInfo.StringColumnTypeInfo.ClrType, IColumnTypeInfo.StringColumnTypeInfo);
+        _typeMap.Add(IColumnTypeInfo.BytesColumnTypeInfo.ClrType, IColumnTypeInfo.BytesColumnTypeInfo);
+        _typeMap.Add(IColumnTypeInfo.DateTimeColumnTypeInfo.ClrType, IColumnTypeInfo.DateTimeColumnTypeInfo);
+    }
+
+    public IColumnTypeInfo Get(Type clrType)
+    {
+        if (_typeMap.TryGetValue(clrType, out var typeInfo))
+        {
+            return typeInfo;
+        }
+        else
+        {
+            throw new Exception($"Unsupported type: {clrType}");
+        }
+    }
 }

@@ -14,11 +14,9 @@ public static class CrupestApiJsonExtensions
             config.AllowTrailingCommas = true;
             config.PropertyNameCaseInsensitive = true;
             config.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            foreach (var converter in ColumnTypeRegistry.Instance.GetJsonConverters())
-            {
-                config.Converters.Add(converter);
-            }
         });
+
+        // TODO: Register column type provided converters.
 
         return services;
     }
