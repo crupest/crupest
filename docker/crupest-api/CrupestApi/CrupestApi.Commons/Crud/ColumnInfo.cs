@@ -8,17 +8,21 @@ public class ColumnHooks
 {
     public delegate void ColumnHookAction(ColumnInfo column, ref object? value);
 
-    public ColumnHooks(ColumnHookAction afterGet, ColumnHookAction beforeSet)
+    public ColumnHooks(ColumnHookAction afterSelect, ColumnHookAction beforeInsert, ColumnHookAction beforeUpdate)
     {
-        AfterGet = afterGet;
-        BeforeSet = beforeSet;
+        AfterSelect = afterSelect;
+        BeforeInsert = beforeInsert;
+        BeforeUpdate = beforeUpdate;
     }
 
     // Called after SELECT.
-    public ColumnHookAction AfterGet;
+    public ColumnHookAction AfterSelect;
 
-    // Called before UPDATE and INSERT.
-    public ColumnHookAction BeforeSet;
+    // Called before INSERT.
+    public ColumnHookAction BeforeInsert;
+
+    // Called before UPDATE
+    public ColumnHookAction BeforeUpdate;
 }
 
 public class ColumnInfo
@@ -32,8 +36,9 @@ public class ColumnInfo
         ColumnType = typeProvider.Get(clrType);
 
         Hooks = new ColumnHooks(
-            new ColumnHooks.ColumnHookAction(OnAfterGet),
-            new ColumnHooks.ColumnHookAction(OnBeforeSet)
+            new ColumnHooks.ColumnHookAction(OnAfterSelect),
+            new ColumnHooks.ColumnHookAction(OnBeforeInsert),
+            new ColumnHooks.ColumnHookAction(OnBeforeUpdate)
         );
     }
 
@@ -49,8 +54,9 @@ public class ColumnInfo
         }
 
         Hooks = new ColumnHooks(
-            new ColumnHooks.ColumnHookAction(OnAfterGet),
-            new ColumnHooks.ColumnHookAction(OnBeforeSet)
+            new ColumnHooks.ColumnHookAction(OnAfterSelect),
+            new ColumnHooks.ColumnHookAction(OnBeforeInsert),
+            new ColumnHooks.ColumnHookAction(OnBeforeUpdate)
         );
     }
 
@@ -72,12 +78,21 @@ public class ColumnInfo
         }
     }
 
-    protected void OnAfterGet(ColumnInfo column, ref object? value)
+    protected void OnAfterSelect(ColumnInfo column, ref object? value)
     {
         TryCoerceStringFromNullToEmpty(ref value);
     }
 
-    protected void OnBeforeSet(ColumnInfo column, ref object? value)
+    protected void OnBeforeInsert(ColumnInfo column, ref object? value)
+    {
+        TryCoerceStringFromNullToEmpty(ref value);
+        if (column.IsNotNull && !column.IsAutoIncrement)
+        {
+            throw new Exception($"Column {column.ColumnName} can't be empty.");
+        }
+    }
+
+    protected void OnBeforeUpdate(ColumnInfo column, ref object? value)
     {
         TryCoerceStringFromNullToEmpty(ref value);
     }

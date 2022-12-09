@@ -1,66 +1,31 @@
-using System.Data;
 using System.Diagnostics;
-using System.Security.Cryptography;
-using System.Text;
 using CrupestApi.Commons;
 using CrupestApi.Commons.Crud;
 using Dapper;
-using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Options;
 
 namespace CrupestApi.Secrets;
 
 public class SecretsService : CrudService<SecretInfo>, ISecretsService
 {
-    private readonly IOptionsSnapshot<CrupestApiConfig> _crupestApiConfig;
     private readonly ILogger<SecretsService> _logger;
 
-    public SecretsService(IOptionsSnapshot<CrupestApiConfig> crupestApiConfig, ILogger<SecretsService> logger, ServiceProvider services)
-    : base(services)
+    public SecretsService(ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, ILoggerFactory loggerFactory)
+    : base("secrets", tableInfoFactory, dbConnectionFactory, loggerFactory)
     {
-        _crupestApiConfig = crupestApiConfig;
-        _logger = logger;
-    }
-
-    private string GetDatabasePath()
-    {
-        return Path.Combine(_crupestApiConfig.Value.DataDir, "secrets.db");
-    }
-
-    public override string GetDbConnectionString()
-    {
-        var fileName = GetDatabasePath();
-
-        return new SqliteConnectionStringBuilder()
-        {
-            DataSource = fileName,
-            Mode = SqliteOpenMode.ReadWriteCreate
-        }.ToString();
-    }
-
-    private string GenerateRandomKey(int length)
-    {
-        const string alphanum = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        using var randomNumberGenerator = RandomNumberGenerator.Create();
-        var result = new StringBuilder(length);
-        for (int i = 0; i < length; i++)
-        {
-            result.Append(alphanum[i]);
-        }
-        return result.ToString();
+        _logger = loggerFactory.CreateLogger<SecretsService>();
     }
 
     public async Task<SecretInfo> CreateSecretAsync(SecretInfo secretInfo)
     {
         if (secretInfo.Secret is not null)
         {
-            throw new ArgumentException("Secret is auto generated. Don't specify it explicit.")
+            throw new ArgumentException("Secret is auto generated. Don't specify it explicit.");
         }
 
         secretInfo.Secret = GenerateRandomKey(16);
         secretInfo.CreateTime = DateTime.Now;
 
-        await InsertAsync(_table.GenerateInsertClauseFromObject(secretInfo));
+        await InsertAsync(_table.GenerateInsertClauseFromEntity(secretInfo));
 
         return secretInfo;
     }
@@ -232,5 +197,15 @@ SELECT Id, Key, Secret, Description, ExpireTime, Revoked, CreateTime FROM secret
         }
 
         await VerifySecretAsync(key, secret);
+    }
+
+    public Task<SecretInfo?> GetSecretAsync(string secret)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<SecretInfo> CreateSecretAsync(string key, string description, DateTime? expireTime = null)
+    {
+        throw new NotImplementedException();
     }
 }

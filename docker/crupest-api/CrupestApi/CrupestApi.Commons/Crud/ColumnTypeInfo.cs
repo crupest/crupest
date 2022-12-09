@@ -20,6 +20,7 @@ public interface IColumnTypeInfo
 
     Type ClrType { get; }
     Type DatabaseClrType { get; }
+    bool IsSimple { get { return ClrType == DatabaseClrType; } }
     DbType DbType
     {
         get
@@ -84,14 +85,14 @@ public interface IColumnTypeInfo
     // You must override this method if ClrType != DatabaseClrType
     object? ConvertFromDatabase(object? databaseValue)
     {
-        Debug.Assert(ClrType == DatabaseClrType);
+        Debug.Assert(IsSimple);
         return databaseValue;
     }
 
     // You must override this method if ClrType != DatabaseClrType
     object? ConvertToDatabase(object? value)
     {
-        Debug.Assert(ClrType == DatabaseClrType);
+        Debug.Assert(IsSimple);
         return value;
     }
 }
@@ -178,6 +179,12 @@ public class ColumnTypeProvider : IColumnTypeProvider
         }
         else
         {
+            if (clrType == typeof(Nullable<>))
+            {
+                clrType = clrType.GetGenericArguments()[0];
+                return Get(clrType);
+            }
+
             throw new Exception($"Unsupported type: {clrType}");
         }
     }

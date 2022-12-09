@@ -7,7 +7,16 @@ public static class ColumnMetadataKeys
     public const string IsPrimaryKey = nameof(ColumnAttribute.IsPrimaryKey);
     public const string IsAutoIncrement = nameof(ColumnAttribute.IsAutoIncrement);
     public const string Index = nameof(ColumnAttribute.Index);
+
+    /// <summary>
+    /// This will add hooks for string type column to coerce null to ""(empty string) when get or set. No effect on non-string type.
+    /// </summary> 
     public const string DefaultEmptyForString = nameof(ColumnAttribute.DefaultEmptyForString);
+
+    /// <summary>
+    /// This indicates that you take care of generate this column value when create entity. User calling the api can not specify the value.
+    /// </summary>
+    public const string ClientGenerate = nameof(ColumnAttribute.DefaultEmptyForString);
 }
 
 public interface IColumnMetadata
@@ -72,8 +81,11 @@ public class ColumnAttribute : Attribute, IColumnMetadata
     // default None
     public ColumnIndexType Index { get; init; } = ColumnIndexType.None;
 
-    // Use empty string for default value of string type.
+    /// <see cref="ColumnMetadataKeys.DefaultEmptyForString"/>
     public bool DefaultEmptyForString { get; init; }
+
+    /// <see cref="ColumnMetadataKeys.ClientGenerate"/>
+    public bool ClientGenerate { get; init; }
 
     public bool TryGetValue(string key, out object? value)
     {

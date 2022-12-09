@@ -189,12 +189,9 @@ CREATE TABLE {tableName}(
 
     public void CheckColumnName(string columnName)
     {
-        foreach (var c in columnName)
+        if (!ColumnNameList.Contains(columnName))
         {
-            if (char.IsWhiteSpace(c))
-            {
-                throw new Exception("White space found in column name, which might be an sql injection attack!");
-            }
+            throw new ArgumentException($"Column {columnName} is not in the table.");
         }
     }
 
@@ -206,10 +203,6 @@ CREATE TABLE {tableName}(
             foreach (var column in relatedColumns)
             {
                 CheckColumnName(column);
-                if (!ColumnNameList.Contains(column))
-                {
-                    throw new ArgumentException($"Column {column} is not in the table.");
-                }
             }
         }
     }
@@ -258,13 +251,15 @@ CREATE TABLE {tableName}(
         return (result.ToString(), parameters);
     }
 
-    public InsertClause GenerateInsertClauseFromObject(object value)
+    public InsertClause GenerateInsertClauseFromEntity(object entity)
     {
+        Debug.Assert(EntityType.IsInstanceOfType(entity));
+
         var insertClause = InsertClause.Create();
 
         foreach (var column in ColumnInfos)
         {
-            var propertyInfo = EntityType.GetProperty(column.ColumnName);
+            var propertyInfo = column.PropertyInfo;
             if (propertyInfo is null)
             {
                 if (column.IsAutoIncrement)
@@ -277,7 +272,7 @@ CREATE TABLE {tableName}(
                 }
             }
 
-            var propertyValue = propertyInfo.GetValue(value);
+            var propertyValue = propertyInfo.GetValue(entity);
             if (propertyValue is null)
             {
                 if (column.IsAutoIncrement)
@@ -360,52 +355,63 @@ CREATE TABLE {tableName}(
         return (sb.ToString(), parameters);
     }
 
-    private object? ClearNonColumnProperties(object? entity)
+    private DynamicParameters ConvertParameters(DynamicParameters parameters)
     {
-        Debug.Assert(entity is null || entity.GetType() == EntityType);
-        if (entity is null) return entity;
-        foreach (var property in NonColumnProperties)
+        var result = new DynamicParameters();
+        foreach (var paramName in parameters.ParameterNames)
         {
-            // Clear any non-column properties.
-            property.SetValue(entity, Activator.CreateInstance(property.PropertyType));
+            var value = parameters.Get<object?>(paramName);
+            if (value is null)
+            {
+                result.Add(paramName, null);
+                continue;
+            }
+            var typeInfo = _columnTypeProvider.Get(value.GetType());
+            result.Add(paramName, typeInfo.ConvertToDatabase(value));
         }
-        return entity;
+        return result;
     }
 
-    private object? CallColumnHook(object? entity, string hookName)
+    private object? ConvertFromDynamicToEntity(dynamic d)
     {
-        Debug.Assert(entity is null || entity.GetType() == EntityType);
-        if (entity is null) return entity;
+        if (d is null) return null;
+
+        var result = Activator.CreateInstance(EntityType);
+
         foreach (var column in ColumnInfos)
         {
-            var property = column.PropertyInfo;
-            if (property is not null)
+            var propertyInfo = column.PropertyInfo;
+            if (propertyInfo is not null)
             {
-                var value = property.GetValue(entity);
-
-                switch (hookName)
-                {
-                    case "AfterGet":
-                        column.Hooks.AfterGet(column, ref value);
-                        break;
-                    case "BeforeSet":
-                        column.Hooks.BeforeSet(column, ref value);
-                        break;
-                    default:
-                        throw new Exception("Unknown hook.");
-                };
-
-                property.SetValue(entity, value);
+                object? value = d[column.ColumnName];
+                value = column.ColumnType.ConvertFromDatabase(value);
+                propertyInfo.SetValue(result, value);
             }
-
         }
-        return entity;
+
+        return result;
     }
 
     public virtual IEnumerable<object?> Select(IDbConnection dbConnection, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
     {
         var (sql, parameters) = GenerateSelectSql(where, orderBy, skip, limit);
-        return dbConnection.Query(EntityType, sql, parameters).Select(e => CallColumnHook(ClearNonColumnProperties(e), "AfterGet"));
+        return dbConnection.Query<dynamic>(sql, parameters).Select(d =>
+        {
+            var e = ConvertFromDynamicToEntity(d);
+
+            foreach (var column in ColumnInfos)
+            {
+                var propertyInfo = column.PropertyInfo;
+                if (propertyInfo is not null)
+                {
+                    var value = propertyInfo.GetValue(e);
+                    column.Hooks.AfterSelect(column, ref value);
+                    propertyInfo.SetValue(e, value);
+                }
+            }
+
+            return e;
+        });
     }
 
     public virtual int Insert(IDbConnection dbConnection, IInsertClause insert)
@@ -416,11 +422,11 @@ CREATE TABLE {tableName}(
         {
             var column = GetColumn(item.ColumnName);
             var value = item.Value;
-            column.Hooks.BeforeSet?.Invoke(column, ref value);
+            column.Hooks.BeforeInsert(column, ref value);
             item.Value = value;
         }
 
-        return dbConnection.Execute(sql, parameters);
+        return dbConnection.Execute(sql, ConvertParameters(parameters));
     }
 
     public virtual int Update(IDbConnection dbConnection, IWhereClause? where, IUpdateClause update)
@@ -431,21 +437,45 @@ CREATE TABLE {tableName}(
         {
             var column = GetColumn(item.ColumnName);
             var value = item.Value;
-            column.Hooks.BeforeSet?.Invoke(column, ref value);
+            column.Hooks.BeforeUpdate(column, ref value);
             item.Value = value;
         }
-        return dbConnection.Execute(sql, parameters);
+        return dbConnection.Execute(sql, ConvertParameters(parameters));
     }
 
     public virtual int Delete(IDbConnection dbConnection, IWhereClause? where)
     {
         var (sql, parameters) = GenerateDeleteSql(where);
-        return dbConnection.Execute(sql, parameters);
+        return dbConnection.Execute(sql, ConvertParameters(parameters));
     }
 }
 
-// TODO: Implement and register this service.
 public interface ITableInfoFactory
 {
     TableInfo Get(Type type);
+}
+
+public class TableInfoFactory : ITableInfoFactory
+{
+    private readonly Dictionary<Type, TableInfo> _cache = new Dictionary<Type, TableInfo>();
+    private readonly IColumnTypeProvider _columnTypeProvider;
+
+    public TableInfoFactory(IColumnTypeProvider columnTypeProvider)
+    {
+        _columnTypeProvider = columnTypeProvider;
+    }
+
+    public TableInfo Get(Type type)
+    {
+        if (_cache.TryGetValue(type, out var tableInfo))
+        {
+            return tableInfo;
+        }
+        else
+        {
+            tableInfo = new TableInfo(type, _columnTypeProvider);
+            _cache.Add(type, tableInfo);
+            return tableInfo;
+        }
+    }
 }
