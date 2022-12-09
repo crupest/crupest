@@ -376,6 +376,8 @@ CREATE TABLE {tableName}(
     {
         if (d is null) return null;
 
+        Type dynamicType = d.GetType();
+
         var result = Activator.CreateInstance(EntityType);
 
         foreach (var column in ColumnInfos)
@@ -383,7 +385,9 @@ CREATE TABLE {tableName}(
             var propertyInfo = column.PropertyInfo;
             if (propertyInfo is not null)
             {
-                object? value = d[column.ColumnName];
+                var dynamicProperty = dynamicType.GetProperty(column.ColumnName);
+                if (dynamicProperty is null) continue;
+                object? value = dynamicProperty.GetValue(d);
                 value = column.ColumnType.ConvertFromDatabase(value);
                 propertyInfo.SetValue(result, value);
             }
