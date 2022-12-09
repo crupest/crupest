@@ -15,12 +15,12 @@ public class CompositeWhereClause : IWhereClause
     {
         ConcatOp = concatOp;
         ParenthesesSubclause = parenthesesSubclause;
-        Subclauses = subclauses;
+        Subclauses = subclauses.ToList();
     }
 
     public string ConcatOp { get; }
     public bool ParenthesesSubclause { get; }
-    public IWhereClause[] Subclauses { get; }
+    public List<IWhereClause> Subclauses { get; }
 
     public (string sql, DynamicParameters parameters) GenerateSql(string? dbProviderId = null)
     {
@@ -106,7 +106,7 @@ public class SimpleCompareWhereClause : IWhereClause
 {
     public string Column { get; }
     public string Operator { get; }
-    public object Value { get; }
+    public object? Value { get; }
 
     public List<string> GetRelatedColumns()
     {
@@ -114,44 +114,44 @@ public class SimpleCompareWhereClause : IWhereClause
     }
 
     // It's user's responsibility to keep column safe, with proper escape.
-    public SimpleCompareWhereClause(string column, string op, object value)
+    public SimpleCompareWhereClause(string column, string op, object? value)
     {
         Column = column;
         Operator = op;
         Value = value;
     }
 
-    public static SimpleCompareWhereClause Create(string column, string op, object value)
+    public static SimpleCompareWhereClause Create(string column, string op, object? value)
     {
         return new SimpleCompareWhereClause(column, op, value);
     }
 
-    public static SimpleCompareWhereClause Eq(string column, object value)
+    public static SimpleCompareWhereClause Eq(string column, object? value)
     {
         return new SimpleCompareWhereClause(column, "=", value);
     }
 
-    public static SimpleCompareWhereClause Neq(string column, object value)
+    public static SimpleCompareWhereClause Neq(string column, object? value)
     {
         return new SimpleCompareWhereClause(column, "<>", value);
     }
 
-    public static SimpleCompareWhereClause Gt(string column, object value)
+    public static SimpleCompareWhereClause Gt(string column, object? value)
     {
         return new SimpleCompareWhereClause(column, ">", value);
     }
 
-    public static SimpleCompareWhereClause Gte(string column, object value)
+    public static SimpleCompareWhereClause Gte(string column, object? value)
     {
         return new SimpleCompareWhereClause(column, ">=", value);
     }
 
-    public static SimpleCompareWhereClause Lt(string column, object value)
+    public static SimpleCompareWhereClause Lt(string column, object? value)
     {
         return new SimpleCompareWhereClause(column, "<", value);
     }
 
-    public static SimpleCompareWhereClause Lte(string column, object value)
+    public static SimpleCompareWhereClause Lte(string column, object? value)
     {
         return new SimpleCompareWhereClause(column, "<=", value);
     }
@@ -161,5 +161,22 @@ public class SimpleCompareWhereClause : IWhereClause
         var parameters = new DynamicParameters();
         var parameterName = parameters.AddRandomNameParameter(Value);
         return ($"{Column} {Operator} @{parameterName}", parameters);
+    }
+}
+
+public class WhereClause : AndWhereClause
+{
+    public WhereClause()
+    {
+    }
+
+    public void Add(IWhereClause subclause)
+    {
+        Subclauses.Add(subclause);
+    }
+
+    public void Eq(string column, object? value)
+    {
+        Subclauses.Add(SimpleCompareWhereClause.Eq(column, value));
     }
 }
