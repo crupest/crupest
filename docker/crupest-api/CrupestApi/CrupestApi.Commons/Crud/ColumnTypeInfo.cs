@@ -77,11 +77,6 @@ public interface IColumnTypeInfo
         };
     }
 
-    JsonConverter? JsonConverter
-    {
-        get { return null; }
-    }
-
     // You must override this method if ClrType != DatabaseClrType
     object? ConvertFromDatabase(object? databaseValue)
     {
@@ -110,47 +105,28 @@ public class SimpleColumnTypeInfo<T> : IColumnTypeInfo
 
 public class DateTimeColumnTypeInfo : IColumnTypeInfo
 {
-    private DateTimeJsonConverter _jsonConverter = new DateTimeJsonConverter();
-
     public Type ClrType => typeof(DateTime);
     public Type DatabaseClrType => typeof(string);
-
-    public JsonConverter JsonConverter => _jsonConverter;
 
     public object? ConvertToDatabase(object? value)
     {
         if (value is null) return null;
         Debug.Assert(value is DateTime);
-        return ((DateTime)value).ToUniversalTime().ToString("sZ");
+        return ((DateTime)value).ToUniversalTime().ToString("s") + "Z";
     }
 
     public object? ConvertFromDatabase(object? databaseValue)
     {
         if (databaseValue is null) return null;
         Debug.Assert(databaseValue is string);
-        return DateTime.ParseExact((string)databaseValue, "sZ", null, DateTimeStyles.AssumeUniversal);
-    }
-}
-
-public class DateTimeJsonConverter : JsonConverter<DateTime>
-{
-    public override bool HandleNull => false;
-
-    public override bool CanConvert(Type typeToConvert)
-    {
-        return typeToConvert == typeof(DateTime);
-    }
-
-    public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        var s = reader.GetString();
-        if (s is null) throw new Exception("Can't convert null to DateTime.");
-        return DateTime.ParseExact(s, "uZ", null, DateTimeStyles.AssumeUniversal);
-    }
-
-    public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
-    {
-        writer.WriteStringValue(value.ToUniversalTime().ToString("uZ"));
+        var databaseString = (string)databaseValue;
+        var dateTimeStyles = DateTimeStyles.None;
+        if (databaseString.Length > 0 && databaseString[^1] == 'Z')
+        {
+            databaseString = databaseString.Substring(0, databaseString.Length - 1);
+            dateTimeStyles = DateTimeStyles.AssumeUniversal & DateTimeStyles.AdjustToUniversal;
+        }
+        return DateTime.ParseExact(databaseString, "s", null, dateTimeStyles);
     }
 }
 
@@ -171,6 +147,7 @@ public class ColumnTypeProvider : IColumnTypeProvider
         _typeMap.Add(IColumnTypeInfo.DateTimeColumnTypeInfo.ClrType, IColumnTypeInfo.DateTimeColumnTypeInfo);
     }
 
+    // This is thread-safe.
     public IColumnTypeInfo Get(Type clrType)
     {
         if (_typeMap.TryGetValue(clrType, out var typeInfo))
@@ -179,7 +156,7 @@ public class ColumnTypeProvider : IColumnTypeProvider
         }
         else
         {
-            if (clrType == typeof(Nullable<>))
+            if (clrType.IsGenericType && clrType.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
                 clrType = clrType.GetGenericArguments()[0];
                 return Get(clrType);

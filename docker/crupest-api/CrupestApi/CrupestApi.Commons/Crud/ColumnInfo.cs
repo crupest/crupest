@@ -45,6 +45,7 @@ public class ColumnInfo
     public ColumnInfo(TableInfo table, PropertyInfo propertyInfo, IColumnTypeProvider typeProvider)
     {
         Table = table;
+        PropertyInfo = propertyInfo;
         ColumnType = typeProvider.Get(propertyInfo.PropertyType);
 
         var columnAttribute = propertyInfo.GetCustomAttribute<ColumnAttribute>();
@@ -103,7 +104,7 @@ public class ColumnInfo
         {
             object? value = Metadata.GetValueOrDefault(ColumnMetadataKeys.ColumnName);
             Debug.Assert(value is null || value is string);
-            return (string?)value ?? PropertyInfo?.Name ?? throw new Exception("Failed to get column name.");
+            return ((string?)value ?? PropertyInfo?.Name) ?? throw new Exception("Failed to get column name.");
         }
     }
 

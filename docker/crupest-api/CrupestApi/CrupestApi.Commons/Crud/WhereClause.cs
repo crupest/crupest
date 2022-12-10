@@ -22,6 +22,12 @@ public class CompositeWhereClause : IWhereClause
     public bool ParenthesesSubclause { get; }
     public List<IWhereClause> Subclauses { get; }
 
+    public CompositeWhereClause Eq(string column, object? value)
+    {
+        Subclauses.Add(SimpleCompareWhereClause.Eq(column, value));
+        return this;
+    }
+
     public (string sql, DynamicParameters parameters) GenerateSql(string? dbProviderId = null)
     {
         var parameters = new DynamicParameters();
@@ -173,10 +179,5 @@ public class WhereClause : AndWhereClause
     public void Add(IWhereClause subclause)
     {
         Subclauses.Add(subclause);
-    }
-
-    public void Eq(string column, object? value)
-    {
-        Subclauses.Add(SimpleCompareWhereClause.Eq(column, value));
     }
 }

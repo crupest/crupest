@@ -23,4 +23,17 @@ public class ColumnTypeInfoTest
         Assert.Equal(value, typeInfo.ConvertFromDatabase(value));
         Assert.Equal(value, typeInfo.ConvertToDatabase(value));
     }
+
+    [Fact]
+    public void DateTimeColumnTypeTest()
+    {
+        var dateTimeColumnTypeInfo = _provider.Get(typeof(DateTime));
+        Assert.Equal(typeof(DateTime), dateTimeColumnTypeInfo.ClrType);
+        Assert.Equal(typeof(string), dateTimeColumnTypeInfo.DatabaseClrType);
+
+        var dateTime = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var dateTimeString = "2000-01-01T00:00:00Z";
+        Assert.Equal(dateTimeString, dateTimeColumnTypeInfo.ConvertToDatabase(dateTime));
+        Assert.Equal(dateTime, dateTimeColumnTypeInfo.ConvertFromDatabase(dateTimeString));
+    }
 }
