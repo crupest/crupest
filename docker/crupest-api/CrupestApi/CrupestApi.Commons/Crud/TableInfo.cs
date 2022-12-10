@@ -207,7 +207,7 @@ CREATE TABLE {tableName}(
         }
     }
 
-    public (string sql, DynamicParameters parameters) GenerateSelectSql(IWhereClause? whereClause, IOrderByClause? orderByClause = null, int? skip = null, int? limit = null, string? dbProviderId = null)
+    public (string sql, DynamicParameters parameters) GenerateSelectSql(string? what, IWhereClause? whereClause, IOrderByClause? orderByClause = null, int? skip = null, int? limit = null, string? dbProviderId = null)
     {
         CheckRelatedColumns(whereClause);
         CheckRelatedColumns(orderByClause);
@@ -215,7 +215,7 @@ CREATE TABLE {tableName}(
         var parameters = new DynamicParameters();
 
         StringBuilder result = new StringBuilder()
-            .Append("SELECT * FROM ")
+            .Append($"SELECT {what ?? "*"} FROM ")
             .Append(TableName);
 
         if (whereClause is not null)
@@ -372,49 +372,43 @@ CREATE TABLE {tableName}(
         return result;
     }
 
-    private object? ConvertFromDynamicToEntity(dynamic d)
+    public virtual int SelectCount(IDbConnection dbConnection, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
     {
-        if (d is null) return null;
+        var (sql, parameters) = GenerateSelectSql("COUNT(*)", where, orderBy, skip, limit);
+        return dbConnection.QuerySingle<int>(sql, parameters);
 
-        Type dynamicType = d.GetType();
-
-        var result = Activator.CreateInstance(EntityType);
-
-        foreach (var column in ColumnInfos)
-        {
-            var propertyInfo = column.PropertyInfo;
-            if (propertyInfo is not null)
-            {
-                var dynamicProperty = dynamicType.GetProperty(column.ColumnName);
-                if (dynamicProperty is null) continue;
-                object? value = dynamicProperty.GetValue(d);
-                value = column.ColumnType.ConvertFromDatabase(value);
-                propertyInfo.SetValue(result, value);
-            }
-        }
-
-        return result;
     }
 
     public virtual IEnumerable<object?> Select(IDbConnection dbConnection, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
     {
-        var (sql, parameters) = GenerateSelectSql(where, orderBy, skip, limit);
+        return Select<IEnumerable<object?>>(dbConnection, null, where, orderBy, skip, limit);
+    }
+
+    public virtual IEnumerable<TResult> Select<TResult>(IDbConnection dbConnection, string? what, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
+    {
+        var (sql, parameters) = GenerateSelectSql(what, where, orderBy, skip, limit);
         return dbConnection.Query<dynamic>(sql, parameters).Select(d =>
         {
-            var e = ConvertFromDynamicToEntity(d);
+            Type dynamicType = d.GetType();
+
+            var result = Activator.CreateInstance<TResult>();
 
             foreach (var column in ColumnInfos)
             {
+                object? value = null;
+                var dynamicProperty = dynamicType.GetProperty(column.ColumnName);
+                if (dynamicProperty is not null) value = dynamicProperty.GetValue(d);
+                column.Hooks.AfterSelect(column, ref value);
+                if (value is not null)
+                    value = column.ColumnType.ConvertFromDatabase(value);
                 var propertyInfo = column.PropertyInfo;
                 if (propertyInfo is not null)
                 {
-                    var value = propertyInfo.GetValue(e);
-                    column.Hooks.AfterSelect(column, ref value);
-                    propertyInfo.SetValue(e, value);
+                    propertyInfo.SetValue(result, value);
                 }
             }
 
-            return e;
+            return result;
         });
     }
 
@@ -422,12 +416,20 @@ CREATE TABLE {tableName}(
     {
         var (sql, parameters) = GenerateInsertSql(insert);
 
-        foreach (var item in insert.Items)
+        foreach (var column in ColumnInfos)
         {
-            var column = GetColumn(item.ColumnName);
-            var value = item.Value;
+            InsertItem? item = insert.Items.FirstOrDefault(i => i.ColumnName == column.ColumnName);
+            var value = item?.Value;
             column.Hooks.BeforeInsert(column, ref value);
-            item.Value = value;
+            if (item is null)
+            {
+                if (value is not null)
+                    insert.Items.Add(new InsertItem(column.ColumnName, value));
+            }
+            else
+            {
+                item.Value = value;
+            }
         }
 
         return dbConnection.Execute(sql, ConvertParameters(parameters));
@@ -437,13 +439,22 @@ CREATE TABLE {tableName}(
     {
         var (sql, parameters) = GenerateUpdateSql(where, update);
 
-        foreach (var item in update.Items)
+        foreach (var column in ColumnInfos)
         {
-            var column = GetColumn(item.ColumnName);
-            var value = item.Value;
+            UpdateItem? item = update.Items.FirstOrDefault(i => i.ColumnName == column.ColumnName);
+            var value = item?.Value;
             column.Hooks.BeforeUpdate(column, ref value);
-            item.Value = value;
+            if (item is null)
+            {
+                if (value is not null)
+                    update.Items.Add(new UpdateItem(column.ColumnName, value));
+            }
+            else
+            {
+                item.Value = value;
+            }
         }
+
         return dbConnection.Execute(sql, ConvertParameters(parameters));
     }
 

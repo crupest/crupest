@@ -40,6 +40,16 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return _table.Select(_dbConnection, filter).Cast<TEntity>().ToList();
     }
 
+    public bool Exists(IWhereClause? filter)
+    {
+        return _table.SelectCount(_dbConnection, filter) > 0;
+    }
+
+    public int Count(IWhereClause? filter)
+    {
+        return _table.SelectCount(_dbConnection, filter);
+    }
+
     public int Insert(IInsertClause insertClause)
     {
         return _table.Insert(_dbConnection, insertClause);
