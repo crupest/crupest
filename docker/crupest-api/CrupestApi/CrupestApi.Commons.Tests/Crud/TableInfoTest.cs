@@ -24,7 +24,7 @@ public class TableInfoTest
     [Fact]
     public void GenerateSelectSqlTest()
     {
-        var (sql, parameters) = _tableInfo.GenerateSelectSql(WhereClause.Create().Eq("Name", "Hello"));
+        var (sql, parameters) = _tableInfo.GenerateSelectSql(null, WhereClause.Create().Eq("Name", "Hello"));
         var parameterName = parameters.ParameterNames.First();
 
         // TODO: Is there a way to auto detect parameters?

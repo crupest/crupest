@@ -86,16 +86,39 @@ public class ColumnInfo
 
     protected void OnBeforeInsert(ColumnInfo column, ref object? value)
     {
-        TryCoerceStringFromNullToEmpty(ref value);
-        if (column.IsNotNull && !column.IsAutoIncrement)
+        if (column.IsClientGenerate && value is not null)
         {
-            throw new Exception($"Column {column.ColumnName} can't be empty.");
+            throw new Exception($"Column {column.ColumnName} can't be set manually.");
         }
+
+        var defaultValueGeneratorMethod = DefaultValueGeneratorMethod;
+        if (defaultValueGeneratorMethod is not null)
+        {
+            value = defaultValueGeneratorMethod.Invoke(null, new object[] { });
+        }
+
+
+        OnBeforeSet(column, ref value);
     }
 
     protected void OnBeforeUpdate(ColumnInfo column, ref object? value)
     {
+        OnBeforeSet(column, ref value);
+
+        if (column.IsNoUpdate)
+        {
+            throw new Exception($"Column {column.ColumnName} not updatable.");
+        }
+    }
+
+    protected void OnBeforeSet(ColumnInfo column, ref object? value)
+    {
         TryCoerceStringFromNullToEmpty(ref value);
+
+        if (value is null && column.IsNotNull)
+        {
+            throw new Exception($"Column {column.ColumnName} can't be null.");
+        }
     }
 
     public string ColumnName
@@ -108,9 +131,33 @@ public class ColumnInfo
         }
     }
 
+    public MethodInfo? DefaultValueGeneratorMethod
+    {
+        get
+        {
+            object? value = Metadata.GetValueOrDefault(ColumnMetadataKeys.DefaultValueGenerator);
+            Debug.Assert(value is null || value is string);
+            MethodInfo? result;
+            if (value is null)
+            {
+                string methodName = ColumnName + "DefaultValueGenerator";
+                result = Table.EntityType.GetMethod(methodName, BindingFlags.Static);
+            }
+            else
+            {
+                string methodName = (string)value;
+                result = Table.EntityType.GetMethod(methodName, BindingFlags.Static) ?? throw new Exception("The default value generator does not exist.");
+            }
+
+            return result;
+        }
+    }
+
     public bool IsPrimaryKey => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsPrimaryKey) is true;
     public bool IsAutoIncrement => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsAutoIncrement) is true;
     public bool IsNotNull => IsPrimaryKey || Metadata.GetValueOrDefault(ColumnMetadataKeys.NotNull) is true;
+    public bool IsClientGenerate => Metadata.GetValueOrDefault(ColumnMetadataKeys.ClientGenerate) is true;
+    public bool IsNoUpdate => Metadata.GetValueOrDefault(ColumnMetadataKeys.NoUpdate) is true;
 
     public ColumnIndexType Index => Metadata.GetValueOrDefault<ColumnIndexType?>(ColumnMetadataKeys.Index) ?? ColumnIndexType.None;
 

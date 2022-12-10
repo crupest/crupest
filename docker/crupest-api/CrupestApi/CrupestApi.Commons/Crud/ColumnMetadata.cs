@@ -17,6 +17,18 @@ public static class ColumnMetadataKeys
     /// This indicates that you take care of generate this column value when create entity. User calling the api can not specify the value.
     /// </summary>
     public const string ClientGenerate = nameof(ColumnAttribute.DefaultEmptyForString);
+
+    /// <summary>
+    /// The default value generator method name in entity type. Default to null, aka, search for ColumnNameDefaultValueGenerator. 
+    /// </summary>
+    /// <returns></returns>
+    public const string DefaultValueGenerator = nameof(ColumnAttribute.DefaultValueGenerator);
+
+    /// <summary>
+    /// The column can only be set when inserted, can't be changed in update.
+    /// </summary>
+    /// <returns></returns>
+    public const string NoUpdate = nameof(ColumnAttribute.NoUpdate);
 }
 
 public interface IColumnMetadata
@@ -86,6 +98,12 @@ public class ColumnAttribute : Attribute, IColumnMetadata
 
     /// <see cref="ColumnMetadataKeys.ClientGenerate"/>
     public bool ClientGenerate { get; init; }
+
+    /// <see cref="ColumnMetadataKeys.DefaultValueGenerator"/>
+    public string? DefaultValueGenerator { get; init; }
+
+    /// <see cref="ColumnMetadataKeys.NoUpdate"/>
+    public bool NoUpdate { get; init; }
 
     public bool TryGetValue(string key, out object? value)
     {
