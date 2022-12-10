@@ -44,14 +44,24 @@ public class SqlCompareHelper
                 }
                 else
                 {
-                    wordBuilder = new StringBuilder(sql[current]);
+                    wordBuilder = new StringBuilder();
+                    wordBuilder.Append(sql[current]);
                 }
             }
+            current++;
         }
 
         if (wordBuilder is not null)
         {
             result.Add(wordBuilder.ToString());
+        }
+
+        if (toLower)
+        {
+            for (int i = 0; i < result.Count; i++)
+            {
+                result[i] = result[i].ToLower();
+            }
         }
 
         return result;
@@ -68,6 +78,6 @@ public class SqlCompareHelper
         var sql = "SELECT * FROM TableName WHERE id = @abcd;";
         var words = SqlExtractWords(sql);
 
-        Assert.Equal(words, new List<string> { "select", "*", "from", "tablename", "where", "id", "=", "@abcd", ";" });
+        Assert.Equal(new List<string> { "select", "*", "from", "tablename", "where", "id", "=", "@abcd", ";" }, words);
     }
 }

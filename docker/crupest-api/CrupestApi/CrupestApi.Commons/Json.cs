@@ -29,10 +29,9 @@ public static class CrupestApiJsonExtensions
         }
         else
         {
-            throw new Exception("Only value not array or object is allowed.")
+            throw new Exception("Only value not array or object is allowed.");
         }
     }
-
 
     public static IServiceCollection AddJsonOptions(this IServiceCollection services)
     {
@@ -43,8 +42,6 @@ public static class CrupestApiJsonExtensions
             config.PropertyNameCaseInsensitive = true;
             config.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         });
-
-        // TODO: Register column type provided converters.
 
         return services;
     }
