@@ -4,6 +4,8 @@ namespace CrupestApi.Commons.Crud.Tests;
 
 public class SqlCompareHelper
 {
+    private static List<char> SymbolTokens = new List<char>() { '(', ')', ';' };
+
     public static List<string> SqlExtractWords(string? sql, bool toLower = true)
     {
         var result = new List<string>();
@@ -27,14 +29,14 @@ public class SqlCompareHelper
                     wordBuilder = null;
                 }
             }
-            else if (sql[current] == ';')
+            else if (SymbolTokens.Contains(sql[current]))
             {
                 if (wordBuilder is not null)
                 {
                     result.Add(wordBuilder.ToString());
                     wordBuilder = null;
                 }
-                result.Add(";");
+                result.Add(sql[current].ToString());
             }
             else
             {
@@ -75,9 +77,9 @@ public class SqlCompareHelper
     [Fact]
     public void TestSqlExtractWords()
     {
-        var sql = "SELECT * FROM TableName WHERE id = @abcd;";
+        var sql = "SELECT * FROM TableName WHERE (id = @abcd);";
         var words = SqlExtractWords(sql);
 
-        Assert.Equal(new List<string> { "select", "*", "from", "tablename", "where", "id", "=", "@abcd", ";" }, words);
+        Assert.Equal(new List<string> { "select", "*", "from", "tablename", "where", "(", "id", "=", "@abcd", ")", ";" }, words);
     }
 }

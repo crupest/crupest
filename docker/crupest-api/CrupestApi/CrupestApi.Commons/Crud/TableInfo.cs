@@ -35,7 +35,7 @@ public class TableInfo
 
         foreach (var property in properties)
         {
-            if (PropertyIsColumn(property))
+            if (CheckPropertyIsColumn(property))
             {
                 var columnInfo = new ColumnInfo(this, property, _columnTypeProvider);
                 columnInfos.Add(columnInfo);
@@ -89,7 +89,7 @@ public class TableInfo
     public IReadOnlyList<PropertyInfo> NonColumnProperties { get; }
     public IReadOnlyList<string> ColumnNameList => _lazyColumnNameList.Value;
 
-    protected bool PropertyIsColumn(PropertyInfo property)
+    protected bool CheckPropertyIsColumn(PropertyInfo property)
     {
         var columnAttribute = property.GetCustomAttribute<ColumnAttribute>();
         if (columnAttribute is null) return false;
@@ -469,17 +469,21 @@ public class TableInfoFactory : ITableInfoFactory
         _columnTypeProvider = columnTypeProvider;
     }
 
+    // This is thread-safe.
     public TableInfo Get(Type type)
     {
-        if (_cache.TryGetValue(type, out var tableInfo))
+        lock (_cache)
         {
-            return tableInfo;
-        }
-        else
-        {
-            tableInfo = new TableInfo(type, _columnTypeProvider);
-            _cache.Add(type, tableInfo);
-            return tableInfo;
+            if (_cache.TryGetValue(type, out var tableInfo))
+            {
+                return tableInfo;
+            }
+            else
+            {
+                tableInfo = new TableInfo(type, _columnTypeProvider);
+                _cache.Add(type, tableInfo);
+                return tableInfo;
+            }
         }
     }
 }
