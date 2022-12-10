@@ -1,5 +1,3 @@
-using Xunit.Abstractions;
-
 namespace CrupestApi.Commons.Crud.Tests;
 
 public class TableInfoTest

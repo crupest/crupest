@@ -1,7 +1,4 @@
-using System.Diagnostics;
-using CrupestApi.Commons;
 using CrupestApi.Commons.Crud;
-using Dapper;
 
 namespace CrupestApi.Secrets;
 
