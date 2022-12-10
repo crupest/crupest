@@ -29,6 +29,11 @@ public static class ColumnMetadataKeys
     /// </summary>
     /// <returns></returns>
     public const string NoUpdate = nameof(ColumnAttribute.NoUpdate);
+
+    /// <summary>
+    /// This column acts as key when get one entity for http get method in path. 
+    /// </summary>
+    public const string ActAsKey = nameof(ColumnAttribute.ActAsKey);
 }
 
 public interface IColumnMetadata
@@ -104,6 +109,11 @@ public class ColumnAttribute : Attribute, IColumnMetadata
 
     /// <see cref="ColumnMetadataKeys.NoUpdate"/>
     public bool NoUpdate { get; init; }
+
+    /// <see cref="ColumnMetadataKeys.ActAsKey"/>
+    public bool ActAsKey { get; init; }
+
+
 
     public bool TryGetValue(string key, out object? value)
     {

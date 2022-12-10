@@ -158,6 +158,12 @@ public class ColumnInfo
     public bool IsNotNull => IsPrimaryKey || Metadata.GetValueOrDefault(ColumnMetadataKeys.NotNull) is true;
     public bool IsClientGenerate => Metadata.GetValueOrDefault(ColumnMetadataKeys.ClientGenerate) is true;
     public bool IsNoUpdate => Metadata.GetValueOrDefault(ColumnMetadataKeys.NoUpdate) is true;
+    /// <summary>
+    /// This only returns metadata value. It doesn't not fall back to primary column. If you want to get the real key column, go to table info.
+    /// </summary>
+    /// <seealso cref="ColumnMetadataKeys.ActAsKey"/>
+    /// <seealso cref="TableInfo.KeyColumn"/>
+    public bool IsSpecifiedAsKey => Metadata.GetValueOrDefault(ColumnMetadataKeys.ActAsKey) is true;
 
     public ColumnIndexType Index => Metadata.GetValueOrDefault<ColumnIndexType?>(ColumnMetadataKeys.Index) ?? ColumnIndexType.None;
 

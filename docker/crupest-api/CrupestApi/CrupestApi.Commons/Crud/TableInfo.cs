@@ -27,8 +27,9 @@ public class TableInfo
 
         var columnInfos = new List<ColumnInfo>();
 
-        bool hasPrimaryKey = false;
         bool hasId = false;
+        ColumnInfo? primaryKeyColumn = null;
+        ColumnInfo? keyColumn = null;
 
         List<PropertyInfo> columnProperties = new();
         List<PropertyInfo> nonColumnProperties = new();
@@ -40,10 +41,20 @@ public class TableInfo
                 var columnInfo = new ColumnInfo(this, property, _columnTypeProvider);
                 columnInfos.Add(columnInfo);
                 if (columnInfo.IsPrimaryKey)
-                    hasPrimaryKey = true;
+                {
+                    primaryKeyColumn = columnInfo;
+                }
                 if (columnInfo.ColumnName.Equals("id", StringComparison.OrdinalIgnoreCase))
                 {
                     hasId = true;
+                }
+                if (columnInfo.IsSpecifiedAsKey)
+                {
+                    if (keyColumn is not null)
+                    {
+                        throw new Exception("Already exists a key column.");
+                    }
+                    keyColumn = columnInfo;
                 }
                 columnProperties.Add(property);
             }
@@ -53,14 +64,21 @@ public class TableInfo
             }
         }
 
-        if (!hasPrimaryKey)
+        if (primaryKeyColumn is null)
         {
             if (hasId) throw new Exception("A column named id already exists but is not primary key.");
-            var columnInfo = CreateAutoIdColumn();
-            columnInfos.Add(columnInfo);
+            primaryKeyColumn = CreateAutoIdColumn();
+            columnInfos.Add(primaryKeyColumn);
+        }
+
+        if (keyColumn is null)
+        {
+            keyColumn = primaryKeyColumn;
         }
 
         ColumnInfos = columnInfos;
+        PrimaryKeyColumn = primaryKeyColumn;
+        KeyColumn = keyColumn;
         ColumnProperties = columnProperties;
         NonColumnProperties = nonColumnProperties;
 
@@ -85,6 +103,12 @@ public class TableInfo
     public Type EntityType { get; }
     public string TableName { get; }
     public IReadOnlyList<ColumnInfo> ColumnInfos { get; }
+    public ColumnInfo PrimaryKeyColumn { get; }
+    /// <summary>
+    /// Maybe not the primary key. But acts as primary key.
+    /// </summary>
+    /// <seealso cref="ColumnMetadataKeys.ActAsKey"/>
+    public ColumnInfo KeyColumn { get; }
     public IReadOnlyList<PropertyInfo> ColumnProperties { get; }
     public IReadOnlyList<PropertyInfo> NonColumnProperties { get; }
     public IReadOnlyList<string> ColumnNameList => _lazyColumnNameList.Value;
@@ -412,10 +436,10 @@ CREATE TABLE {tableName}(
         });
     }
 
-    public virtual int Insert(IDbConnection dbConnection, IInsertClause insert)
+    // Returns the insert entity's key.
+    public object Insert(IDbConnection dbConnection, IInsertClause insert)
     {
-        var (sql, parameters) = GenerateInsertSql(insert);
-
+        object? key = null;
         foreach (var column in ColumnInfos)
         {
             InsertItem? item = insert.Items.FirstOrDefault(i => i.ColumnName == column.ColumnName);
@@ -423,16 +447,25 @@ CREATE TABLE {tableName}(
             column.Hooks.BeforeInsert(column, ref value);
             if (item is null)
             {
-                if (value is not null)
-                    insert.Items.Add(new InsertItem(column.ColumnName, value));
+                item = new InsertItem(column.ColumnName, value);
+                insert.Items.Add(item);
             }
             else
             {
                 item.Value = value;
             }
+
+            if (item.ColumnName == KeyColumn.ColumnName)
+            {
+                key = item.Value;
+            }
         }
 
-        return dbConnection.Execute(sql, ConvertParameters(parameters));
+        var (sql, parameters) = GenerateInsertSql(insert);
+
+        dbConnection.Execute(sql, ConvertParameters(parameters));
+
+        return key ?? throw new Exception("No key???");
     }
 
     public virtual int Update(IDbConnection dbConnection, IWhereClause? where, IUpdateClause update)

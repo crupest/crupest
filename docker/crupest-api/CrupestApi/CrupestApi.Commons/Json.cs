@@ -46,35 +46,38 @@ public static class CrupestApiJsonExtensions
         return services;
     }
 
-    public static async Task WriteJsonAsync<T>(this HttpResponse response, T bodyObject, int statusCode, HttpResponseAction? beforeWriteBody, CancellationToken cancellationToken = default)
-    {
-        await response.WriteJsonAsync(bodyObject, statusCode, (context) =>
-        {
-            beforeWriteBody?.Invoke(context);
-            return Task.CompletedTask;
-        }, cancellationToken);
-    }
-
-    public static async Task WriteJsonAsync<T>(this HttpResponse response, T bodyObject, int statusCode = 200, AsyncHttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
+    public static async Task WriteJsonAsync<T>(this HttpResponse response, T bodyObject, int statusCode = 200, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
     {
         var jsonOptions = response.HttpContext.RequestServices.GetRequiredService<IOptionsSnapshot<JsonSerializerOptions>>();
         byte[] json = JsonSerializer.SerializeToUtf8Bytes<T>(bodyObject, jsonOptions.Value);
 
         var byteCount = json.Length;
+
         response.StatusCode = statusCode;
         response.Headers.ContentType = "application/json; charset=utf-8";
         response.Headers.ContentLength = byteCount;
 
         if (beforeWriteBody is not null)
         {
-            await beforeWriteBody(response);
+            beforeWriteBody(response);
         }
 
         await response.Body.WriteAsync(json, cancellationToken);
     }
 
-    public static async Task WriteMessageAsync(this HttpResponse response, string message, int statusCode = 200, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
+    public static async Task WriteMessageAsync(this HttpResponse response, string message, int statusCode = 400, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
     {
         await response.WriteJsonAsync(new ErrorBody(message), statusCode: statusCode, beforeWriteBody, cancellationToken);
     }
+
+    public static Task ResponseJsonAsync<T>(this HttpContext context, T bodyObject, int statusCode = 200, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
+    {
+        return context.Response.WriteJsonAsync<T>(bodyObject, statusCode, beforeWriteBody, cancellationToken);
+    }
+
+    public static Task ResponseMessageAsync<T>(this HttpContext context, string message, int statusCode = 400, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
+    {
+        return context.Response.WriteMessageAsync(message, statusCode, beforeWriteBody, cancellationToken);
+    }
+
 }
