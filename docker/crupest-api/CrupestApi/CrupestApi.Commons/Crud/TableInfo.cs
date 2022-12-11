@@ -136,12 +136,18 @@ public class TableInfo
     {
         // Check if there is only one primary key.
         bool hasPrimaryKey = false;
+        bool hasKey = false;
         foreach (var column in ColumnInfos)
         {
             if (column.IsPrimaryKey)
             {
-                if (hasPrimaryKey) throw new Exception("Two columns are primary key.");
+                if (hasPrimaryKey) throw new Exception("More than one columns are primary key.");
                 hasPrimaryKey = true;
+            }
+
+            if (column.IsSpecifiedAsKey)
+            {
+                if (hasKey) throw new Exception("More than one columns are specified as key column.");
             }
         }
 
@@ -231,22 +237,26 @@ CREATE TABLE {tableName}(
         }
     }
 
-    public (string sql, DynamicParameters parameters) GenerateSelectSql(string? what, IWhereClause? whereClause, IOrderByClause? orderByClause = null, int? skip = null, int? limit = null, string? dbProviderId = null)
+    /// <summary>
+    /// If you call this manually, it's your duty to call hooks.
+    /// </summary>
+    /// <seealso cref="Select"/>
+    public (string sql, ParamList parameters) GenerateSelectSql(string? selectWhat, IWhereClause? whereClause, IOrderByClause? orderByClause = null, int? skip = null, int? limit = null, string? dbProviderId = null)
     {
         CheckRelatedColumns(whereClause);
         CheckRelatedColumns(orderByClause);
 
-        var parameters = new DynamicParameters();
+        var parameters = new ParamList();
 
         StringBuilder result = new StringBuilder()
-            .Append($"SELECT {what ?? "*"} FROM ")
+            .Append($"SELECT {selectWhat ?? "*"} FROM ")
             .Append(TableName);
 
         if (whereClause is not null)
         {
             result.Append(' ');
             var (whereSql, whereParameters) = whereClause.GenerateSql(dbProviderId);
-            parameters.AddDynamicParams(whereParameters);
+            parameters.AddRange(whereParameters);
             result.Append(whereSql);
         }
 
@@ -254,7 +264,7 @@ CREATE TABLE {tableName}(
         {
             result.Append(' ');
             var (orderBySql, orderByParameters) = orderByClause.GenerateSql(dbProviderId);
-            parameters.AddDynamicParams(orderByClause);
+            parameters.AddRange(orderByParameters);
             result.Append(orderBySql);
         }
 
@@ -275,49 +285,15 @@ CREATE TABLE {tableName}(
         return (result.ToString(), parameters);
     }
 
-    public InsertClause GenerateInsertClauseFromEntity(object entity)
-    {
-        Debug.Assert(EntityType.IsInstanceOfType(entity));
-
-        var insertClause = InsertClause.Create();
-
-        foreach (var column in ColumnInfos)
-        {
-            var propertyInfo = column.PropertyInfo;
-            if (propertyInfo is null)
-            {
-                if (column.IsAutoIncrement)
-                {
-                    continue;
-                }
-                else
-                {
-                    throw new Exception($"Property {column.ColumnName} not found.");
-                }
-            }
-
-            var propertyValue = propertyInfo.GetValue(entity);
-            if (propertyValue is null)
-            {
-                if (column.IsAutoIncrement)
-                {
-                    continue;
-                }
-                else
-                {
-                    insertClause.Add(column.ColumnName, propertyValue);
-                }
-            }
-        }
-
-        return insertClause;
-    }
-
-    public (string sql, DynamicParameters parameters) GenerateInsertSql(IInsertClause insertClause, string? dbProviderId = null)
+    /// <summary>
+    /// If you call this manually, it's your duty to call hooks.
+    /// </summary>
+    /// <seealso cref="Insert"/>
+    public (string sql, ParamList parameters) GenerateInsertSql(IInsertClause insertClause, string? dbProviderId = null)
     {
         CheckRelatedColumns(insertClause);
 
-        var parameters = new DynamicParameters();
+        var parameters = new ParamList();
 
         var result = new StringBuilder()
             .Append("INSERT INTO ")
@@ -329,41 +305,49 @@ CREATE TABLE {tableName}(
         var (valueSql, valueParameters) = insertClause.GenerateValueListSql(dbProviderId);
         result.Append(valueSql).Append(");");
 
-        parameters.AddDynamicParams(valueParameters);
+        parameters.AddRange(valueParameters);
 
         return (result.ToString(), parameters);
     }
 
-    public (string sql, DynamicParameters parameters) GenerateUpdateSql(IWhereClause? whereClause, IUpdateClause updateClause)
+    /// <summary>
+    /// If you call this manually, it's your duty to call hooks.
+    /// </summary>
+    /// <seealso cref="Update"/>
+    public (string sql, ParamList parameters) GenerateUpdateSql(IWhereClause? whereClause, IUpdateClause updateClause)
     {
         CheckRelatedColumns(whereClause);
         CheckRelatedColumns(updateClause);
 
-        var parameters = new DynamicParameters();
+        var parameters = new ParamList();
 
         StringBuilder sb = new StringBuilder("UPDATE ");
         sb.Append(TableName);
         sb.Append(" SET ");
         var (updateSql, updateParameters) = updateClause.GenerateSql();
         sb.Append(updateSql);
-        parameters.AddDynamicParams(updateParameters);
+        parameters.AddRange(updateParameters);
         if (whereClause is not null)
         {
             sb.Append(" WHERE ");
             var (whereSql, whereParameters) = whereClause.GenerateSql();
             sb.Append(whereSql);
-            parameters.AddDynamicParams(whereParameters);
+            parameters.AddRange(whereParameters);
         }
         sb.Append(';');
 
         return (sb.ToString(), parameters);
     }
 
-    public (string sql, DynamicParameters parameters) GenerateDeleteSql(IWhereClause? whereClause)
+    /// <summary>
+    /// If you call this manually, it's your duty to call hooks.
+    /// </summary>
+    /// <seealso cref="Delete"/>
+    public (string sql, ParamList parameters) GenerateDeleteSql(IWhereClause? whereClause)
     {
         CheckRelatedColumns(whereClause);
 
-        var parameters = new DynamicParameters();
+        var parameters = new ParamList();
 
         StringBuilder sb = new StringBuilder("DELETE FROM ");
         sb.Append(TableName);
@@ -371,7 +355,7 @@ CREATE TABLE {tableName}(
         {
             sb.Append(" WHERE ");
             var (whereSql, whereParameters) = whereClause.GenerateSql();
-            parameters.AddDynamicParams(whereParameters);
+            parameters.AddRange(whereParameters);
             sb.Append(whereSql);
         }
         sb.Append(';');
@@ -379,19 +363,29 @@ CREATE TABLE {tableName}(
         return (sb.ToString(), parameters);
     }
 
-    private DynamicParameters ConvertParameters(DynamicParameters parameters)
+    private DynamicParameters ConvertParameters(ParamList parameters)
     {
         var result = new DynamicParameters();
-        foreach (var paramName in parameters.ParameterNames)
+        foreach (var param in parameters)
         {
-            var value = parameters.Get<object?>(paramName);
-            if (value is null)
+            if (param.Value is null || param.Value is DbNullValue)
             {
-                result.Add(paramName, null);
+                result.Add(param.Name, null);
                 continue;
             }
-            var typeInfo = _columnTypeProvider.Get(value.GetType());
-            result.Add(paramName, typeInfo.ConvertToDatabase(value));
+
+            var columnName = param.ColumnName;
+            IColumnTypeInfo typeInfo;
+            if (columnName is not null)
+            {
+                typeInfo = GetColumn(columnName).ColumnType;
+            }
+            else
+            {
+                typeInfo = _columnTypeProvider.Get(param.Value.GetType());
+            }
+
+            result.Add(param.Name, typeInfo.ConvertToDatabase(param.Value), typeInfo.DbType);
         }
         return result;
     }
@@ -408,6 +402,9 @@ CREATE TABLE {tableName}(
         return Select<IEnumerable<object?>>(dbConnection, null, where, orderBy, skip, limit);
     }
 
+    /// <summary>
+    /// Select and call hooks.
+    /// </summary>
     public virtual IEnumerable<TResult> Select<TResult>(IDbConnection dbConnection, string? what, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
     {
         var (sql, parameters) = GenerateSelectSql(what, where, orderBy, skip, limit);
@@ -422,9 +419,9 @@ CREATE TABLE {tableName}(
                 object? value = null;
                 var dynamicProperty = dynamicType.GetProperty(column.ColumnName);
                 if (dynamicProperty is not null) value = dynamicProperty.GetValue(d);
-                column.Hooks.AfterSelect(column, ref value);
                 if (value is not null)
                     value = column.ColumnType.ConvertFromDatabase(value);
+                column.Hooks.AfterSelect(column, ref value);
                 var propertyInfo = column.PropertyInfo;
                 if (propertyInfo is not null)
                 {
@@ -436,7 +433,10 @@ CREATE TABLE {tableName}(
         });
     }
 
-    // Returns the insert entity's key.
+    /// <summary>
+    /// Insert a entity and call hooks.
+    /// </summary>
+    /// <returns>The key of insert entity.</returns>
     public object Insert(IDbConnection dbConnection, IInsertClause insert)
     {
         object? key = null;
@@ -468,6 +468,10 @@ CREATE TABLE {tableName}(
         return key ?? throw new Exception("No key???");
     }
 
+    /// <summary>
+    /// Upgrade a entity and call hooks.
+    /// </summary>
+    /// <returns>The key of insert entity.</returns>
     public virtual int Update(IDbConnection dbConnection, IWhereClause? where, IUpdateClause update)
     {
         var (sql, parameters) = GenerateUpdateSql(where, update);

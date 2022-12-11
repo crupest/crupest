@@ -1,12 +1,10 @@
-using System.Data;
 using System.Text;
-using Dapper;
 
 namespace CrupestApi.Commons.Crud;
 
 public interface IWhereClause : IClause
 {
-    (string sql, DynamicParameters parameters) GenerateSql(string? dbProviderId = null);
+    (string sql, ParamList parameters) GenerateSql(string? dbProviderId = null);
 }
 
 public class CompositeWhereClause : IWhereClause
@@ -28,12 +26,12 @@ public class CompositeWhereClause : IWhereClause
         return this;
     }
 
-    public (string sql, DynamicParameters parameters) GenerateSql(string? dbProviderId = null)
+    public (string sql, ParamList parameters) GenerateSql(string? dbProviderId = null)
     {
-        var parameters = new DynamicParameters();
+        var parameters = new ParamList();
         var sql = new StringBuilder();
         var subclauses = GetSubclauses();
-        if (subclauses is null) return ("", parameters);
+        if (subclauses is null) return ("", new());
         var first = true;
         foreach (var subclause in Subclauses)
         {
@@ -56,7 +54,7 @@ public class CompositeWhereClause : IWhereClause
             {
                 sql.Append(")");
             }
-            parameters.AddDynamicParams(subParameters);
+            parameters.AddRange(subParameters);
         }
         return (sql.ToString(), parameters);
     }
@@ -162,10 +160,10 @@ public class SimpleCompareWhereClause : IWhereClause
         return new SimpleCompareWhereClause(column, "<=", value);
     }
 
-    public (string sql, DynamicParameters parameters) GenerateSql(string? dbProviderId = null)
+    public (string sql, ParamList parameters) GenerateSql(string? dbProviderId = null)
     {
-        var parameters = new DynamicParameters();
-        var parameterName = parameters.AddRandomNameParameter(Value);
+        var parameters = new ParamList();
+        var parameterName = parameters.AddRandomNameParameter(Value, Column);
         return ($"{Column} {Operator} @{parameterName}", parameters);
     }
 }
