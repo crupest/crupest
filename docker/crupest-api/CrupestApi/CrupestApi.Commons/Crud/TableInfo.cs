@@ -1,5 +1,4 @@
 using System.Data;
-using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using Dapper;
@@ -368,7 +367,12 @@ CREATE TABLE {tableName}(
         var result = new DynamicParameters();
         foreach (var param in parameters)
         {
-            if (param.Value is null || param.Value is DbNullValue)
+            if (param.Value is null)
+            {
+                continue;
+            }
+
+            if (param.Value is DbNullValue)
             {
                 result.Add(param.Name, null);
                 continue;
@@ -418,10 +422,17 @@ CREATE TABLE {tableName}(
             {
                 object? value = null;
                 var dynamicProperty = dynamicType.GetProperty(column.ColumnName);
-                if (dynamicProperty is not null) value = dynamicProperty.GetValue(d);
-                if (value is not null)
-                    value = column.ColumnType.ConvertFromDatabase(value);
-                column.Hooks.AfterSelect(column, ref value);
+                if (dynamicProperty is null)
+                {
+                    column.Hooks.AfterSelect(column, ref value, false);
+                }
+                else
+                {
+                    value = dynamicProperty.GetValue(d);
+                    if (value is not null)
+                        value = column.ColumnType.ConvertFromDatabase(value);
+                    column.Hooks.AfterSelect(column, ref value, true);
+                }
                 var propertyInfo = column.PropertyInfo;
                 if (propertyInfo is not null)
                 {
@@ -443,8 +454,11 @@ CREATE TABLE {tableName}(
         foreach (var column in ColumnInfos)
         {
             InsertItem? item = insert.Items.FirstOrDefault(i => i.ColumnName == column.ColumnName);
-            var value = item?.Value;
-            column.Hooks.BeforeInsert(column, ref value);
+            object? value = null;
+            if (item is null || item.Value is null)
+            {
+                column.Hooks.BeforeInsert(column, , );
+            }
             if (item is null)
             {
                 item = new InsertItem(column.ColumnName, value);

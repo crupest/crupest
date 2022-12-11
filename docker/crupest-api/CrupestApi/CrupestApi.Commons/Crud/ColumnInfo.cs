@@ -6,10 +6,7 @@ namespace CrupestApi.Commons.Crud;
 
 public class ColumnHooks
 {
-    /// <summary>
-    /// If value is null, then it might because the column does not designated a value or it is designated null.
-    /// </summary>
-    public delegate void ColumnHookAction(ColumnInfo column, ref object? value);
+    public delegate void ColumnHookAction(ColumnInfo column, ref object? value, bool specified);
 
     public ColumnHooks(ColumnHookAction afterSelect, ColumnHookAction beforeInsert, ColumnHookAction beforeUpdate)
     {
@@ -133,18 +130,18 @@ public class ColumnInfo
 
     private void TryCoerceStringFromNullToEmpty(ref object? value)
     {
-        if (ColumnType.ClrType == typeof(string) && (Metadata.GetValueOrDefault<bool?>(ColumnMetadataKeys.DefaultEmptyForString) ?? false) && value is null)
+        if (ColumnType.ClrType == typeof(string) && (Metadata.GetValueOrDefault<bool?>(ColumnMetadataKeys.DefaultEmptyForString) is true) && (value is null || value is DbNullValue))
         {
             value = "";
         }
     }
 
-    protected void OnAfterSelect(ColumnInfo column, ref object? value)
+    protected void OnAfterSelect(ColumnInfo column, ref object? value, bool specified)
     {
         TryCoerceStringFromNullToEmpty(ref value);
     }
 
-    protected void OnBeforeInsert(ColumnInfo column, ref object? value)
+    protected void OnBeforeInsert(ColumnInfo column, ref object? value, bool specified)
     {
         if (column.IsClientGenerate && value is not null)
         {
@@ -156,16 +153,11 @@ public class ColumnInfo
         OnBeforeSet(column, ref value);
     }
 
-    protected void OnBeforeUpdate(ColumnInfo column, ref object? value)
+    protected void OnBeforeUpdate(ColumnInfo column, ref object? value, bool specified)
     {
         if (column.IsNoUpdate)
         {
             throw new UserException($"'{column.ColumnName}' is not updatable.");
-        }
-
-        if ((column.UpdateBehavior & UpdateBehavior.NullIsSetNull) != 0 && value is null)
-        {
-            value = DbNullValue.Instance;
         }
 
         OnBeforeSet(column, ref value);
@@ -175,7 +167,7 @@ public class ColumnInfo
     {
         TryCoerceStringFromNullToEmpty(ref value);
 
-        if (value is null && column.IsNotNull)
+        if ((value is null || value is DbNullValue) && column.IsNotNull)
         {
             throw new UserException($"{column.ColumnName} can't be null.");
         }

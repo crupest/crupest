@@ -1,10 +1,12 @@
 using System.Text;
-using Dapper;
 
 namespace CrupestApi.Commons.Crud;
 
 public class InsertItem
 {
+    /// <summary>
+    /// Null means use default value. Use <see cref="DbNullValue"/>.
+    /// </summary>
     public InsertItem(string columnName, object? value)
     {
         ColumnName = columnName;
@@ -54,7 +56,7 @@ public class InsertClause : IInsertClause
 
     public string GenerateColumnListSql(string? dbProviderId = null)
     {
-        return string.Join(", ", Items.Select(i => i.ColumnName));
+        return string.Join(", ", Items.Where(i => i.Value is not null).Select(i => i.ColumnName));
     }
 
     public (string sql, ParamList parameters) GenerateValueListSql(string? dbProviderId = null)
@@ -64,6 +66,7 @@ public class InsertClause : IInsertClause
         for (var i = 0; i < Items.Count; i++)
         {
             var item = Items[i];
+            if (item.Value is null) continue;
             var parameterName = parameters.AddRandomNameParameter(item.Value, item.ColumnName);
             sb.Append($"@{parameterName}");
             if (i != Items.Count - 1)
