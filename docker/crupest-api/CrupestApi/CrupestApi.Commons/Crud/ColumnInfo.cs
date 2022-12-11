@@ -18,10 +18,11 @@ public class ColumnHooks
     /// <summary>Called after SELECT. Please use multicast if you want to customize it because there are many default behavior in it.</summary 
     public ColumnHookAction AfterSelect;
 
-    /// <summary>Called before INSERT. Please use multicast if you want to customize it because there are many default behavior in it.</summary 
+    /// <summary>Called before INSERT. Please use multicast if you want to customize it because there are many default behavior in it.</summary>
     public ColumnHookAction BeforeInsert;
 
     /// <summary>Called before UPDATE. Please use multicast if you want to customize it because there are many default behavior in it.</summary 
+    /// <remarks>Set value to null to delete the update item so it will not change. Set value to <see cref="DbNullValue"/> to update the column to  NULL.</remarks>
     public ColumnHookAction BeforeUpdate;
 }
 

@@ -4,7 +4,7 @@ using System.Diagnostics;
 namespace CrupestApi.Commons.Crud;
 
 /// <summary>
-/// Null value will be thrown. Please use <see cref="DbNullValue.Instance"/>.
+/// <see cref="ColumnName"/> is an optional column name related to the param. You may use it to do some column related things. Like use a more accurate conversion.
 /// </summary>
 public record ParamInfo(string Name, object? Value, string? ColumnName = null);
 
