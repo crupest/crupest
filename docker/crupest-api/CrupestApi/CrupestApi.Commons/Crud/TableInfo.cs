@@ -367,12 +367,7 @@ CREATE TABLE {tableName}(
         var result = new DynamicParameters();
         foreach (var param in parameters)
         {
-            if (param.Value is null)
-            {
-                continue;
-            }
-
-            if (param.Value is DbNullValue)
+            if (param.Value is null || param.Value is DbNullValue)
             {
                 result.Add(param.Name, null);
                 continue;
@@ -455,17 +450,14 @@ CREATE TABLE {tableName}(
         {
             InsertItem? item = insert.Items.FirstOrDefault(i => i.ColumnName == column.ColumnName);
             object? value = null;
-            if (item is null || item.Value is null)
-            {
-                column.Hooks.BeforeInsert(column, , );
-            }
             if (item is null)
             {
+                column.Hooks.BeforeInsert(column, ref value, false);
                 item = new InsertItem(column.ColumnName, value);
-                insert.Items.Add(item);
             }
             else
             {
+                column.Hooks.BeforeInsert(column, ref value, true);
                 item.Value = value;
             }
 
@@ -490,19 +482,16 @@ CREATE TABLE {tableName}(
     {
         var (sql, parameters) = GenerateUpdateSql(where, update);
 
+        var readUpdateClause = UpdateClause.Create();
+
         foreach (var column in ColumnInfos)
         {
             UpdateItem? item = update.Items.FirstOrDefault(i => i.ColumnName == column.ColumnName);
             var value = item?.Value;
-            column.Hooks.BeforeUpdate(column, ref value);
-            if (item is null)
+            column.Hooks.BeforeUpdate(column, ref value, item is null ? false : true);
+            if (value is not null)
             {
-                if (value is not null)
-                    update.Items.Add(new UpdateItem(column.ColumnName, value));
-            }
-            else
-            {
-                item.Value = value;
+                readUpdateClause.Add(column.ColumnName, value);
             }
         }
 
