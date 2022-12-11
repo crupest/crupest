@@ -3,6 +3,9 @@ using System.Diagnostics;
 
 namespace CrupestApi.Commons.Crud;
 
+/// <summary>
+/// Null value will be thrown. Please use <see cref="DbNullValue.Instance"/>.
+/// </summary>
 public record ParamInfo(string Name, object? Value, string? ColumnName = null);
 
 public class ParamList : List<ParamInfo>

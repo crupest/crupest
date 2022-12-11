@@ -1,5 +1,3 @@
-using Dapper;
-
 namespace CrupestApi.Commons.Crud;
 
 public class OrderByItem
