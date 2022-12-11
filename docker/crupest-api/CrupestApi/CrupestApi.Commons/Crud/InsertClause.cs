@@ -19,7 +19,7 @@ public interface IInsertClause : IClause
 {
     List<InsertItem> Items { get; }
     string GenerateColumnListSql(string? dbProviderId = null);
-    (string sql, DynamicParameters parameters) GenerateValueListSql(string? dbProviderId = null);
+    (string sql, ParamList parameters) GenerateValueListSql(string? dbProviderId = null);
 }
 
 public class InsertClause : IInsertClause
@@ -57,14 +57,14 @@ public class InsertClause : IInsertClause
         return string.Join(", ", Items.Select(i => i.ColumnName));
     }
 
-    public (string sql, DynamicParameters parameters) GenerateValueListSql(string? dbProviderId = null)
+    public (string sql, ParamList parameters) GenerateValueListSql(string? dbProviderId = null)
     {
-        var parameters = new DynamicParameters();
+        var parameters = new ParamList();
         var sb = new StringBuilder();
         for (var i = 0; i < Items.Count; i++)
         {
             var item = Items[i];
-            var parameterName = parameters.AddRandomNameParameter(item.Value);
+            var parameterName = parameters.AddRandomNameParameter(item.Value, item.ColumnName);
             sb.Append($"@{parameterName}");
             if (i != Items.Count - 1)
                 sb.Append(", ");

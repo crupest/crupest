@@ -6,6 +6,9 @@ namespace CrupestApi.Commons.Crud;
 
 public class ColumnHooks
 {
+    /// <summary>
+    /// If value is null, then it might because the column does not designated a value or it is designated null.
+    /// </summary>
     public delegate void ColumnHookAction(ColumnInfo column, ref object? value);
 
     public ColumnHooks(ColumnHookAction afterSelect, ColumnHookAction beforeInsert, ColumnHookAction beforeUpdate)
@@ -15,13 +18,13 @@ public class ColumnHooks
         BeforeUpdate = beforeUpdate;
     }
 
-    // Called after SELECT.
+    /// <summary>Called after SELECT. Please use multicast if you want to customize it because there are many default behavior in it.</summary 
     public ColumnHookAction AfterSelect;
 
-    // Called before INSERT.
+    /// <summary>Called before INSERT. Please use multicast if you want to customize it because there are many default behavior in it.</summary 
     public ColumnHookAction BeforeInsert;
 
-    // Called before UPDATE
+    /// <summary>Called before UPDATE. Please use multicast if you want to customize it because there are many default behavior in it.</summary 
     public ColumnHookAction BeforeUpdate;
 }
 
@@ -29,6 +32,9 @@ public class ColumnInfo
 {
     private readonly AggregateColumnMetadata _metadata = new AggregateColumnMetadata();
 
+    /// <summary>
+    /// Initialize a column without corresponding property.
+    /// </summary>
     public ColumnInfo(TableInfo table, IColumnMetadata metadata, Type clrType, IColumnTypeProvider typeProvider)
     {
         Table = table;
@@ -42,6 +48,9 @@ public class ColumnInfo
         );
     }
 
+    /// <summary>
+    /// Initialize a column with corresponding property.
+    /// </summary>
     public ColumnInfo(TableInfo table, PropertyInfo propertyInfo, IColumnTypeProvider typeProvider)
     {
         Table = table;
@@ -62,6 +71,7 @@ public class ColumnInfo
     }
 
     public TableInfo Table { get; }
+
     // If null, there is no corresponding property.
     public PropertyInfo? PropertyInfo { get; } = null;
 
@@ -71,56 +81,24 @@ public class ColumnInfo
 
     public ColumnHooks Hooks { get; }
 
-    private void TryCoerceStringFromNullToEmpty(ref object? value)
-    {
-        if (ColumnType.ClrType == typeof(string) && (Metadata.GetValueOrDefault<bool?>(ColumnMetadataKeys.DefaultEmptyForString) ?? false) && value is null)
-        {
-            value = "";
-        }
-    }
+    public bool IsPrimaryKey => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsPrimaryKey) is true;
+    public bool IsAutoIncrement => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsAutoIncrement) is true;
+    public bool IsNotNull => IsPrimaryKey || Metadata.GetValueOrDefault(ColumnMetadataKeys.NotNull) is true;
+    public bool IsClientGenerate => Metadata.GetValueOrDefault(ColumnMetadataKeys.ClientGenerate) is true;
+    public bool IsNoUpdate => Metadata.GetValueOrDefault(ColumnMetadataKeys.NoUpdate) is true;
+    /// <summary>
+    /// This only returns metadata value. It doesn't not fall back to primary column. If you want to get the real key column, go to table info.
+    /// </summary>
+    /// <seealso cref="ColumnMetadataKeys.ActAsKey"/>
+    /// <seealso cref="TableInfo.KeyColumn"/>
+    public bool IsSpecifiedAsKey => Metadata.GetValueOrDefault(ColumnMetadataKeys.ActAsKey) is true;
+    public ColumnIndexType Index => Metadata.GetValueOrDefault<ColumnIndexType?>(ColumnMetadataKeys.Index) ?? ColumnIndexType.None;
+    public UpdateBehavior UpdateBehavior => Metadata.GetValueOrDefault<UpdateBehavior?>(ColumnMetadataKeys.UpdateBehavior) ?? UpdateBehavior.NullIsNotUpdate;
 
-    protected void OnAfterSelect(ColumnInfo column, ref object? value)
-    {
-        TryCoerceStringFromNullToEmpty(ref value);
-    }
-
-    protected void OnBeforeInsert(ColumnInfo column, ref object? value)
-    {
-        if (column.IsClientGenerate && value is not null)
-        {
-            throw new Exception($"Column {column.ColumnName} can't be set manually.");
-        }
-
-        var defaultValueGeneratorMethod = DefaultValueGeneratorMethod;
-        if (defaultValueGeneratorMethod is not null)
-        {
-            value = defaultValueGeneratorMethod.Invoke(null, new object[] { });
-        }
-
-
-        OnBeforeSet(column, ref value);
-    }
-
-    protected void OnBeforeUpdate(ColumnInfo column, ref object? value)
-    {
-        OnBeforeSet(column, ref value);
-
-        if (column.IsNoUpdate)
-        {
-            throw new Exception($"Column {column.ColumnName} not updatable.");
-        }
-    }
-
-    protected void OnBeforeSet(ColumnInfo column, ref object? value)
-    {
-        TryCoerceStringFromNullToEmpty(ref value);
-
-        if (value is null && column.IsNotNull)
-        {
-            throw new Exception($"Column {column.ColumnName} can't be null.");
-        }
-    }
-
+    /// <summary>
+    /// The real column name. Maybe set in metadata or just the property name.
+    /// </summary>
+    /// <value></value>
     public string ColumnName
     {
         get
@@ -153,19 +131,55 @@ public class ColumnInfo
         }
     }
 
-    public bool IsPrimaryKey => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsPrimaryKey) is true;
-    public bool IsAutoIncrement => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsAutoIncrement) is true;
-    public bool IsNotNull => IsPrimaryKey || Metadata.GetValueOrDefault(ColumnMetadataKeys.NotNull) is true;
-    public bool IsClientGenerate => Metadata.GetValueOrDefault(ColumnMetadataKeys.ClientGenerate) is true;
-    public bool IsNoUpdate => Metadata.GetValueOrDefault(ColumnMetadataKeys.NoUpdate) is true;
-    /// <summary>
-    /// This only returns metadata value. It doesn't not fall back to primary column. If you want to get the real key column, go to table info.
-    /// </summary>
-    /// <seealso cref="ColumnMetadataKeys.ActAsKey"/>
-    /// <seealso cref="TableInfo.KeyColumn"/>
-    public bool IsSpecifiedAsKey => Metadata.GetValueOrDefault(ColumnMetadataKeys.ActAsKey) is true;
+    private void TryCoerceStringFromNullToEmpty(ref object? value)
+    {
+        if (ColumnType.ClrType == typeof(string) && (Metadata.GetValueOrDefault<bool?>(ColumnMetadataKeys.DefaultEmptyForString) ?? false) && value is null)
+        {
+            value = "";
+        }
+    }
 
-    public ColumnIndexType Index => Metadata.GetValueOrDefault<ColumnIndexType?>(ColumnMetadataKeys.Index) ?? ColumnIndexType.None;
+    protected void OnAfterSelect(ColumnInfo column, ref object? value)
+    {
+        TryCoerceStringFromNullToEmpty(ref value);
+    }
+
+    protected void OnBeforeInsert(ColumnInfo column, ref object? value)
+    {
+        if (column.IsClientGenerate && value is not null)
+        {
+            throw new UserException($"'{column.ColumnName}' can't be set manually. It is auto generated.");
+        }
+
+        DefaultValueGeneratorMethod?.Invoke(null, new object[] { });
+
+        OnBeforeSet(column, ref value);
+    }
+
+    protected void OnBeforeUpdate(ColumnInfo column, ref object? value)
+    {
+        if (column.IsNoUpdate)
+        {
+            throw new UserException($"'{column.ColumnName}' is not updatable.");
+        }
+
+        if ((column.UpdateBehavior & UpdateBehavior.NullIsSetNull) != 0 && value is null)
+        {
+            value = DbNullValue.Instance;
+        }
+
+        OnBeforeSet(column, ref value);
+    }
+
+    protected void OnBeforeSet(ColumnInfo column, ref object? value)
+    {
+        TryCoerceStringFromNullToEmpty(ref value);
+
+        if (value is null && column.IsNotNull)
+        {
+            throw new UserException($"{column.ColumnName} can't be null.");
+        }
+    }
 
     public string GenerateCreateTableColumnString(string? dbProviderId = null)
     {

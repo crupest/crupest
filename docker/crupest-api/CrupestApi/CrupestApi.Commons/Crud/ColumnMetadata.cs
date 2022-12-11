@@ -34,6 +34,24 @@ public static class ColumnMetadataKeys
     /// This column acts as key when get one entity for http get method in path. 
     /// </summary>
     public const string ActAsKey = nameof(ColumnAttribute.ActAsKey);
+
+    /// <summary>
+    /// Define what to do when update.
+    /// </summary>
+    public const string UpdateBehavior = nameof(ColumnAttribute.UpdateBehavior);
+}
+
+[Flags]
+public enum UpdateBehavior
+{
+    /// <summary>
+    /// Null value means do not update that column.
+    /// </summary>
+    NullIsNotUpdate = 0,
+    /// <summary>
+    /// Null value means set to null.
+    /// </summary>
+    NullIsSetNull = 1
 }
 
 public interface IColumnMetadata
@@ -98,22 +116,23 @@ public class ColumnAttribute : Attribute, IColumnMetadata
     // default None
     public ColumnIndexType Index { get; init; } = ColumnIndexType.None;
 
-    /// <see cref="ColumnMetadataKeys.DefaultEmptyForString"/>
+    /// <seealso cref="ColumnMetadataKeys.DefaultEmptyForString"/>
     public bool DefaultEmptyForString { get; init; }
 
-    /// <see cref="ColumnMetadataKeys.ClientGenerate"/>
+    /// <seealso cref="ColumnMetadataKeys.ClientGenerate"/>
     public bool ClientGenerate { get; init; }
 
-    /// <see cref="ColumnMetadataKeys.DefaultValueGenerator"/>
+    /// <seealso cref="ColumnMetadataKeys.DefaultValueGenerator"/>
     public string? DefaultValueGenerator { get; init; }
 
-    /// <see cref="ColumnMetadataKeys.NoUpdate"/>
+    /// <seealso cref="ColumnMetadataKeys.NoUpdate"/>
     public bool NoUpdate { get; init; }
 
-    /// <see cref="ColumnMetadataKeys.ActAsKey"/>
+    /// <seealso cref="ColumnMetadataKeys.ActAsKey"/>
     public bool ActAsKey { get; init; }
 
-
+    /// <seealso cref="ColumnMetadataKeys.UpdateBehavior">
+    public UpdateBehavior UpdateBehavior { get; init; } = UpdateBehavior.NullIsNotUpdate;
 
     public bool TryGetValue(string key, out object? value)
     {

@@ -1,5 +1,4 @@
 using System.Text;
-using Dapper;
 
 namespace CrupestApi.Commons.Crud;
 
@@ -18,7 +17,7 @@ public class UpdateItem
 public interface IUpdateClause : IClause
 {
     List<UpdateItem> Items { get; }
-    (string sql, DynamicParameters parameters) GenerateSql();
+    (string sql, ParamList parameters) GenerateSql();
 }
 
 public class UpdateClause : IUpdateClause
@@ -56,9 +55,9 @@ public class UpdateClause : IUpdateClause
         return Items.Select(i => i.ColumnName).ToList();
     }
 
-    public (string sql, DynamicParameters parameters) GenerateSql()
+    public (string sql, ParamList parameters) GenerateSql()
     {
-        var parameters = new DynamicParameters();
+        var parameters = new ParamList();
 
         StringBuilder result = new StringBuilder();
 
@@ -69,7 +68,7 @@ public class UpdateClause : IUpdateClause
                 result.Append(", ");
             }
 
-            var parameterName = parameters.AddRandomNameParameter(item.Value);
+            var parameterName = parameters.AddRandomNameParameter(item.Value, item.ColumnName);
             result.Append($"{item.ColumnName} = @{parameterName}");
         }
 
