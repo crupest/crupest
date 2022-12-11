@@ -63,7 +63,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
     // Return the key.
     public object Insert(TEntity entity)
     {
-        return _table.Insert(_dbConnection, _table.GenerateInsertClauseFromEntity(entity));
+        return _table.Insert(_dbConnection, );
     }
 
     public int Update(IUpdateClause updateClause, IWhereClause? filter)

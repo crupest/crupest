@@ -239,7 +239,7 @@ CREATE TABLE {tableName}(
     /// <summary>
     /// If you call this manually, it's your duty to call hooks.
     /// </summary>
-    /// <seealso cref="Select"/>
+    /// <seealso cref="SelectDynamic"/>
     public (string sql, ParamList parameters) GenerateSelectSql(string? selectWhat, IWhereClause? whereClause, IOrderByClause? orderByClause = null, int? skip = null, int? limit = null, string? dbProviderId = null)
     {
         CheckRelatedColumns(whereClause);
@@ -389,30 +389,16 @@ CREATE TABLE {tableName}(
         return result;
     }
 
-    public virtual int SelectCount(IDbConnection dbConnection, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
-    {
-        var (sql, parameters) = GenerateSelectSql("COUNT(*)", where, orderBy, skip, limit);
-        return dbConnection.QuerySingle<int>(sql, parameters);
-
-    }
-
-    public virtual IEnumerable<object?> Select(IDbConnection dbConnection, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
-    {
-        return Select<IEnumerable<object?>>(dbConnection, null, where, orderBy, skip, limit);
-    }
-
     /// <summary>
-    /// Select and call hooks.
+    /// ConvertParameters. Select. Call hooks.
     /// </summary>
-    public virtual IEnumerable<TResult> Select<TResult>(IDbConnection dbConnection, string? what, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
+    public virtual List<dynamic> SelectDynamic(IDbConnection dbConnection, string? what, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
     {
         var (sql, parameters) = GenerateSelectSql(what, where, orderBy, skip, limit);
-        return dbConnection.Query<dynamic>(sql, parameters).Select(d =>
+        var queryResult = dbConnection.Query<dynamic>(sql, ConvertParameters(parameters));
+        return queryResult.Select(d =>
         {
             Type dynamicType = d.GetType();
-
-            var result = Activator.CreateInstance<TResult>();
-
             foreach (var column in ColumnInfos)
             {
                 object? value = null;
@@ -428,17 +414,56 @@ CREATE TABLE {tableName}(
                         value = column.ColumnType.ConvertFromDatabase(value);
                     column.Hooks.AfterSelect(column, ref value, true);
                 }
-                var propertyInfo = column.PropertyInfo;
-                if (propertyInfo is not null)
+
+                if (dynamicProperty is not null)
                 {
-                    propertyInfo.SetValue(result, value);
+                    dynamicProperty.SetValue(d, value);
                 }
             }
 
-            return result;
-        });
+            return d;
+        }).ToList();
     }
 
+    public virtual int SelectCount(IDbConnection dbConnection, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
+    {
+        var (sql, parameters) = GenerateSelectSql("COUNT(*)", where, orderBy, skip, limit);
+        return dbConnection.QuerySingle<int>(sql, parameters);
+
+    }
+
+    public virtual TResult MapDynamicTo<TResult>(dynamic d)
+    {
+        var result = Activator.CreateInstance<TResult>();
+
+        Type dynamicType = d.GetType();
+        Type resultType = typeof(TResult);
+
+        foreach (var column in ColumnInfos)
+        {
+            var dynamicProperty = dynamicType.GetProperty(column.ColumnName);
+            // TODO: Maybe we can do better to get result property in case ColumnName is set to another value.
+            var resultProperty = resultType.GetProperty(column.ColumnName);
+            if (dynamicProperty is not null && resultProperty is not null)
+            {
+                resultProperty.SetValue(result, dynamicProperty.GetValue(d));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Select and call hooks.
+    /// </summary>
+    public virtual List<TResult> Select<TResult>(IDbConnection dbConnection, string? what, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
+    {
+        List<dynamic> queryResult = SelectDynamic(dbConnection, what, where, orderBy, skip, limit).ToList();
+
+        return queryResult.Select(MapDynamicTo<TResult>).ToList();
+    }
+
+    // TODO: Continue here.
     /// <summary>
     /// Insert a entity and call hooks.
     /// </summary>
