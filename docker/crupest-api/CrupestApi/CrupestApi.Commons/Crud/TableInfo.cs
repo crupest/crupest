@@ -284,6 +284,25 @@ CREATE TABLE {tableName}(
         return (result.ToString(), parameters);
     }
 
+    public void CheckInsertClause(IInsertClause insertClause)
+    {
+        var columnNameSet = new HashSet<string>(ColumnInfos.Select(c => c.ColumnName));
+
+        foreach (var item in insertClause.Items)
+        {
+            columnNameSet.Remove(item.ColumnName);
+        }
+
+        foreach (var columnName in columnNameSet)
+        {
+            var column = GetColumn(columnName);
+            if (!column.IsAutoIncrement)
+            {
+                throw new Exception($"Column {columnName} is not specified and is not auto increment.");
+            }
+        }
+    }
+
     /// <summary>
     /// If you call this manually, it's your duty to call hooks.
     /// </summary>
@@ -291,6 +310,7 @@ CREATE TABLE {tableName}(
     public (string sql, ParamList parameters) GenerateInsertSql(IInsertClause insertClause, string? dbProviderId = null)
     {
         CheckRelatedColumns(insertClause);
+        CheckInsertClause(insertClause);
 
         var parameters = new ParamList();
 
@@ -463,7 +483,6 @@ CREATE TABLE {tableName}(
         return queryResult.Select(MapDynamicTo<TResult>).ToList();
     }
 
-    // TODO: Continue here.
     /// <summary>
     /// Insert a entity and call hooks.
     /// </summary>
@@ -473,7 +492,7 @@ CREATE TABLE {tableName}(
         object? key = null;
         foreach (var column in ColumnInfos)
         {
-            InsertItem? item = insert.Items.FirstOrDefault(i => i.ColumnName == column.ColumnName);
+            InsertItem? item = insert.Items.SingleOrDefault(i => i.ColumnName == column.ColumnName);
             object? value = null;
             if (item is null)
             {
@@ -505,21 +524,29 @@ CREATE TABLE {tableName}(
     /// <returns>The key of insert entity.</returns>
     public virtual int Update(IDbConnection dbConnection, IWhereClause? where, IUpdateClause update)
     {
-        var (sql, parameters) = GenerateUpdateSql(where, update);
-
-        var readUpdateClause = UpdateClause.Create();
+        var realUpdate = UpdateClause.Create();
 
         foreach (var column in ColumnInfos)
         {
             UpdateItem? item = update.Items.FirstOrDefault(i => i.ColumnName == column.ColumnName);
-            var value = item?.Value;
-            column.Hooks.BeforeUpdate(column, ref value, item is null ? false : true);
+
+            object? value = item?.Value;
+            column.Hooks.BeforeUpdate(column, ref value, false);
+
             if (value is not null)
             {
-                readUpdateClause.Add(column.ColumnName, value);
+                if (value is DbNullValue)
+                {
+                    realUpdate.Add(column.ColumnName, null);
+                }
+                else
+                {
+                    realUpdate.Add(column.ColumnName, value);
+                }
             }
         }
 
+        var (sql, parameters) = GenerateUpdateSql(where, realUpdate);
         return dbConnection.Execute(sql, ConvertParameters(parameters));
     }
 
