@@ -1,36 +1,55 @@
+using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 namespace CrupestApi.Commons.Crud;
 
-public class EntityJsonHelper
+// TODO: Register this.
+/// <summary>
+/// Contains all you need to do with json.
+/// </summary>
+public class EntityJsonHelper<TEntity> where TEntity : class
 {
     private readonly TableInfo _table;
+    private readonly JsonSerializerOptions _jsonSerializerOptions;
 
-    public EntityJsonHelper(TableInfo table)
+    public EntityJsonHelper(TableInfoFactory tableInfoFactory)
     {
-        _table = table;
+        _table = tableInfoFactory.Get(typeof(TEntity));
+        _jsonSerializerOptions = new JsonSerializerOptions();
+        _jsonSerializerOptions.AllowTrailingCommas = true;
+        _jsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        _jsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        foreach (var type in _table.Columns.Select(c => c.ColumnType))
+        {
+            if (type.JsonConverter is not null)
+            {
+                _jsonSerializerOptions.Converters.Add(type.JsonConverter);
+            }
+        }
     }
 
     public virtual JsonDocument ConvertEntityToJson(object? entity)
     {
-        if (entity is null) return JsonSerializer.SerializeToDocument<object?>(null);
+        Debug.Assert(entity is null || entity is TEntity);
+        return JsonSerializer.SerializeToDocument<TEntity?>((TEntity?)entity, _jsonSerializerOptions);
+    }
 
-        var result = new Dictionary<string, object?>();
+    public virtual TEntity? ConvertJsonToEntity(JsonDocument json)
+    {
+        var entity = json.Deserialize<TEntity>();
+        if (entity is null) return null;
 
-        foreach (var column in _table.ColumnInfos)
+        foreach (var column in _table.Columns)
         {
-            if (column.PropertyInfo is not null)
+            var propertyValue = column.PropertyInfo?.GetValue(entity);
+
+            if ((column.IsAutoIncrement || column.IsGenerated) && propertyValue is not null)
             {
-                result.Add(column.ColumnName, column.PropertyInfo.GetValue(entity));
+                throw new Exception("You can't specify this property because it is auto generated.");
             }
         }
 
-        return JsonSerializer.SerializeToDocument(result);
-    }
-
-    public virtual object? ConvertJsonToEntity(JsonDocument? json)
-    {
-        // TODO: Implement this.
-        throw new NotImplementedException();
+        return entity;
     }
 }

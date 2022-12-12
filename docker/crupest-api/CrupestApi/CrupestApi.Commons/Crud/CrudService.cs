@@ -10,15 +10,15 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
     protected readonly TableInfo _table;
     protected readonly string? _connectionName;
     protected readonly IDbConnection _dbConnection;
-    protected readonly EntityJsonHelper _jsonHelper;
+    protected readonly EntityJsonHelper<TEntity> _jsonHelper;
     private readonly ILogger<CrudService<TEntity>> _logger;
 
-    public CrudService(string? connectionName, ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, ILoggerFactory loggerFactory)
+    public CrudService(string? connectionName, ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, EntityJsonHelper<TEntity> jsonHelper, ILoggerFactory loggerFactory)
     {
         _connectionName = connectionName;
         _table = tableInfoFactory.Get(typeof(TEntity));
         _dbConnection = dbConnectionFactory.Get(_connectionName);
-        _jsonHelper = new EntityJsonHelper(_table);
+        _jsonHelper = jsonHelper;
         _logger = loggerFactory.CreateLogger<CrudService<TEntity>>();
 
         if (!_table.CheckExistence(_dbConnection))

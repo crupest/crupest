@@ -7,9 +7,7 @@ public static class CrudWebApplicationExtensions
         app.MapGet(path, async (context) =>
         {
             var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
-
             var result = crudService.SelectAsJson(null);
-
             await context.ResponseJsonAsync(result);
         });
 

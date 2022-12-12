@@ -5,34 +5,6 @@ namespace CrupestApi.Commons;
 
 public static class CrupestApiJsonExtensions
 {
-    public static object? CheckJsonValueNotArrayOrObject(this JsonElement value)
-    {
-        if (value.ValueKind == JsonValueKind.Null && value.ValueKind == JsonValueKind.Undefined)
-        {
-            return null;
-        }
-        else if (value.ValueKind == JsonValueKind.True)
-        {
-            return true;
-        }
-        else if (value.ValueKind == JsonValueKind.False)
-        {
-            return false;
-        }
-        else if (value.ValueKind == JsonValueKind.Number)
-        {
-            return value.GetDouble();
-        }
-        else if (value.ValueKind == JsonValueKind.String)
-        {
-            return value.GetString();
-        }
-        else
-        {
-            throw new Exception("Only value not array or object is allowed.");
-        }
-    }
-
     public static IServiceCollection AddJsonOptions(this IServiceCollection services)
     {
         services.AddOptions<JsonSerializerOptions>();

@@ -6,6 +6,9 @@ namespace CrupestApi.Commons.Crud;
 /// <summary>
 /// <see cref="ColumnName"/> is an optional column name related to the param. You may use it to do some column related things. Like use a more accurate conversion.
 /// </summary>
+/// <remarks>
+/// If value is DbNullValue, it will be treated as null. 
+/// </remarks>
 public record ParamInfo(string Name, object? Value, string? ColumnName = null);
 
 public class ParamList : List<ParamInfo>
@@ -39,6 +42,11 @@ public class ParamList : List<ParamInfo>
     public bool ContainsKey(string name)
     {
         return this.SingleOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) is not null;
+    }
+
+    public T? Get<T>(string key)
+    {
+        return (T?)this.SingleOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase))?.Value;
     }
 
     public object? this[string key]
