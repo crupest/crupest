@@ -1,5 +1,9 @@
 # CRUD Technic Notes
 
+## Overview
+
+The ultimate CRUD scaffold finally comes.
+
 ## Database Pipeline
 
 ### Select
@@ -9,8 +13,6 @@
 3. Convert param list to `Dapper` dynamic params. Execute sql and get `dynamic`s.
 4. Run hook `AfterSelect` for every column.
 5. Convert `dynamic`s to `TEntity`s.
-
-TODO: Continue here.
 
 ### Insert
 

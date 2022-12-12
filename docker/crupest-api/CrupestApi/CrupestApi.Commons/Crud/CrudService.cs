@@ -41,7 +41,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
 
     public List<TEntity> Select(IWhereClause? filter)
     {
-        return _table.Select(_dbConnection, filter).Cast<TEntity>().ToList();
+        return _table.Select<TEntity>(_dbConnection, null, filter).ToList();
     }
 
     public bool Exists(IWhereClause? filter)
@@ -60,7 +60,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return _table.Insert(_dbConnection, insertClause);
     }
 
-    // Return the key.
+    // Return the key. TODO: Continue here.
     public object Insert(TEntity entity)
     {
         return _table.Insert(_dbConnection, );
