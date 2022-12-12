@@ -60,12 +60,6 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return _table.Insert(_dbConnection, insertClause);
     }
 
-    // Return the key. TODO: Continue here.
-    public object Insert(TEntity entity)
-    {
-        return _table.Insert(_dbConnection, );
-    }
-
     public int Update(IUpdateClause updateClause, IWhereClause? filter)
     {
         return _table.Update(_dbConnection, filter, updateClause);
@@ -89,11 +83,5 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
     public JsonDocument SelectAsJsonByKey(object key)
     {
         return SelectAsJson(WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key)).Single();
-    }
-
-    public object InsertFromJson(JsonDocument? json)
-    {
-        // TODO: Implement this.
-        throw new NotImplementedException();
     }
 }
