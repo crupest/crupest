@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 
 namespace CrupestApi.Commons.Crud;
@@ -29,27 +30,27 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         }
     }
 
-    public virtual JsonDocument ConvertEntityToJson(object? entity)
+    public virtual Dictionary<string, object?> ConvertEntityToDictionary(object? entity)
     {
         Debug.Assert(entity is null || entity is TEntity);
-        return JsonSerializer.SerializeToDocument<TEntity?>((TEntity?)entity, _jsonSerializerOptions);
-    }
 
-    public virtual TEntity? ConvertJsonToEntity(JsonDocument json)
-    {
-        var entity = json.Deserialize<TEntity>();
-        if (entity is null) return null;
+        var result = new Dictionary<string, object?>();
 
-        foreach (var column in _table.Columns)
+        foreach (var column in _table.PropertyColumns)
         {
-            var propertyValue = column.PropertyInfo?.GetValue(entity);
-
-            if ((column.IsAutoIncrement || column.IsGenerated) && propertyValue is not null)
-            {
-                throw new Exception("You can't specify this property because it is auto generated.");
-            }
+            var propertyInfo = column.PropertyInfo;
+            var value = propertyInfo!.GetValue(entity);
+            result[column.ColumnName] = value;
         }
 
-        return entity;
+        return result;
+    }
+
+    public virtual string ConvertEntityToJson(object? entity)
+    {
+        Debug.Assert(entity is null || entity is TEntity);
+
+        var dictionary = ConvertEntityToDictionary(entity);
+        return JsonSerializer.Serialize(dictionary, _jsonSerializerOptions);
     }
 }
