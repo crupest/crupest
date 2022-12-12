@@ -6,7 +6,11 @@ namespace CrupestApi.Commons.Crud;
 
 public class ColumnHooks
 {
-    public delegate void ColumnHookAction(ColumnInfo column, ref object? value, bool specified);
+    // value:
+    //   null => not specified
+    //   DbNullValue => specified as NULL
+    //   other => specified as value
+    public delegate void ColumnHookAction(ColumnInfo column, ref object? value);
 
     public ColumnHooks(ColumnHookAction afterSelect, ColumnHookAction beforeInsert, ColumnHookAction beforeUpdate)
     {
@@ -131,46 +135,50 @@ public class ColumnInfo
 
     private void TryCoerceStringFromNullToEmpty(ref object? value)
     {
-        if (ColumnType.ClrType == typeof(string) && (Metadata.GetValueOrDefault<bool?>(ColumnMetadataKeys.DefaultEmptyForString) is true) && (value is null || value is DbNullValue))
+        if (ColumnType.ClrType == typeof(string) && (Metadata.GetValueOrDefault<bool?>(ColumnMetadataKeys.DefaultEmptyForString) is true) && value is DbNullValue)
         {
             value = "";
         }
     }
 
-    protected void OnAfterSelect(ColumnInfo column, ref object? value, bool specified)
+    protected void OnAfterSelect(ColumnInfo column, ref object? value)
     {
         TryCoerceStringFromNullToEmpty(ref value);
     }
 
-    protected void OnBeforeInsert(ColumnInfo column, ref object? value, bool specified)
+    protected void OnBeforeInsert(ColumnInfo column, ref object? value)
     {
         if (column.IsClientGenerate && value is not null)
         {
-            throw new UserException($"'{column.ColumnName}' can't be set manually. It is auto generated.");
+            throw new Exception($"'{column.ColumnName}' can't be set manually. It is auto generated.");
         }
 
-        DefaultValueGeneratorMethod?.Invoke(null, new object[] { });
-
-        OnBeforeSet(column, ref value);
-    }
-
-    protected void OnBeforeUpdate(ColumnInfo column, ref object? value, bool specified)
-    {
-        if (column.IsNoUpdate)
+        var defaultValueGenerator = DefaultValueGeneratorMethod;
+        if (defaultValueGenerator is not null && value is null)
         {
-            throw new UserException($"'{column.ColumnName}' is not updatable.");
+            value = defaultValueGenerator.Invoke(null, null);
         }
 
-        OnBeforeSet(column, ref value);
-    }
-
-    protected void OnBeforeSet(ColumnInfo column, ref object? value)
-    {
         TryCoerceStringFromNullToEmpty(ref value);
 
-        if ((value is null || value is DbNullValue) && column.IsNotNull)
+        if (IsNotNull && (value is null || value is DbNullValue))
         {
-            throw new UserException($"{column.ColumnName} can't be null.");
+            throw new Exception($"'{column.ColumnName}' can't be null.");
+        }
+    }
+
+    protected void OnBeforeUpdate(ColumnInfo column, ref object? value)
+    {
+        if (column.IsNoUpdate && value is not null)
+        {
+            throw new Exception($"'{column.ColumnName}' is not updatable.");
+        }
+
+        TryCoerceStringFromNullToEmpty(ref value);
+
+        if (IsNotNull && value is DbNullValue)
+        {
+            throw new Exception($"'{column.ColumnName}' can't be null.");
         }
     }
 

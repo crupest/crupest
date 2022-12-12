@@ -425,19 +425,24 @@ CREATE TABLE {tableName}(
                 var dynamicProperty = dynamicType.GetProperty(column.ColumnName);
                 if (dynamicProperty is null)
                 {
-                    column.Hooks.AfterSelect(column, ref value, false);
+                    column.Hooks.AfterSelect(column, ref value);
                 }
                 else
                 {
                     value = dynamicProperty.GetValue(d);
-                    if (value is not null)
+                    if (value is null || value is DbNullValue)
+                        value = DbNullValue.Instance;
+                    else
                         value = column.ColumnType.ConvertFromDatabase(value);
-                    column.Hooks.AfterSelect(column, ref value, true);
+                    column.Hooks.AfterSelect(column, ref value);
                 }
 
-                if (dynamicProperty is not null)
+                if (dynamicProperty is not null && value is not null)
                 {
-                    dynamicProperty.SetValue(d, value);
+                    if (value is DbNullValue)
+                        dynamicProperty.SetValue(d, null);
+                    else
+                        dynamicProperty.SetValue(d, value);
                 }
             }
 
@@ -490,22 +495,34 @@ CREATE TABLE {tableName}(
     public object Insert(IDbConnection dbConnection, IInsertClause insert)
     {
         object? key = null;
+
+        var realInsert = InsertClause.Create();
+
         foreach (var column in ColumnInfos)
         {
             InsertItem? item = insert.Items.SingleOrDefault(i => i.ColumnName == column.ColumnName);
-            object? value = null;
             if (item is null)
             {
-                column.Hooks.BeforeInsert(column, ref value, false);
-                item = new InsertItem(column.ColumnName, value);
+                object? value = null;
+                column.Hooks.BeforeInsert(column, ref value);
+                if (value is not null)
+                    if (value is DbNullValue)
+                        realInsert.Add(column.ColumnName, null);
+                    else
+                        realInsert.Add(column.ColumnName, value);
             }
             else
             {
-                column.Hooks.BeforeInsert(column, ref value, true);
-                item.Value = value;
+                object? value = item.Value ?? DbNullValue.Instance;
+                column.Hooks.BeforeInsert(column, ref value);
+                if (value is not null)
+                    if (value is DbNullValue)
+                        realInsert.Add(column.ColumnName, null);
+                    else
+                        realInsert.Add(column.ColumnName, value);
             }
 
-            if (item.ColumnName == KeyColumn.ColumnName)
+            if (item?.ColumnName == KeyColumn.ColumnName)
             {
                 key = item.Value;
             }
@@ -530,19 +547,25 @@ CREATE TABLE {tableName}(
         {
             UpdateItem? item = update.Items.FirstOrDefault(i => i.ColumnName == column.ColumnName);
 
-            object? value = item?.Value;
-            column.Hooks.BeforeUpdate(column, ref value, false);
-
-            if (value is not null)
+            if (item is null)
             {
-                if (value is DbNullValue)
-                {
-                    realUpdate.Add(column.ColumnName, null);
-                }
-                else
-                {
-                    realUpdate.Add(column.ColumnName, value);
-                }
+                object? value = null;
+                column.Hooks.BeforeUpdate(column, ref value);
+                if (value is not null)
+                    if (value is DbNullValue)
+                        realUpdate.Add(column.ColumnName, null);
+                    else
+                        realUpdate.Add(column.ColumnName, value);
+            }
+            else
+            {
+                object? value = item.Value ?? DbNullValue.Instance;
+                column.Hooks.BeforeUpdate(column, ref value);
+                if (value is not null)
+                    if (value is DbNullValue)
+                        realUpdate.Add(column.ColumnName, null);
+                    else
+                        realUpdate.Add(column.ColumnName, value);
             }
         }
 
