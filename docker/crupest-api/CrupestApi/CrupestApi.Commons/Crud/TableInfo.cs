@@ -5,6 +5,9 @@ using Dapper;
 
 namespace CrupestApi.Commons.Crud;
 
+/// <summary>
+/// Contains all you need to manipulate a table.
+/// </summary>
 public class TableInfo
 {
     private readonly IColumnTypeProvider _columnTypeProvider;
@@ -30,7 +33,6 @@ public class TableInfo
         ColumnInfo? primaryKeyColumn = null;
         ColumnInfo? keyColumn = null;
 
-        List<PropertyInfo> columnProperties = new();
         List<PropertyInfo> nonColumnProperties = new();
 
         foreach (var property in properties)
@@ -55,7 +57,6 @@ public class TableInfo
                     }
                     keyColumn = columnInfo;
                 }
-                columnProperties.Add(property);
             }
             else
             {
@@ -75,15 +76,14 @@ public class TableInfo
             keyColumn = primaryKeyColumn;
         }
 
-        ColumnInfos = columnInfos;
+        Columns = columnInfos;
         PrimaryKeyColumn = primaryKeyColumn;
         KeyColumn = keyColumn;
-        ColumnProperties = columnProperties;
         NonColumnProperties = nonColumnProperties;
 
         CheckValidity();
 
-        _lazyColumnNameList = new Lazy<List<string>>(() => ColumnInfos.Select(c => c.ColumnName).ToList());
+        _lazyColumnNameList = new Lazy<List<string>>(() => Columns.Select(c => c.ColumnName).ToList());
     }
 
     private ColumnInfo CreateAutoIdColumn()
@@ -101,14 +101,15 @@ public class TableInfo
 
     public Type EntityType { get; }
     public string TableName { get; }
-    public IReadOnlyList<ColumnInfo> ColumnInfos { get; }
+    public IReadOnlyList<ColumnInfo> Columns { get; }
+    public IReadOnlyList<ColumnInfo> PropertyColumns => Columns.Where(c => c.PropertyInfo is not null).ToList();
     public ColumnInfo PrimaryKeyColumn { get; }
     /// <summary>
     /// Maybe not the primary key. But acts as primary key.
     /// </summary>
     /// <seealso cref="ColumnMetadataKeys.ActAsKey"/>
     public ColumnInfo KeyColumn { get; }
-    public IReadOnlyList<PropertyInfo> ColumnProperties { get; }
+    public IReadOnlyList<PropertyInfo> ColumnProperties => PropertyColumns.Select(c => c.PropertyInfo!).ToList();
     public IReadOnlyList<PropertyInfo> NonColumnProperties { get; }
     public IReadOnlyList<string> ColumnNameList => _lazyColumnNameList.Value;
 
@@ -121,7 +122,7 @@ public class TableInfo
 
     public ColumnInfo GetColumn(string columnName)
     {
-        foreach (var column in ColumnInfos)
+        foreach (var column in Columns)
         {
             if (column.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase))
             {
@@ -136,7 +137,7 @@ public class TableInfo
         // Check if there is only one primary key.
         bool hasPrimaryKey = false;
         bool hasKey = false;
-        foreach (var column in ColumnInfos)
+        foreach (var column in Columns)
         {
             if (column.IsPrimaryKey)
             {
@@ -155,7 +156,7 @@ public class TableInfo
         // Check two columns have the same sql name.
         HashSet<string> sqlNameSet = new HashSet<string>();
 
-        foreach (var column in ColumnInfos)
+        foreach (var column in Columns)
         {
             if (sqlNameSet.Contains(column.ColumnName))
                 throw new Exception($"Two columns have the same sql name '{column.ColumnName}'.");
@@ -167,7 +168,7 @@ public class TableInfo
     {
         var sb = new StringBuilder();
 
-        foreach (var column in ColumnInfos)
+        foreach (var column in Columns)
         {
             if (column.Index == ColumnIndexType.None) continue;
 
@@ -180,7 +181,7 @@ public class TableInfo
     public string GenerateCreateTableSql(bool createIndex = true, string? dbProviderId = null)
     {
         var tableName = TableName;
-        var columnSql = string.Join(",\n", ColumnInfos.Select(c => c.GenerateCreateTableColumnString(dbProviderId)));
+        var columnSql = string.Join(",\n", Columns.Select(c => c.GenerateCreateTableColumnString(dbProviderId)));
 
         var sql = $@"
 CREATE TABLE {tableName}(
@@ -286,7 +287,7 @@ CREATE TABLE {tableName}(
 
     public void CheckInsertClause(IInsertClause insertClause)
     {
-        var columnNameSet = new HashSet<string>(ColumnInfos.Select(c => c.ColumnName));
+        var columnNameSet = new HashSet<string>(Columns.Select(c => c.ColumnName));
 
         foreach (var item in insertClause.Items)
         {
@@ -419,7 +420,7 @@ CREATE TABLE {tableName}(
         return queryResult.Select(d =>
         {
             Type dynamicType = d.GetType();
-            foreach (var column in ColumnInfos)
+            foreach (var column in Columns)
             {
                 object? value = null;
                 var dynamicProperty = dynamicType.GetProperty(column.ColumnName);
@@ -437,9 +438,9 @@ CREATE TABLE {tableName}(
                     column.Hooks.AfterSelect(column, ref value);
                 }
 
-                if (dynamicProperty is not null && value is not null)
+                if (dynamicProperty is not null)
                 {
-                    if (value is DbNullValue)
+                    if (value is null || value is DbNullValue)
                         dynamicProperty.SetValue(d, null);
                     else
                         dynamicProperty.SetValue(d, value);
@@ -464,7 +465,7 @@ CREATE TABLE {tableName}(
         Type dynamicType = d.GetType();
         Type resultType = typeof(TResult);
 
-        foreach (var column in ColumnInfos)
+        foreach (var column in Columns)
         {
             var dynamicProperty = dynamicType.GetProperty(column.ColumnName);
             // TODO: Maybe we can do better to get result property in case ColumnName is set to another value.
@@ -498,28 +499,26 @@ CREATE TABLE {tableName}(
 
         var realInsert = InsertClause.Create();
 
-        foreach (var column in ColumnInfos)
+        foreach (var column in Columns)
         {
             InsertItem? item = insert.Items.SingleOrDefault(i => i.ColumnName == column.ColumnName);
             if (item is null)
             {
                 object? value = null;
                 column.Hooks.BeforeInsert(column, ref value);
-                if (value is not null)
-                    if (value is DbNullValue)
-                        realInsert.Add(column.ColumnName, null);
-                    else
-                        realInsert.Add(column.ColumnName, value);
+                if (value is null || value is DbNullValue)
+                    realInsert.Add(column.ColumnName, null);
+                else
+                    realInsert.Add(column.ColumnName, value);
             }
             else
             {
                 object? value = item.Value ?? DbNullValue.Instance;
                 column.Hooks.BeforeInsert(column, ref value);
-                if (value is not null)
-                    if (value is DbNullValue)
-                        realInsert.Add(column.ColumnName, null);
-                    else
-                        realInsert.Add(column.ColumnName, value);
+                if (value is null || value is DbNullValue)
+                    realInsert.Add(column.ColumnName, null);
+                else
+                    realInsert.Add(column.ColumnName, value);
             }
 
             if (item?.ColumnName == KeyColumn.ColumnName)
@@ -543,7 +542,7 @@ CREATE TABLE {tableName}(
     {
         var realUpdate = UpdateClause.Create();
 
-        foreach (var column in ColumnInfos)
+        foreach (var column in Columns)
         {
             UpdateItem? item = update.Items.FirstOrDefault(i => i.ColumnName == column.ColumnName);
 

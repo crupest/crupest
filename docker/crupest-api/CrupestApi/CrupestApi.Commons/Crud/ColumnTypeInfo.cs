@@ -77,6 +77,8 @@ public interface IColumnTypeInfo
         };
     }
 
+    JsonConverter? JsonConverter { get { return null; } }
+
     // You must override this method if ClrType != DatabaseClrType
     object? ConvertFromDatabase(object? databaseValue)
     {
@@ -94,7 +96,13 @@ public interface IColumnTypeInfo
 
 public interface IColumnTypeProvider
 {
+    IReadOnlyList<IColumnTypeInfo> GetAll();
     IColumnTypeInfo Get(Type clrType);
+
+    IList<IColumnTypeInfo> GetAllCustom()
+    {
+        return GetAll().Where(t => !t.IsSimple).ToList();
+    }
 }
 
 public class SimpleColumnTypeInfo<T> : IColumnTypeInfo
@@ -105,8 +113,17 @@ public class SimpleColumnTypeInfo<T> : IColumnTypeInfo
 
 public class DateTimeColumnTypeInfo : IColumnTypeInfo
 {
+    private JsonConverter<DateTime> _jsonConverter;
+
+    public DateTimeColumnTypeInfo()
+    {
+        _jsonConverter = new DateTimeJsonConverter(this);
+    }
+
     public Type ClrType => typeof(DateTime);
     public Type DatabaseClrType => typeof(string);
+
+    public JsonConverter JsonConverter => _jsonConverter;
 
     public object? ConvertToDatabase(object? value)
     {
@@ -130,6 +147,28 @@ public class DateTimeColumnTypeInfo : IColumnTypeInfo
     }
 }
 
+public class DateTimeJsonConverter : JsonConverter<DateTime>
+{
+    private readonly DateTimeColumnTypeInfo _typeInfo;
+
+    public DateTimeJsonConverter(DateTimeColumnTypeInfo typeInfo)
+    {
+        _typeInfo = typeInfo;
+    }
+
+    public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var databaseValue = reader.GetString();
+        return (DateTime)_typeInfo.ConvertFromDatabase(databaseValue)!;
+    }
+
+    public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
+    {
+        var databaseValue = _typeInfo.ConvertToDatabase(value);
+        writer.WriteStringValue((string)databaseValue!);
+    }
+}
+
 public class ColumnTypeProvider : IColumnTypeProvider
 {
     private Dictionary<Type, IColumnTypeInfo> _typeMap = new Dictionary<Type, IColumnTypeInfo>();
@@ -145,6 +184,11 @@ public class ColumnTypeProvider : IColumnTypeProvider
         _typeMap.Add(IColumnTypeInfo.StringColumnTypeInfo.ClrType, IColumnTypeInfo.StringColumnTypeInfo);
         _typeMap.Add(IColumnTypeInfo.BytesColumnTypeInfo.ClrType, IColumnTypeInfo.BytesColumnTypeInfo);
         _typeMap.Add(IColumnTypeInfo.DateTimeColumnTypeInfo.ClrType, IColumnTypeInfo.DateTimeColumnTypeInfo);
+    }
+
+    public IReadOnlyList<IColumnTypeInfo> GetAll()
+    {
+        return _typeMap.Values.ToList();
     }
 
     // This is thread-safe.

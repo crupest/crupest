@@ -19,14 +19,41 @@ public class ColumnHooks
         BeforeUpdate = beforeUpdate;
     }
 
-    /// <summary>Called after SELECT. Please use multicast if you want to customize it because there are many default behavior in it.</summary 
+    /// <summary>Called after SELECT. Please use multicast if you want to customize it because there are many default behavior in it.</summary>
+    /// <remarks>
+    /// value(in):
+    ///     null => not found in SELECT result
+    ///     DbNullValue => database NULL
+    ///     others => database value
+    /// value(out):
+    ///     null/DbNullValue => return null
+    ///     others => return as is
+    /// </remarks>
     public ColumnHookAction AfterSelect;
 
     /// <summary>Called before INSERT. Please use multicast if you want to customize it because there are many default behavior in it.</summary>
+    /// <remarks>
+    /// value(in):
+    ///     null => not specified by insert clause
+    ///     DbNullValue => specified as database NULL
+    ///     other => specified as other value
+    /// value(out):
+    ///     null/DbNullValue => save database NULL
+    ///     other => save the value as is
+    /// </remarks>
     public ColumnHookAction BeforeInsert;
 
     /// <summary>Called before UPDATE. Please use multicast if you want to customize it because there are many default behavior in it.</summary 
-    /// <remarks>Set value to null to delete the update item so it will not change. Set value to <see cref="DbNullValue"/> to update the column to  NULL.</remarks>
+    /// <remarks>
+    /// value(in):
+    ///     null => not specified by update clause
+    ///     DbNullValue => specified as database NULL
+    ///     other => specified as other value
+    /// value(out):
+    ///     null => not update
+    ///     DbNullValue => update to database NULL
+    ///     other => update to the value
+    /// </remarks>
     public ColumnHookAction BeforeUpdate;
 }
 
@@ -86,7 +113,7 @@ public class ColumnInfo
     public bool IsPrimaryKey => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsPrimaryKey) is true;
     public bool IsAutoIncrement => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsAutoIncrement) is true;
     public bool IsNotNull => IsPrimaryKey || Metadata.GetValueOrDefault(ColumnMetadataKeys.NotNull) is true;
-    public bool IsClientGenerate => Metadata.GetValueOrDefault(ColumnMetadataKeys.ClientGenerate) is true;
+    public bool IsGenerated => Metadata.GetValueOrDefault(ColumnMetadataKeys.Generated) is true;
     public bool IsNoUpdate => Metadata.GetValueOrDefault(ColumnMetadataKeys.NoUpdate) is true;
     /// <summary>
     /// This only returns metadata value. It doesn't not fall back to primary column. If you want to get the real key column, go to table info.
@@ -148,7 +175,7 @@ public class ColumnInfo
 
     protected void OnBeforeInsert(ColumnInfo column, ref object? value)
     {
-        if (column.IsClientGenerate && value is not null)
+        if (column.IsGenerated && value is not null)
         {
             throw new Exception($"'{column.ColumnName}' can't be set manually. It is auto generated.");
         }
