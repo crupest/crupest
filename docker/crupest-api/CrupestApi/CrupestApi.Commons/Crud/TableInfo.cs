@@ -417,38 +417,7 @@ CREATE TABLE {tableName}(
     {
         var (sql, parameters) = GenerateSelectSql(what, where, orderBy, skip, limit);
         var queryResult = dbConnection.Query<dynamic>(sql, ConvertParameters(parameters));
-        return queryResult.Select(d =>
-        {
-            Type dynamicType = d.GetType();
-            foreach (var column in Columns)
-            {
-                object? value = null;
-                var dynamicProperty = dynamicType.GetProperty(column.ColumnName);
-                if (dynamicProperty is null)
-                {
-                    column.Hooks.AfterSelect(column, ref value);
-                }
-                else
-                {
-                    value = dynamicProperty.GetValue(d);
-                    if (value is null)
-                        value = DbNullValue.Instance;
-                    else
-                        value = column.ColumnType.ConvertFromDatabase(value);
-                    column.Hooks.AfterSelect(column, ref value);
-                }
-
-                if (dynamicProperty is not null)
-                {
-                    if (value is null || value is DbNullValue)
-                        dynamicProperty.SetValue(d, null);
-                    else
-                        dynamicProperty.SetValue(d, value);
-                }
-            }
-
-            return d;
-        }).ToList();
+        return queryResult.ToList();
     }
 
     public virtual int SelectCount(IDbConnection dbConnection, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
@@ -502,19 +471,12 @@ CREATE TABLE {tableName}(
         foreach (var column in Columns)
         {
             InsertItem? item = insert.Items.SingleOrDefault(i => i.ColumnName == column.ColumnName);
-            object? value;
-            if (item is null || item.Value is null)
-            {
-                value = null;
-            }
-            else
-            {
-                value = item.Value;
-            }
+
+            var value = item?.Value;
 
             if (column.IsGenerated && value is not null)
             {
-                throw new Exception("The column is generated. You can't specify it explicitly.");
+                throw new Exception($"The column '{column.ColumnName}' is auto generated. You can't specify it explicitly.");
             }
 
             if (value is null)
@@ -527,17 +489,21 @@ CREATE TABLE {tableName}(
                 value = DbNullValue.Instance;
             }
 
-            column.Hooks.BeforeInsert(column, ref value);
-
-            if (value is null)
-                value = DbNullValue.Instance;
-
             column.InvokeValidator(value);
 
             if (value is DbNullValue)
+            {
+                if (column.IsNotNull && !column.IsAutoIncrement)
+                {
+                    throw new Exception($"Column '{column.ColumnName}' is not nullable. Please specify a non-null value.");
+                }
+
                 realInsert.Add(column.ColumnName, null);
+            }
             else
+            {
                 realInsert.Add(column.ColumnName, value);
+            }
 
 
             if (item?.ColumnName == KeyColumn.ColumnName)
@@ -564,22 +530,17 @@ CREATE TABLE {tableName}(
         foreach (var column in Columns)
         {
             UpdateItem? item = update.Items.FirstOrDefault(i => i.ColumnName == column.ColumnName);
-
-            object? value;
-            if (item is null)
-            {
-                value = null;
-            }
-            else
-            {
-                value = item.Value ?? DbNullValue.Instance;
-            }
-
-            column.Hooks.BeforeUpdate(column, ref value);
+            object? value = item?.Value;
 
             if (value is not null)
             {
+                if (column.IsNoUpdate)
+                {
+                    throw new Exception($"The column '{column.ColumnName}' can't be update.");
+                }
+
                 column.InvokeValidator(value);
+
                 realUpdate.Add(column.ColumnName, value);
             }
         }
