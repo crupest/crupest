@@ -41,6 +41,13 @@ public static class ColumnMetadataKeys
     /// This column acts as key when get one entity for http get method in path. 
     /// </summary>
     public const string ActAsKey = nameof(ColumnAttribute.ActAsKey);
+
+    /// <summary>
+    /// Default value is null, aka, whether a default value generator is specified.
+    /// Set to true or false to override it.
+    /// </summary>
+    /// <returns></returns>
+    public const string CanBeGenerated = nameof(ColumnAttribute.CanBeGenerated);
 }
 
 public interface IColumnMetadata
@@ -122,6 +129,8 @@ public class ColumnAttribute : Attribute, IColumnMetadata
 
     /// <seealso cref="ColumnMetadataKeys.ActAsKey"/>
     public bool ActAsKey { get; init; }
+
+    public bool? CanBeGenerated { get; init; } = null;
 
     public bool TryGetValue(string key, out object? value)
     {

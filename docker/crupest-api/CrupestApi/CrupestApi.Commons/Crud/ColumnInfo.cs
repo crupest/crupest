@@ -118,7 +118,7 @@ public class ColumnInfo
     public bool IsNotNull => IsPrimaryKey || Metadata.GetValueOrDefault(ColumnMetadataKeys.NotNull) is true;
     public bool IsGenerated => Metadata.GetValueOrDefault(ColumnMetadataKeys.Generated) is true;
     public bool IsNoUpdate => Metadata.GetValueOrDefault(ColumnMetadataKeys.NoUpdate) is true;
-    public bool CanBeGenerated => DefaultValueGeneratorMethod is not null;
+    public bool CanBeGenerated => (bool?)Metadata.GetValueOrDefault(ColumnMetadataKeys.CanBeGenerated) ?? (DefaultValueGeneratorMethod is not null);
     /// <summary>
     /// This only returns metadata value. It doesn't not fall back to primary column. If you want to get the real key column, go to table info.
     /// </summary>
