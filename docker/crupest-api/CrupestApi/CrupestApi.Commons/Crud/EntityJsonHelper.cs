@@ -12,35 +12,33 @@ namespace CrupestApi.Commons.Crud;
 public class EntityJsonHelper<TEntity> where TEntity : class
 {
     private readonly TableInfo _table;
-    private readonly JsonSerializerOptions _jsonSerializerOptions;
+    private readonly IOptionsMonitor<JsonSerializerOptions> _jsonSerializerOptions;
 
-    public EntityJsonHelper(TableInfoFactory tableInfoFactory)
+    public EntityJsonHelper(TableInfoFactory tableInfoFactory, IOptionsMonitor<JsonSerializerOptions> jsonSerializerOptions)
     {
         _table = tableInfoFactory.Get(typeof(TEntity));
-        _jsonSerializerOptions = new JsonSerializerOptions();
-        _jsonSerializerOptions.AllowTrailingCommas = true;
-        _jsonSerializerOptions.PropertyNameCaseInsensitive = true;
-        _jsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        foreach (var type in _table.Columns.Select(c => c.ColumnType))
-        {
-            if (type.JsonConverter is not null)
-            {
-                _jsonSerializerOptions.Converters.Add(type.JsonConverter);
-            }
-        }
+        _jsonSerializerOptions = jsonSerializerOptions;
     }
 
-    public virtual Dictionary<string, object?> ConvertEntityToDictionary(object? entity)
+    public virtual Dictionary<string, object?> ConvertEntityToDictionary(object? entity, bool includeNonColumnProperties = false)
     {
         Debug.Assert(entity is null || entity is TEntity);
 
         var result = new Dictionary<string, object?>();
 
-        foreach (var column in _table.PropertyColumns)
+        foreach (var propertyInfo in _table.ColumnProperties)
         {
-            var propertyInfo = column.PropertyInfo;
-            var value = propertyInfo!.GetValue(entity);
-            result[column.ColumnName] = value;
+            var value = propertyInfo.GetValue(entity);
+            result[propertyInfo.Name] = value;
+        }
+
+        if (includeNonColumnProperties)
+        {
+            foreach (var propertyInfo in _table.NonColumnProperties)
+            {
+                var value = propertyInfo.GetValue(entity);
+                result[propertyInfo.Name] = value;
+            }
         }
 
         return result;
@@ -51,50 +49,53 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         Debug.Assert(entity is null || entity is TEntity);
 
         var dictionary = ConvertEntityToDictionary(entity);
-        return JsonSerializer.Serialize(dictionary, _jsonSerializerOptions);
+        return JsonSerializer.Serialize(dictionary, _jsonSerializerOptions.CurrentValue);
     }
 
-    public virtual TEntity ConvertDictionaryToEntityForInsert(IReadOnlyDictionary<string, object?> dictionary)
+    public virtual IInsertClause ConvertJsonElementToInsertClauses(JsonElement rootElement)
     {
-        var result = Activator.CreateInstance<TEntity>()!;
+        var insertClause = InsertClause.Create();
+
+        if (rootElement.ValueKind != JsonValueKind.Object)
+        {
+            throw new UserException("The root element must be an object.");
+        }
 
         foreach (var column in _table.PropertyColumns)
         {
-            var propertyInfo = column.PropertyInfo!;
-            var value = dictionary.GetValueOrDefault(column.ColumnName);
-            if (column.IsGenerated)
+            object? value = null;
+            if (rootElement.TryGetProperty(column.ColumnName, out var propertyElement))
             {
-                if (value is not null)
+                value = propertyElement.ValueKind switch
                 {
-                    throw new UserException($"{propertyInfo.Name} is auto generated. Don't specify it.");
-                }
+                    JsonValueKind.Null or JsonValueKind.Undefined => null,
+                    JsonValueKind.Number => propertyElement.GetDouble(),
+                    JsonValueKind.True => true,
+                    JsonValueKind.False => false,
+                    JsonValueKind.String => propertyElement.GetString(),
+                    _ => throw new Exception($"Bad json value of property {column.ColumnName}.")
+                };
             }
 
-            if (value is null)
+            if (column.IsGenerated && value is not null)
             {
-                if (column.IsNotNull && !column.CanBeGenerated)
-                {
-                    throw new UserException($"{propertyInfo.Name} can't be null.");
-                }
-                propertyInfo.SetValue(result, null);
+                throw new UserException($"The property {column.ColumnName} is generated. You cannot specify its value.");
             }
-            else
+
+            if (column.IsNotNull && !column.CanBeGenerated && value is null)
             {
-                // Check type
-                var columnType = column.ColumnType;
-                if (columnType.ClrType.IsAssignableFrom(value.GetType()))
-                    propertyInfo.SetValue(result, value);
-                else
-                    throw new UserException($"{propertyInfo.Name} is of wrong type.");
+                throw new UserException($"The property {column.ColumnName} can't be null or generated. But you specify a null value.");
             }
+
+            insertClause.Add(column.ColumnName, value);
         }
 
-        return result;
+        return insertClause;
     }
 
-    public TEntity ConvertJsonToEntityForInsert(string json)
+    public IInsertClause ConvertJsonToEntityForInsert(string json)
     {
-        var dictionary = JsonSerializer.Deserialize<Dictionary<string, object?>>(json, _jsonSerializerOptions)!;
-        return ConvertDictionaryToEntityForInsert(dictionary);
+        var document = JsonSerializer.Deserialize<JsonDocument>(json, _jsonSerializerOptions.CurrentValue)!;
+        return ConvertJsonElementToInsertClauses(document.RootElement);
     }
 }

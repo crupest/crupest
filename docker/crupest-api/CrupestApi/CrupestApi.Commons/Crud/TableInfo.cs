@@ -285,25 +285,6 @@ CREATE TABLE {tableName}(
         return (result.ToString(), parameters);
     }
 
-    public void CheckInsertClause(IInsertClause insertClause)
-    {
-        var columnNameSet = new HashSet<string>(Columns.Select(c => c.ColumnName));
-
-        foreach (var item in insertClause.Items)
-        {
-            columnNameSet.Remove(item.ColumnName);
-        }
-
-        foreach (var columnName in columnNameSet)
-        {
-            var column = GetColumn(columnName);
-            if (!column.IsAutoIncrement)
-            {
-                throw new Exception($"Column {columnName} is not specified and is not auto increment.");
-            }
-        }
-    }
-
     /// <summary>
     /// If you call this manually, it's your duty to call hooks.
     /// </summary>
@@ -311,7 +292,6 @@ CREATE TABLE {tableName}(
     public (string sql, ParamList parameters) GenerateInsertSql(IInsertClause insertClause, string? dbProviderId = null)
     {
         CheckRelatedColumns(insertClause);
-        CheckInsertClause(insertClause);
 
         var parameters = new ParamList();
 
@@ -484,6 +464,11 @@ CREATE TABLE {tableName}(
                 value = column.InvokeDefaultValueGenerator();
             }
 
+            if (value is null && column.IsAutoIncrement)
+            {
+                continue;
+            }
+
             if (value is null)
             {
                 value = DbNullValue.Instance;
@@ -493,7 +478,7 @@ CREATE TABLE {tableName}(
 
             if (value is DbNullValue)
             {
-                if (column.IsNotNull && !column.IsAutoIncrement)
+                if (column.IsNotNull)
                 {
                     throw new Exception($"Column '{column.ColumnName}' is not nullable. Please specify a non-null value.");
                 }
