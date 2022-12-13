@@ -91,4 +91,10 @@ public class EntityJsonHelper<TEntity> where TEntity : class
 
         return result;
     }
+
+    public TEntity ConvertJsonToEntityForInsert(string json)
+    {
+        var dictionary = JsonSerializer.Deserialize<Dictionary<string, object?>>(json, _jsonSerializerOptions)!;
+        return ConvertDictionaryToEntityForInsert(dictionary);
+    }
 }
