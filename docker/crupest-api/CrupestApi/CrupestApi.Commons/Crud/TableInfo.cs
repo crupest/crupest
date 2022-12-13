@@ -431,7 +431,7 @@ CREATE TABLE {tableName}(
                 else
                 {
                     value = dynamicProperty.GetValue(d);
-                    if (value is null || value is DbNullValue)
+                    if (value is null)
                         value = DbNullValue.Instance;
                     else
                         value = column.ColumnType.ConvertFromDatabase(value);
@@ -502,24 +502,43 @@ CREATE TABLE {tableName}(
         foreach (var column in Columns)
         {
             InsertItem? item = insert.Items.SingleOrDefault(i => i.ColumnName == column.ColumnName);
-            if (item is null)
+            object? value;
+            if (item is null || item.Value is null)
             {
-                object? value = null;
-                column.Hooks.BeforeInsert(column, ref value);
-                if (value is null || value is DbNullValue)
-                    realInsert.Add(column.ColumnName, null);
-                else
-                    realInsert.Add(column.ColumnName, value);
+                value = null;
             }
             else
             {
-                object? value = item.Value ?? DbNullValue.Instance;
-                column.Hooks.BeforeInsert(column, ref value);
-                if (value is null || value is DbNullValue)
-                    realInsert.Add(column.ColumnName, null);
-                else
-                    realInsert.Add(column.ColumnName, value);
+                value = item.Value;
             }
+
+            if (column.IsGenerated && value is not null)
+            {
+                throw new Exception("The column is generated. You can't specify it explicitly.");
+            }
+
+            if (value is null)
+            {
+                value = column.InvokeDefaultValueGenerator();
+            }
+
+            if (value is null)
+            {
+                value = DbNullValue.Instance;
+            }
+
+            column.Hooks.BeforeInsert(column, ref value);
+
+            if (value is null)
+                value = DbNullValue.Instance;
+
+            column.InvokeValidator(value);
+
+            if (value is DbNullValue)
+                realInsert.Add(column.ColumnName, null);
+            else
+                realInsert.Add(column.ColumnName, value);
+
 
             if (item?.ColumnName == KeyColumn.ColumnName)
             {
@@ -546,25 +565,22 @@ CREATE TABLE {tableName}(
         {
             UpdateItem? item = update.Items.FirstOrDefault(i => i.ColumnName == column.ColumnName);
 
+            object? value;
             if (item is null)
             {
-                object? value = null;
-                column.Hooks.BeforeUpdate(column, ref value);
-                if (value is not null)
-                    if (value is DbNullValue)
-                        realUpdate.Add(column.ColumnName, null);
-                    else
-                        realUpdate.Add(column.ColumnName, value);
+                value = null;
             }
             else
             {
-                object? value = item.Value ?? DbNullValue.Instance;
-                column.Hooks.BeforeUpdate(column, ref value);
-                if (value is not null)
-                    if (value is DbNullValue)
-                        realUpdate.Add(column.ColumnName, null);
-                    else
-                        realUpdate.Add(column.ColumnName, value);
+                value = item.Value ?? DbNullValue.Instance;
+            }
+
+            column.Hooks.BeforeUpdate(column, ref value);
+
+            if (value is not null)
+            {
+                column.InvokeValidator(value);
+                realUpdate.Add(column.ColumnName, value);
             }
         }
 
