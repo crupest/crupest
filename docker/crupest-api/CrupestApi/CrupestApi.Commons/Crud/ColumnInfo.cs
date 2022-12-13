@@ -21,6 +21,7 @@ public class ColumnHooks
 
     /// <summary>Called after SELECT. Please use multicast if you want to customize it because there are many default behavior in it.</summary>
     /// <remarks>
+    /// Called after column type transformation.
     /// value(in):
     ///     null => not found in SELECT result
     ///     DbNullValue => database NULL
@@ -33,6 +34,7 @@ public class ColumnHooks
 
     /// <summary>Called before INSERT. Please use multicast if you want to customize it because there are many default behavior in it.</summary>
     /// <remarks>
+    /// Called before column type transformation.
     /// value(in):
     ///     null => not specified by insert clause
     ///     DbNullValue => specified as database NULL
@@ -45,6 +47,7 @@ public class ColumnHooks
 
     /// <summary>Called before UPDATE. Please use multicast if you want to customize it because there are many default behavior in it.</summary 
     /// <remarks>
+    /// Called before column type transformation.
     /// value(in):
     ///     null => not specified by update clause
     ///     DbNullValue => specified as database NULL
@@ -115,6 +118,7 @@ public class ColumnInfo
     public bool IsNotNull => IsPrimaryKey || Metadata.GetValueOrDefault(ColumnMetadataKeys.NotNull) is true;
     public bool IsGenerated => Metadata.GetValueOrDefault(ColumnMetadataKeys.Generated) is true;
     public bool IsNoUpdate => Metadata.GetValueOrDefault(ColumnMetadataKeys.NoUpdate) is true;
+    public bool CanBeGenerated => DefaultValueGeneratorMethod is not null;
     /// <summary>
     /// This only returns metadata value. It doesn't not fall back to primary column. If you want to get the real key column, go to table info.
     /// </summary>
@@ -122,7 +126,6 @@ public class ColumnInfo
     /// <seealso cref="TableInfo.KeyColumn"/>
     public bool IsSpecifiedAsKey => Metadata.GetValueOrDefault(ColumnMetadataKeys.ActAsKey) is true;
     public ColumnIndexType Index => Metadata.GetValueOrDefault<ColumnIndexType?>(ColumnMetadataKeys.Index) ?? ColumnIndexType.None;
-    public UpdateBehavior UpdateBehavior => Metadata.GetValueOrDefault<UpdateBehavior?>(ColumnMetadataKeys.UpdateBehavior) ?? UpdateBehavior.NullIsNotUpdate;
 
     /// <summary>
     /// The real column name. Maybe set in metadata or just the property name.
@@ -160,6 +163,47 @@ public class ColumnInfo
         }
     }
 
+    public MethodInfo ValidatorMethod
+    {
+        get
+        {
+            object? value = Metadata.GetValueOrDefault(ColumnMetadataKeys.Validator);
+            Debug.Assert(value is null || value is string);
+            if (value is null)
+            {
+                return GetType().GetMethod(nameof(DefaultValidator))!;
+            }
+            else
+            {
+                string methodName = (string)value;
+                return Table.EntityType.GetMethod(methodName, BindingFlags.Static) ?? throw new Exception("The validator does not exist.");
+            }
+        }
+    }
+
+    public void InvokeValidator(object value)
+    {
+        ValidatorMethod.Invoke(null, new object?[] { this, value });
+    }
+
+    public static void DefaultValidator(ColumnInfo column, object value)
+    {
+        if (column.IsNotNull && value is DbNullValue)
+        {
+            throw new Exception("The column can't be null.");
+        }
+    }
+
+    public object? InvokeDefaultValueGenerator()
+    {
+        return DefaultValueGeneratorMethod?.Invoke(null, new object?[] { this });
+    }
+
+    public static object? DefaultDefaultValueGenerator(ColumnInfo column)
+    {
+        return DbNullValue.Instance;
+    }
+
     private void TryCoerceStringFromNullToEmpty(ref object? value)
     {
         if (ColumnType.ClrType == typeof(string) && (Metadata.GetValueOrDefault<bool?>(ColumnMetadataKeys.DefaultEmptyForString) is true) && value is DbNullValue)
@@ -175,38 +219,15 @@ public class ColumnInfo
 
     protected void OnBeforeInsert(ColumnInfo column, ref object? value)
     {
-        if (column.IsGenerated && value is not null)
-        {
-            throw new Exception($"'{column.ColumnName}' can't be set manually. It is auto generated.");
-        }
-
-        var defaultValueGenerator = DefaultValueGeneratorMethod;
-        if (defaultValueGenerator is not null && value is null)
-        {
-            value = defaultValueGenerator.Invoke(null, null);
-        }
-
         TryCoerceStringFromNullToEmpty(ref value);
-
-        if (IsNotNull && (value is null || value is DbNullValue))
-        {
-            throw new Exception($"'{column.ColumnName}' can't be null.");
-        }
     }
 
     protected void OnBeforeUpdate(ColumnInfo column, ref object? value)
     {
-        if (column.IsNoUpdate && value is not null)
-        {
-            throw new Exception($"'{column.ColumnName}' is not updatable.");
-        }
+        if (IsNoUpdate && value is not null)
+            throw new Exception("The column can't be updated.");
 
         TryCoerceStringFromNullToEmpty(ref value);
-
-        if (IsNotNull && value is DbNullValue)
-        {
-            throw new Exception($"'{column.ColumnName}' can't be null.");
-        }
     }
 
     public string GenerateCreateTableColumnString(string? dbProviderId = null)

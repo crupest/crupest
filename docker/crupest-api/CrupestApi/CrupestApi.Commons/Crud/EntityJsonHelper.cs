@@ -53,4 +53,42 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         var dictionary = ConvertEntityToDictionary(entity);
         return JsonSerializer.Serialize(dictionary, _jsonSerializerOptions);
     }
+
+    public virtual TEntity ConvertDictionaryToEntityForInsert(IReadOnlyDictionary<string, object?> dictionary)
+    {
+        var result = Activator.CreateInstance<TEntity>()!;
+
+        foreach (var column in _table.PropertyColumns)
+        {
+            var propertyInfo = column.PropertyInfo!;
+            var value = dictionary.GetValueOrDefault(column.ColumnName);
+            if (column.IsGenerated)
+            {
+                if (value is not null)
+                {
+                    throw new UserException($"{propertyInfo.Name} is auto generated. Don't specify it.");
+                }
+            }
+
+            if (value is null)
+            {
+                if (column.IsNotNull && !column.CanBeGenerated)
+                {
+                    throw new UserException($"{propertyInfo.Name} can't be null.");
+                }
+                propertyInfo.SetValue(result, null);
+            }
+            else
+            {
+                // Check type
+                var columnType = column.ColumnType;
+                if (columnType.ClrType.IsAssignableFrom(value.GetType()))
+                    propertyInfo.SetValue(result, value);
+                else
+                    throw new UserException($"{propertyInfo.Name} is of wrong type.");
+            }
+        }
+
+        return result;
+    }
 }

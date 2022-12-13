@@ -20,9 +20,16 @@ public static class ColumnMetadataKeys
 
     /// <summary>
     /// The default value generator method name in entity type. Default to null, aka, search for ColumnNameDefaultValueGenerator. 
+    /// Generator has signature <code>static void DefaultValueGenerator(ColumnInfo column)</code>
     /// </summary>
-    /// <returns></returns>
     public const string DefaultValueGenerator = nameof(ColumnAttribute.DefaultValueGenerator);
+
+    /// <summary>
+    /// The validator method name in entity type. Default to null, aka, the default validator.
+    /// Validator has signature <code>static void Validator(ColumnInfo column, object value)</code>
+    /// Value param is never null. If you want to mean NULL, it should be a <see cref="DbNullValue"/>.
+    /// </summary>
+    public const string Validator = nameof(ColumnAttribute.Validator);
 
     /// <summary>
     /// The column can only be set when inserted, can't be changed in update.
@@ -34,24 +41,6 @@ public static class ColumnMetadataKeys
     /// This column acts as key when get one entity for http get method in path. 
     /// </summary>
     public const string ActAsKey = nameof(ColumnAttribute.ActAsKey);
-
-    /// <summary>
-    /// Define what to do when update.
-    /// </summary>
-    public const string UpdateBehavior = nameof(ColumnAttribute.UpdateBehavior);
-}
-
-[Flags]
-public enum UpdateBehavior
-{
-    /// <summary>
-    /// Null value means do not update that column.
-    /// </summary>
-    NullIsNotUpdate = 0,
-    /// <summary>
-    /// Null value means set to null.
-    /// </summary>
-    NullIsSetNull = 1
 }
 
 public interface IColumnMetadata
@@ -125,14 +114,14 @@ public class ColumnAttribute : Attribute, IColumnMetadata
     /// <seealso cref="ColumnMetadataKeys.DefaultValueGenerator"/>
     public string? DefaultValueGenerator { get; init; }
 
+    /// <seealso cref="ColumnMetadataKeys.Validator"/>
+    public string? Validator { get; init; }
+
     /// <seealso cref="ColumnMetadataKeys.NoUpdate"/>
     public bool NoUpdate { get; init; }
 
     /// <seealso cref="ColumnMetadataKeys.ActAsKey"/>
     public bool ActAsKey { get; init; }
-
-    /// <seealso cref="ColumnMetadataKeys.UpdateBehavior">
-    public UpdateBehavior UpdateBehavior { get; init; } = UpdateBehavior.NullIsNotUpdate;
 
     public bool TryGetValue(string key, out object? value)
     {
