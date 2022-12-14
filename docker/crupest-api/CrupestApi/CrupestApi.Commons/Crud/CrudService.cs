@@ -26,6 +26,8 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         }
     }
 
+    public EntityJsonHelper<TEntity> JsonHelper => _jsonHelper;
+
     public virtual void DoInitializeDatabase(IDbConnection connection)
     {
         using var transaction = connection.BeginTransaction();
@@ -42,5 +44,18 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
     {
         var result = _table.Select<TEntity>(_dbConnection, null);
         return result;
+    }
+
+    public TEntity GetByKey(string key)
+    {
+        var result = _table.Select<TEntity>(_dbConnection, null, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key));
+        return result.Single();
+    }
+
+    public string Create(JsonElement jsonElement)
+    {
+        var insertClauses = _jsonHelper.ConvertJsonElementToInsertClauses(jsonElement);
+        var key = _table.Insert(_dbConnection, insertClauses);
+        return (string)key;
     }
 }

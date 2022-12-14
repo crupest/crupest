@@ -18,6 +18,12 @@ public static class CrupestApiJsonExtensions
         return services;
     }
 
+    public static async Task<JsonDocument> ReadJsonAsync(this HttpRequest request)
+    {
+        using var stream = request.Body;
+        return await JsonDocument.ParseAsync(stream);
+    }
+
     public static async Task WriteJsonAsync<T>(this HttpResponse response, T bodyObject, int statusCode = 200, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
     {
         var jsonOptions = response.HttpContext.RequestServices.GetRequiredService<IOptionsSnapshot<JsonSerializerOptions>>();
@@ -47,7 +53,7 @@ public static class CrupestApiJsonExtensions
         return context.Response.WriteJsonAsync<T>(bodyObject, statusCode, beforeWriteBody, cancellationToken);
     }
 
-    public static Task ResponseMessageAsync<T>(this HttpContext context, string message, int statusCode = 400, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
+    public static Task ResponseMessageAsync(this HttpContext context, string message, int statusCode = 400, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
     {
         return context.Response.WriteMessageAsync(message, statusCode, beforeWriteBody, cancellationToken);
     }
