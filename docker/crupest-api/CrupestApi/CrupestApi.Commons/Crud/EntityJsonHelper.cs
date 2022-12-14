@@ -23,10 +23,11 @@ public class EntityJsonHelper<TEntity> where TEntity : class
     {
         var result = new Dictionary<string, object?>();
 
-        foreach (var propertyInfo in _table.ColumnProperties)
+        foreach (var column in _table.PropertyColumns)
         {
-            var value = propertyInfo.GetValue(entity);
-            result[propertyInfo.Name] = value;
+            var value = column.PropertyInfo!.GetValue(entity);
+            var realValue = column.ColumnType.ConvertToDatabase(value);
+            result[column.ColumnName] = realValue;
         }
 
         if (includeNonColumnProperties)
