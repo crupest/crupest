@@ -4,7 +4,6 @@ using Dapper;
 
 namespace CrupestApi.Commons.Crud;
 
-// TODO: Register this.
 public class CrudService<TEntity> : IDisposable where TEntity : class
 {
     protected readonly TableInfo _table;
@@ -37,5 +36,11 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
     public void Dispose()
     {
         _dbConnection.Dispose();
+    }
+
+    public List<TEntity> GetAll()
+    {
+        var result = _table.Select<TEntity>(_dbConnection, null);
+        return result;
     }
 }

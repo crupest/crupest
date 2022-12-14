@@ -5,7 +5,6 @@ using Microsoft.Extensions.Options;
 
 namespace CrupestApi.Commons.Crud;
 
-// TODO: Register this.
 /// <summary>
 /// Contains all you need to do with json.
 /// </summary>
@@ -20,10 +19,8 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         _jsonSerializerOptions = jsonSerializerOptions;
     }
 
-    public virtual Dictionary<string, object?> ConvertEntityToDictionary(object? entity, bool includeNonColumnProperties = false)
+    public virtual Dictionary<string, object?> ConvertEntityToDictionary(TEntity entity, bool includeNonColumnProperties = false)
     {
-        Debug.Assert(entity is null || entity is TEntity);
-
         var result = new Dictionary<string, object?>();
 
         foreach (var propertyInfo in _table.ColumnProperties)
@@ -44,11 +41,9 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         return result;
     }
 
-    public virtual string ConvertEntityToJson(object? entity)
+    public virtual string ConvertEntityToJson(TEntity entity, bool includeNonColumnProperties = false)
     {
-        Debug.Assert(entity is null || entity is TEntity);
-
-        var dictionary = ConvertEntityToDictionary(entity);
+        var dictionary = ConvertEntityToDictionary(entity, includeNonColumnProperties);
         return JsonSerializer.Serialize(dictionary, _jsonSerializerOptions.CurrentValue);
     }
 
@@ -93,9 +88,73 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         return insertClause;
     }
 
-    public IInsertClause ConvertJsonToEntityForInsert(string json)
+    public IInsertClause ConvertJsonToInsertClauses(string json)
     {
         var document = JsonSerializer.Deserialize<JsonDocument>(json, _jsonSerializerOptions.CurrentValue)!;
         return ConvertJsonElementToInsertClauses(document.RootElement);
+    }
+
+    public IUpdateClause ConvertJsonElementToUpdateClause(JsonDocument json)
+    {
+        var updateClause = UpdateClause.Create();
+
+        if (json.RootElement.ValueKind != JsonValueKind.Object)
+        {
+            throw new UserException("The root element must be an object.");
+        }
+
+        bool saveNull = false;
+
+        if (json.RootElement.TryGetProperty("$saveNull", out var propertyElement))
+        {
+            if (propertyElement.ValueKind is not JsonValueKind.True or JsonValueKind.False)
+            {
+                throw new UserException("$saveNull can only be true or false.");
+            }
+
+            if (propertyElement.ValueKind is JsonValueKind.True)
+            {
+                saveNull = true;
+            }
+        }
+
+
+        foreach (var column in _table.PropertyColumns)
+        {
+            object? value = null;
+
+            if (json.RootElement.TryGetProperty(column.ColumnName, out propertyElement))
+            {
+                value = propertyElement.ValueKind switch
+                {
+                    JsonValueKind.Null or JsonValueKind.Undefined => null,
+                    JsonValueKind.Number => propertyElement.GetDouble(),
+                    JsonValueKind.True => true,
+                    JsonValueKind.False => false,
+                    JsonValueKind.String => propertyElement.GetString(),
+                    _ => throw new Exception($"Bad json value of property {column.ColumnName}.")
+                };
+
+                if (column.IsNoUpdate && (value is not null || saveNull))
+                {
+                    throw new UserException($"The property {column.ColumnName} is not updatable. You cannot specify its value.");
+                }
+            }
+
+            if (value is null && !saveNull)
+            {
+                continue;
+            }
+
+            updateClause.Add(column.ColumnName, value ?? DbNullValue.Instance);
+        }
+
+        return updateClause;
+    }
+
+    public IUpdateClause ConvertJsonToUpdateClause(string json)
+    {
+        var document = JsonSerializer.Deserialize<JsonDocument>(json, _jsonSerializerOptions.CurrentValue)!;
+        return ConvertJsonElementToUpdateClause(document);
     }
 }
