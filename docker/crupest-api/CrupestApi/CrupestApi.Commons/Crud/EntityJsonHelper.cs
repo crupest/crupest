@@ -93,36 +93,20 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         return ConvertJsonElementToInsertClauses(document.RootElement);
     }
 
-    public IUpdateClause ConvertJsonElementToUpdateClause(JsonDocument json)
+    public IUpdateClause ConvertJsonElementToUpdateClause(JsonElement rootElement, bool saveNull)
     {
         var updateClause = UpdateClause.Create();
 
-        if (json.RootElement.ValueKind != JsonValueKind.Object)
+        if (rootElement.ValueKind != JsonValueKind.Object)
         {
             throw new UserException("The root element must be an object.");
         }
-
-        bool saveNull = false;
-
-        if (json.RootElement.TryGetProperty("$saveNull", out var propertyElement))
-        {
-            if (propertyElement.ValueKind is not JsonValueKind.True or JsonValueKind.False)
-            {
-                throw new UserException("$saveNull can only be true or false.");
-            }
-
-            if (propertyElement.ValueKind is JsonValueKind.True)
-            {
-                saveNull = true;
-            }
-        }
-
 
         foreach (var column in _table.PropertyColumns)
         {
             object? value = null;
 
-            if (json.RootElement.TryGetProperty(column.ColumnName, out propertyElement))
+            if (rootElement.TryGetProperty(column.ColumnName, out var propertyElement))
             {
                 value = propertyElement.ValueKind switch
                 {
@@ -151,9 +135,36 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         return updateClause;
     }
 
+    public IUpdateClause ConvertJsonElementToUpdateClause(JsonElement rootElement)
+    {
+        var updateClause = UpdateClause.Create();
+
+        if (rootElement.ValueKind != JsonValueKind.Object)
+        {
+            throw new UserException("The root element must be an object.");
+        }
+
+        bool saveNull = false;
+
+        if (rootElement.TryGetProperty("$saveNull", out var propertyElement))
+        {
+            if (propertyElement.ValueKind is not JsonValueKind.True or JsonValueKind.False)
+            {
+                throw new UserException("$saveNull can only be true or false.");
+            }
+
+            if (propertyElement.ValueKind is JsonValueKind.True)
+            {
+                saveNull = true;
+            }
+        }
+
+        return ConvertJsonElementToUpdateClause(rootElement, saveNull);
+    }
+
     public IUpdateClause ConvertJsonToUpdateClause(string json)
     {
         var document = JsonSerializer.Deserialize<JsonDocument>(json, _jsonSerializerOptions.CurrentValue)!;
-        return ConvertJsonElementToUpdateClause(document);
+        return ConvertJsonElementToUpdateClause(document.RootElement);
     }
 }

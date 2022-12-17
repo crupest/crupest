@@ -17,7 +17,7 @@ public static class CrudWebApplicationExtensions
             var key = context.Request.RouteValues["key"]?.ToString();
             if (key == null)
             {
-                await context.ResponseMessageAsync("Please specify a key.");
+                await context.ResponseMessageAsync("Please specify a key in path.");
                 return;
             }
 
@@ -31,6 +31,36 @@ public static class CrudWebApplicationExtensions
             var jsonDocument = await context.Request.ReadJsonAsync();
             var key = crudService.Create(jsonDocument.RootElement);
             await context.ResponseJsonAsync(crudService.JsonHelper.ConvertEntityToDictionary(crudService.GetByKey(key)));
+        });
+
+        app.MapPatch(path + "/{key}", async (context) =>
+        {
+            var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
+            var key = context.Request.RouteValues["key"]?.ToString();
+            if (key == null)
+            {
+                await context.ResponseMessageAsync("Please specify a key in path.");
+                return;
+            }
+
+            var jsonDocument = await context.Request.ReadJsonAsync();
+            crudService.Update(key, jsonDocument.RootElement);
+
+            await context.ResponseJsonAsync(crudService.JsonHelper.ConvertEntityToDictionary(crudService.GetByKey(key)));
+        });
+
+        app.MapDelete(path + "/{key}", async (context) =>
+        {
+            var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
+            var key = context.Request.RouteValues["key"]?.ToString();
+            if (key == null)
+            {
+                await context.ResponseMessageAsync("Please specify a key in path.");
+                return;
+            }
+
+            crudService.DeleteByKey(key);
+            await context.ResponseMessageAsync("Deleted.", StatusCodes.Status200OK);
         });
 
         return app;

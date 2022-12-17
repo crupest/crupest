@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
 
 namespace CrupestApi.Commons;
 
