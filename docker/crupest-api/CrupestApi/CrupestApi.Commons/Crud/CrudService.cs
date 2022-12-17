@@ -46,7 +46,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return result;
     }
 
-    public TEntity GetByKey(string key)
+    public TEntity GetByKey(object key)
     {
         var result = _table.Select<TEntity>(_dbConnection, null, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key));
         return result.Single();
@@ -57,5 +57,16 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         var insertClauses = _jsonHelper.ConvertJsonElementToInsertClauses(jsonElement);
         var key = _table.Insert(_dbConnection, insertClauses);
         return (string)key;
+    }
+
+    public void Update(object key, JsonElement jsonElement)
+    {
+        var updateClauses = _jsonHelper.ConvertJsonElementToUpdateClause(jsonElement);
+        _table.Update(_dbConnection, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key), updateClauses);
+    }
+
+    public void DeleteByKey(object key)
+    {
+        _table.Delete(_dbConnection, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key));
     }
 }
