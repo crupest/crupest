@@ -2,10 +2,11 @@ namespace CrupestApi.Commons.Crud;
 
 public static class CrudWebApplicationExtensions
 {
-    public static WebApplication UseCrud<TEntity>(this WebApplication app, string path) where TEntity : class
+    public static WebApplication UseCrud<TEntity>(this WebApplication app, string path, string? key) where TEntity : class
     {
         app.MapGet(path, async (context) =>
         {
+            
             var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
             var allEntities = crudService.GetAll();
             await context.ResponseJsonAsync(allEntities.Select(e => crudService.JsonHelper.ConvertEntityToDictionary(e)));
@@ -44,7 +45,7 @@ public static class CrudWebApplicationExtensions
             }
 
             var jsonDocument = await context.Request.ReadJsonAsync();
-            crudService.Update(key, jsonDocument.RootElement);
+            crudService.UpdateByKey(key, jsonDocument.RootElement);
 
             await context.ResponseJsonAsync(crudService.JsonHelper.ConvertEntityToDictionary(crudService.GetByKey(key)));
         });

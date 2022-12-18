@@ -1,0 +1,16 @@
+version: "0.2"
+language: en
+dictionaries:
+  - en_US
+  - softwareTerms
+  - node
+  - typescript
+  - python
+  - html
+  - css
+  - bash
+  - fonts
+  - filetypes
+  - npm
+words:
+  - crupest

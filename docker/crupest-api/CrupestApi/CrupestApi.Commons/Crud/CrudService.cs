@@ -20,15 +20,20 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         _jsonHelper = jsonHelper;
         _logger = loggerFactory.CreateLogger<CrudService<TEntity>>();
 
-        if (!_table.CheckExistence(_dbConnection))
-        {
-            DoInitializeDatabase(_dbConnection);
-        }
+        CheckDatabase(_dbConnection);
     }
 
     public EntityJsonHelper<TEntity> JsonHelper => _jsonHelper;
 
-    public virtual void DoInitializeDatabase(IDbConnection connection)
+    protected virtual void CheckDatabase(IDbConnection dbConnection)
+    {
+        if (!_table.CheckExistence(dbConnection))
+        {
+            DoInitializeDatabase(dbConnection);
+        }
+    }
+
+    private void DoInitializeDatabase(IDbConnection connection)
     {
         using var transaction = connection.BeginTransaction();
         connection.Execute(_table.GenerateCreateTableSql(), transaction: transaction);
@@ -59,7 +64,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return (string)key;
     }
 
-    public void Update(object key, JsonElement jsonElement)
+    public void UpdateByKey(object key, JsonElement jsonElement)
     {
         var updateClauses = _jsonHelper.ConvertJsonElementToUpdateClause(jsonElement);
         _table.Update(_dbConnection, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key), updateClauses);
