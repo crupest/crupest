@@ -12,13 +12,19 @@ public static class CrudServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddCrud<TEntity>(this IServiceCollection services) where TEntity : class
+    public static IServiceCollection AddCrud<TEntity, TCrudService>(this IServiceCollection services) where TEntity : class where TCrudService : CrudService<TEntity>
     {
         AddCrudCore(services);
 
-        services.TryAddScoped<CrudService<TEntity>>();
+        services.TryAddScoped<CrudService<TEntity>, TCrudService>();
         services.TryAddScoped<EntityJsonHelper<TEntity>>();
 
         return services;
     }
+
+    public static IServiceCollection AddCrud<TEntity>(this IServiceCollection services) where TEntity : class
+    {
+        return services.AddCrud<TEntity, CrudService<TEntity>>();
+    }
+
 }
