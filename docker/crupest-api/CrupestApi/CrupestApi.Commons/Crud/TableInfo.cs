@@ -1,4 +1,5 @@
 using System.Data;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using Dapper;
@@ -438,6 +439,18 @@ CREATE TABLE {tableName}(
         return queryResult.Select(MapDynamicTo<TResult>).ToList();
     }
 
+    public IInsertClause ConvertEntityToInsertClause(object entity)
+    {
+        Debug.Assert(EntityType.IsInstanceOfType(entity));
+        var result = new InsertClause();
+        foreach (var column in PropertyColumns)
+        {
+            var value = column.PropertyInfo!.GetValue(entity);
+            result.Add(column.ColumnName, value);
+        }
+        return result;
+    }
+
     /// <summary>
     /// Insert a entity and call hooks.
     /// </summary>
@@ -503,6 +516,14 @@ CREATE TABLE {tableName}(
 
         return key ?? throw new Exception("No key???");
     }
+
+    public object Insert(IDbConnection dbConnection, object entity)
+    {
+        Debug.Assert(EntityType.IsInstanceOfType(entity));
+        var insert = ConvertEntityToInsertClause(entity);
+        return Insert(dbConnection, insert);
+    }
+
 
     /// <summary>
     /// Upgrade a entity and call hooks.
