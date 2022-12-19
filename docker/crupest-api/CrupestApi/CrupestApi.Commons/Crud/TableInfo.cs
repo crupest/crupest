@@ -13,16 +13,17 @@ public class TableInfo
 {
     private readonly IColumnTypeProvider _columnTypeProvider;
     private readonly Lazy<List<string>> _lazyColumnNameList;
+    private readonly ILogger<TableInfo> _logger;
 
-    public TableInfo(Type entityType, IColumnTypeProvider columnTypeProvider)
-        : this(entityType.Name, entityType, columnTypeProvider)
+    public TableInfo(Type entityType, IColumnTypeProvider columnTypeProvider, ILogger<TableInfo> logger)
+        : this(entityType.Name, entityType, columnTypeProvider, logger)
     {
-
     }
 
-    public TableInfo(string tableName, Type entityType, IColumnTypeProvider columnTypeProvider)
+    public TableInfo(string tableName, Type entityType, IColumnTypeProvider columnTypeProvider, ILogger<TableInfo> logger)
     {
         _columnTypeProvider = columnTypeProvider;
+        _logger = logger;
         TableName = tableName;
         EntityType = entityType;
 
@@ -571,10 +572,12 @@ public class TableInfoFactory : ITableInfoFactory
 {
     private readonly Dictionary<Type, TableInfo> _cache = new Dictionary<Type, TableInfo>();
     private readonly IColumnTypeProvider _columnTypeProvider;
+    private readonly LoggerFactory _loggerFactory;
 
-    public TableInfoFactory(IColumnTypeProvider columnTypeProvider)
+    public TableInfoFactory(IColumnTypeProvider columnTypeProvider, LoggerFactory loggerFactory)
     {
         _columnTypeProvider = columnTypeProvider;
+        _loggerFactory = loggerFactory;
     }
 
     // This is thread-safe.
@@ -588,7 +591,7 @@ public class TableInfoFactory : ITableInfoFactory
             }
             else
             {
-                tableInfo = new TableInfo(type, _columnTypeProvider);
+                tableInfo = new TableInfo(type, _columnTypeProvider, _loggerFactory.CreateLogger<TableInfo>());
                 _cache.Add(type, tableInfo);
                 return tableInfo;
             }
