@@ -7,12 +7,16 @@ namespace CrupestApi.Commons.Crud;
 public class ColumnInfo
 {
     private readonly AggregateColumnMetadata _metadata = new AggregateColumnMetadata();
+    private ILogger<ColumnInfo> _logger;
 
     /// <summary>
     /// Initialize a column without corresponding property.
     /// </summary>
-    public ColumnInfo(TableInfo table, IColumnMetadata metadata, Type clrType, IColumnTypeProvider typeProvider)
+    public ColumnInfo(TableInfo table, IColumnMetadata metadata, Type clrType, IColumnTypeProvider typeProvider, ILoggerFactory loggerFactory)
     {
+        _logger = loggerFactory.CreateLogger<ColumnInfo>();
+        _logger.LogInformation("Create column {} without corresponding property.", ColumnName);
+
         Table = table;
         _metadata.Add(metadata);
         ColumnType = typeProvider.Get(clrType);
@@ -21,8 +25,11 @@ public class ColumnInfo
     /// <summary>
     /// Initialize a column with corresponding property.
     /// </summary>
-    public ColumnInfo(TableInfo table, PropertyInfo propertyInfo, IColumnTypeProvider typeProvider)
+    public ColumnInfo(TableInfo table, PropertyInfo propertyInfo, IColumnTypeProvider typeProvider, ILoggerFactory loggerFactory)
     {
+        _logger = loggerFactory.CreateLogger<ColumnInfo>();
+        _logger.LogInformation("Create column {} with corresponding property.", ColumnName);
+
         Table = table;
         PropertyInfo = propertyInfo;
         ColumnType = typeProvider.Get(propertyInfo.PropertyType);

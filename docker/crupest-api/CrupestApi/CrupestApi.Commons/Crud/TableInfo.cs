@@ -13,21 +13,29 @@ public class TableInfo
 {
     private readonly IColumnTypeProvider _columnTypeProvider;
     private readonly Lazy<List<string>> _lazyColumnNameList;
+    private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<TableInfo> _logger;
 
-    public TableInfo(Type entityType, IColumnTypeProvider columnTypeProvider, ILogger<TableInfo> logger)
-        : this(entityType.Name, entityType, columnTypeProvider, logger)
+    public TableInfo(Type entityType, IColumnTypeProvider columnTypeProvider, ILoggerFactory loggerFactory)
+        : this(entityType.Name, entityType, columnTypeProvider, loggerFactory)
     {
     }
 
-    public TableInfo(string tableName, Type entityType, IColumnTypeProvider columnTypeProvider, ILogger<TableInfo> logger)
+    public TableInfo(string tableName, Type entityType, IColumnTypeProvider columnTypeProvider, ILoggerFactory loggerFactory)
     {
+        _loggerFactory = loggerFactory;
+        _logger = loggerFactory.CreateLogger<TableInfo>();
+
+        _logger.LogInformation("Create TableInfo for entity type '{}'.", entityType.Name);
+
         _columnTypeProvider = columnTypeProvider;
-        _logger = logger;
+
         TableName = tableName;
         EntityType = entityType;
 
+
         var properties = entityType.GetProperties();
+        _logger.LogInformation("Find following properties: {}", string.Join(", ", properties.Select(p => p.Name)));
 
         var columnInfos = new List<ColumnInfo>();
 
@@ -39,16 +47,20 @@ public class TableInfo
 
         foreach (var property in properties)
         {
+            _logger.LogInformation("Check property '{}'.", property.Name);
             if (CheckPropertyIsColumn(property))
             {
-                var columnInfo = new ColumnInfo(this, property, _columnTypeProvider);
+                _logger.LogInformation("{} is a column, create ColumnInfo for it.", property.Name);
+                var columnInfo = new ColumnInfo(this, property, _columnTypeProvider, _loggerFactory);
                 columnInfos.Add(columnInfo);
                 if (columnInfo.IsPrimaryKey)
                 {
+                    _logger.LogInformation("Column {} is a primary key.", property.Name);
                     primaryKeyColumn = columnInfo;
                 }
                 if (columnInfo.ColumnName.Equals("id", StringComparison.OrdinalIgnoreCase))
                 {
+                    _logger.LogInformation("Column {} has name id.", property.Name);
                     hasId = true;
                 }
                 if (columnInfo.IsSpecifiedAsKey)
@@ -57,11 +69,13 @@ public class TableInfo
                     {
                         throw new Exception("Already exists a key column.");
                     }
+                    _logger.LogInformation("Column {} is specified as key.", property.Name);
                     keyColumn = columnInfo;
                 }
             }
             else
             {
+                _logger.LogInformation("{} is not a column.", property.Name);
                 nonColumnProperties.Add(property);
             }
         }
@@ -69,12 +83,14 @@ public class TableInfo
         if (primaryKeyColumn is null)
         {
             if (hasId) throw new Exception("A column named id already exists but is not primary key.");
+            _logger.LogInformation("No primary key column found, create one automatically.");
             primaryKeyColumn = CreateAutoIdColumn();
             columnInfos.Add(primaryKeyColumn);
         }
 
         if (keyColumn is null)
         {
+            _logger.LogInformation("No key column is specified, will use primary key.");
             keyColumn = primaryKeyColumn;
         }
 
@@ -83,7 +99,10 @@ public class TableInfo
         KeyColumn = keyColumn;
         NonColumnProperties = nonColumnProperties;
 
+        _logger.LogInformation("Check table validity.");
         CheckValidity();
+
+        _logger.LogInformation("TableInfo succeeded to create.");
 
         _lazyColumnNameList = new Lazy<List<string>>(() => Columns.Select(c => c.ColumnName).ToList());
     }
@@ -98,7 +117,7 @@ public class TableInfo
                     IsPrimaryKey = true,
                     IsAutoIncrement = true,
                 },
-            typeof(long), _columnTypeProvider);
+            typeof(long), _columnTypeProvider, _loggerFactory);
     }
 
     public Type EntityType { get; }
@@ -573,11 +592,13 @@ public class TableInfoFactory : ITableInfoFactory
     private readonly Dictionary<Type, TableInfo> _cache = new Dictionary<Type, TableInfo>();
     private readonly IColumnTypeProvider _columnTypeProvider;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger<TableInfoFactory> _logger;
 
     public TableInfoFactory(IColumnTypeProvider columnTypeProvider, ILoggerFactory loggerFactory)
     {
         _columnTypeProvider = columnTypeProvider;
         _loggerFactory = loggerFactory;
+        _logger = loggerFactory.CreateLogger<TableInfoFactory>();
     }
 
     // This is thread-safe.
@@ -587,11 +608,14 @@ public class TableInfoFactory : ITableInfoFactory
         {
             if (_cache.TryGetValue(type, out var tableInfo))
             {
+                _logger.LogDebug("Table info of type '{}' is cached, return it.", type.Name);
                 return tableInfo;
             }
             else
             {
-                tableInfo = new TableInfo(type, _columnTypeProvider, _loggerFactory.CreateLogger<TableInfo>());
+                _logger.LogDebug("Table info for type '{}' is not in cache, create it.", type.Name);
+                tableInfo = new TableInfo(type, _columnTypeProvider, _loggerFactory);
+                _logger.LogDebug("Table info for type '{}' is created, add it to cache.", type.Name);
                 _cache.Add(type, tableInfo);
                 return tableInfo;
             }
