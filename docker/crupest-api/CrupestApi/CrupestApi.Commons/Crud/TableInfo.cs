@@ -572,9 +572,9 @@ public class TableInfoFactory : ITableInfoFactory
 {
     private readonly Dictionary<Type, TableInfo> _cache = new Dictionary<Type, TableInfo>();
     private readonly IColumnTypeProvider _columnTypeProvider;
-    private readonly LoggerFactory _loggerFactory;
+    private readonly ILoggerFactory _loggerFactory;
 
-    public TableInfoFactory(IColumnTypeProvider columnTypeProvider, LoggerFactory loggerFactory)
+    public TableInfoFactory(IColumnTypeProvider columnTypeProvider, ILoggerFactory loggerFactory)
     {
         _columnTypeProvider = columnTypeProvider;
         _loggerFactory = loggerFactory;

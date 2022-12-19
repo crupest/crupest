@@ -1,8 +1,10 @@
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace CrupestApi.Commons.Crud.Tests;
 
 public class TableInfoTest
 {
-    private static TableInfoFactory TableInfoFactory = new TableInfoFactory(new ColumnTypeProvider());
+    private static TableInfoFactory TableInfoFactory = new TableInfoFactory(new ColumnTypeProvider(), NullLoggerFactory.Instance);
 
     private TableInfo _tableInfo;
 
