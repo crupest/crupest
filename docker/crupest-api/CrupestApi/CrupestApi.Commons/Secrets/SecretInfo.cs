@@ -8,7 +8,7 @@ public class SecretInfo
 {
     [Column(NotNull = true)]
     public string Key { get; set; } = default!;
-    [Column(NotNull = true, Generated = true, NoUpdate = true, ActAsKey = true)]
+    [Column(NotNull = true, NoUpdate = true, ActAsKey = true)]
     public string Secret { get; set; } = default!;
     [Column(DefaultEmptyForString = true)]
     public string Description { get; set; } = default!;

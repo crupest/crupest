@@ -62,6 +62,12 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return result.Single();
     }
 
+    public string Create(TEntity entity)
+    {
+        var key = _table.Insert(_dbConnection, entity);
+        return (string)key;
+    }
+
     public string Create(JsonElement jsonElement)
     {
         var insertClauses = _jsonHelper.ConvertJsonElementToInsertClauses(jsonElement);
