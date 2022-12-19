@@ -2,11 +2,11 @@ namespace CrupestApi.Commons.Crud;
 
 public static class CrudWebApplicationExtensions
 {
-    public static WebApplication UseCrud<TEntity>(this WebApplication app, string path, string? key) where TEntity : class
+    public static WebApplication MapCrud<TEntity>(this WebApplication app, string path, string? permission) where TEntity : class
     {
         app.MapGet(path, async (context) =>
         {
-            
+            if (!context.RequirePermission(permission)) return;
             var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
             var allEntities = crudService.GetAll();
             await context.ResponseJsonAsync(allEntities.Select(e => crudService.JsonHelper.ConvertEntityToDictionary(e)));
@@ -14,6 +14,7 @@ public static class CrudWebApplicationExtensions
 
         app.MapGet(path + "/{key}", async (context) =>
         {
+            if (!context.RequirePermission(permission)) return;
             var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
             var key = context.Request.RouteValues["key"]?.ToString();
             if (key == null)
@@ -28,6 +29,7 @@ public static class CrudWebApplicationExtensions
 
         app.MapPost(path, async (context) =>
         {
+            if (!context.RequirePermission(permission)) return;
             var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
             var jsonDocument = await context.Request.ReadJsonAsync();
             var key = crudService.Create(jsonDocument.RootElement);
@@ -36,6 +38,7 @@ public static class CrudWebApplicationExtensions
 
         app.MapPatch(path + "/{key}", async (context) =>
         {
+            if (!context.RequirePermission(permission)) return;
             var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
             var key = context.Request.RouteValues["key"]?.ToString();
             if (key == null)
@@ -52,6 +55,7 @@ public static class CrudWebApplicationExtensions
 
         app.MapDelete(path + "/{key}", async (context) =>
         {
+            if (!context.RequirePermission(permission)) return;
             var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
             var key = context.Request.RouteValues["key"]?.ToString();
             if (key == null)

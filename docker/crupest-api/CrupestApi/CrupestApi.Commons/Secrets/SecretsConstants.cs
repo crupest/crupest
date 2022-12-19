@@ -1,4 +1,4 @@
-namespace CrupestApi.Secrets;
+namespace CrupestApi.Commons.Secrets;
 
 public static class SecretsConstants
 {

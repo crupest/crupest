@@ -393,7 +393,7 @@ CREATE TABLE {tableName}(
     /// <summary>
     /// ConvertParameters. Select. Call hooks.
     /// </summary>
-    public virtual List<dynamic> SelectDynamic(IDbConnection dbConnection, string? what, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
+    public virtual List<dynamic> SelectDynamic(IDbConnection dbConnection, string? what = null, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
     {
         var (sql, parameters) = GenerateSelectSql(what, where, orderBy, skip, limit);
         var queryResult = dbConnection.Query<dynamic>(sql, ConvertParameters(parameters));
@@ -431,7 +431,7 @@ CREATE TABLE {tableName}(
     /// <summary>
     /// Select and call hooks.
     /// </summary>
-    public virtual List<TResult> Select<TResult>(IDbConnection dbConnection, string? what, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
+    public virtual List<TResult> Select<TResult>(IDbConnection dbConnection, string? what = null, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
     {
         List<dynamic> queryResult = SelectDynamic(dbConnection, what, where, orderBy, skip, limit).ToList();
 
