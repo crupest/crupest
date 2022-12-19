@@ -1,6 +1,6 @@
 namespace CrupestApi.Commons;
 
-interface ISecretService
+public interface ISecretService
 {
     List<string> GetPermissions(string secret);
 }

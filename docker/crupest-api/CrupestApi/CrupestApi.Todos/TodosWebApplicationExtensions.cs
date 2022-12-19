@@ -23,7 +23,7 @@ public static class TodosWebApplicationExtensions
             }
             catch (Exception e)
             {
-                await context.Response.WriteErrorMessageAsync(e.Message, statusCode: StatusCodes.Status503ServiceUnavailable);
+                await context.Response.WriteMessageAsync(e.Message, statusCode: StatusCodes.Status503ServiceUnavailable);
             }
         });
 

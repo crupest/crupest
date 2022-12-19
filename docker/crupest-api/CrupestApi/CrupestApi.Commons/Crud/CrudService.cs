@@ -12,15 +12,20 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
     protected readonly EntityJsonHelper<TEntity> _jsonHelper;
     private readonly ILogger<CrudService<TEntity>> _logger;
 
-    public CrudService(string? connectionName, ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, EntityJsonHelper<TEntity> jsonHelper, ILoggerFactory loggerFactory)
+    public CrudService(ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, EntityJsonHelper<TEntity> jsonHelper, ILoggerFactory loggerFactory)
     {
-        _connectionName = connectionName;
+        _connectionName = GetConnectionName();
         _table = tableInfoFactory.Get(typeof(TEntity));
         _dbConnection = dbConnectionFactory.Get(_connectionName);
         _jsonHelper = jsonHelper;
         _logger = loggerFactory.CreateLogger<CrudService<TEntity>>();
 
         CheckDatabase(_dbConnection);
+    }
+
+    protected virtual string GetConnectionName()
+    {
+        return typeof(TEntity).Name;
     }
 
     public EntityJsonHelper<TEntity> JsonHelper => _jsonHelper;
@@ -33,7 +38,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         }
     }
 
-    private void DoInitializeDatabase(IDbConnection connection)
+    protected virtual void DoInitializeDatabase(IDbConnection connection)
     {
         using var transaction = connection.BeginTransaction();
         connection.Execute(_table.GenerateCreateTableSql(), transaction: transaction);

@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using CrupestApi.Commons.Crud;
 
-namespace CrupestApi.Secrets;
+namespace CrupestApi.Commons.Secrets;
 
 public class SecretInfo
 {
@@ -23,13 +23,13 @@ public class SecretInfo
 
     private static string GenerateRandomKey(int length)
     {
-        const string alphanum = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         var result = new StringBuilder(length);
         lock (RandomNumberGenerator)
         {
             for (int i = 0; i < length; i++)
             {
-                result.Append(alphanum[RandomNumberGenerator.GetInt32(alphanum.Length)]);
+                result.Append(chars[RandomNumberGenerator.GetInt32(chars.Length)]);
             }
         }
         return result.ToString();
