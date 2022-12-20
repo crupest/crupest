@@ -537,14 +537,6 @@ CREATE TABLE {tableName}(
         return key ?? throw new Exception("No key???");
     }
 
-    public object Insert(IDbConnection dbConnection, object entity)
-    {
-        Debug.Assert(EntityType.IsInstanceOfType(entity));
-        var insert = ConvertEntityToInsertClause(entity);
-        return Insert(dbConnection, insert);
-    }
-
-
     /// <summary>
     /// Upgrade a entity and call hooks.
     /// </summary>
