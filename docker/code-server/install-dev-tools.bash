@@ -2,6 +2,7 @@
 
 set -e
 
+apt-get update
 apt-get install vim wget git
 
 git config --global user.email "$GIT_EMAIL"
@@ -12,3 +13,5 @@ dpkg -i packages-microsoft-prod.deb
 rm packages-microsoft-prod.deb
 
 apt-get install dotnet-sdk-7.0
+
+rm -rf /var/lib/apt/lists/*
