@@ -62,9 +62,21 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return result.Single();
     }
 
+    public IInsertClause ConvertEntityToInsertClauses(TEntity entity)
+    {
+        var result = new InsertClause();
+        foreach (var column in _table.PropertyColumns)
+        {
+            var value = column.PropertyInfo!.GetValue(entity);
+            result.Add(column.ColumnName, value);
+        }
+        return result;
+    }
+
     public string Create(TEntity entity)
     {
-        var key = _table.Insert(_dbConnection, entity);
+        var insertClause = ConvertEntityToInsertClauses(entity);
+        var key = _table.Insert(_dbConnection, insertClause);
         return (string)key;
     }
 
