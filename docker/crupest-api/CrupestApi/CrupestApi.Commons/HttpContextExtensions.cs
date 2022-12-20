@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CrupestApi.Commons.Secrets;
 using Microsoft.Extensions.Options;
 
 namespace CrupestApi.Commons;

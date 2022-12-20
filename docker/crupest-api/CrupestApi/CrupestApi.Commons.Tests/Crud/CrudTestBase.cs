@@ -1,8 +1,10 @@
+using System.Net;
+using CrupestApi.Commons.Secrets;
 using Microsoft.AspNetCore.TestHost;
 
 namespace CrupestApi.Commons.Crud.Tests;
 
-public abstract class CrudTestBase : IAsyncDisposable
+public abstract class CrudTestBase<TEntity> : IAsyncDisposable where TEntity : class
 {
     protected readonly WebApplication _app;
 
@@ -18,9 +20,18 @@ public abstract class CrudTestBase : IAsyncDisposable
 
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
-        builder.Services.AddCrudCore();
+        builder.Services.AddCrud<TEntity>();
         ConfigureApplication(builder);
         _app = builder.Build();
+
+        if (authKey is not null)
+        {
+            using (var scope = _app.Services.CreateScope())
+            {
+                var secretService = scope.ServiceProvider.GetRequiredService<ISecretService>();
+                secretService.CreateTestSecret(authKey, "test-secret");
+            }
+        }
 
         _client = CreateHttpClient();
     }
@@ -40,5 +51,24 @@ public abstract class CrudTestBase : IAsyncDisposable
     public HttpClient CreateHttpClient()
     {
         return GetTestServer().CreateClient();
+    }
+
+    public async Task TestAuth()
+    {
+        if (_authKey is null)
+        {
+            return;
+        }
+
+        {
+            using var response = await _client.GetAsync(_path);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        {
+            var entity = Activator.CreateInstance<TEntity>();
+            using var response = await _client.PostAsJsonAsync(_path, entity);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
     }
 }
