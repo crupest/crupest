@@ -1,4 +1,5 @@
 using CrupestApi.Commons.Crud;
+using Dapper;
 
 namespace CrupestApi.Commons.Secrets;
 
@@ -21,6 +22,12 @@ public class SecretService : CrudService<SecretInfo>, ISecretService
             Description = "This is the init key. Please revoke it immediately after creating a new one."
         });
         transaction.Commit();
+    }
+
+    public void CreateTestSecret(string key, string secret)
+    {
+        var connection = _dbConnection;
+        connection.Execute("INSERT INTO secrets (key, secret, description) VALUES (@key, @secret, @desc)", new { key, secret, desc = "Test key." });
     }
 
     public List<string> GetPermissions(string secret)

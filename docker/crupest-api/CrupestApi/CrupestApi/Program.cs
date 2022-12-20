@@ -11,6 +11,7 @@ builder.Services.AddJsonOptions();
 builder.Services.AddCrupestApiConfig();
 
 builder.Services.AddTodos();
+builder.Services.AddSecrets();
 
 var app = builder.Build();
 
