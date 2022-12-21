@@ -436,8 +436,8 @@ CREATE TABLE {tableName}(
     public virtual int SelectCount(IDbConnection dbConnection, IWhereClause? where = null, IOrderByClause? orderBy = null, int? skip = null, int? limit = null)
     {
         var (sql, parameters) = GenerateSelectSql("COUNT(*)", where, orderBy, skip, limit);
-        return dbConnection.QuerySingle<int>(sql, parameters);
-
+        var result = dbConnection.QuerySingle<int>(sql, ConvertParameters(parameters));
+        return result;
     }
 
     public virtual TResult MapDynamicTo<TResult>(dynamic d)

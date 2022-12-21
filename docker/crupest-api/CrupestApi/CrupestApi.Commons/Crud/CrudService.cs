@@ -61,6 +61,12 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return result;
     }
 
+    public int GetCount()
+    {
+        var result = _table.SelectCount(_dbConnection);
+        return result;
+    }
+
     public TEntity GetByKey(object key)
     {
         var result = _table.Select<TEntity>(_dbConnection, null, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key)).SingleOrDefault();
