@@ -27,7 +27,9 @@ public class SqliteConnectionFactory : IDbConnectionFactory
             Mode = SqliteOpenMode.ReadWriteCreate
         }.ToString();
 
-        return new SqliteConnection(connectionString);
+        var connection = new SqliteConnection(connectionString);
+        connection.Open();
+        return connection;
     }
 
     public bool ShouldDisposeConnection => true;
@@ -55,6 +57,7 @@ public class SqliteMemoryConnectionFactory : IDbConnectionFactory, IDisposable
 
             connection = new SqliteConnection(connectionString);
             _connections.Add(name, connection);
+            connection.Open();
             return connection;
         }
     }

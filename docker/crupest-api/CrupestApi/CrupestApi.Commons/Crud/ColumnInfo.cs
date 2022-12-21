@@ -15,7 +15,12 @@ public class ColumnInfo
     public ColumnInfo(TableInfo table, IColumnMetadata metadata, Type clrType, IColumnTypeProvider typeProvider, ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger<ColumnInfo>();
-        _logger.LogInformation("Create column {} without corresponding property.", ColumnName);
+        if (metadata is null)
+            throw new ArgumentException("You must specify metadata for non-property column.");
+        if (metadata.TryGetValue(ColumnMetadataKeys.ColumnName, out var columnName))
+            _logger.LogInformation("Create column without property.", columnName);
+        else
+            throw new ArgumentException("You must specify name in metadata for non-property column.");
 
         Table = table;
         _metadata.Add(metadata);
@@ -28,7 +33,7 @@ public class ColumnInfo
     public ColumnInfo(TableInfo table, PropertyInfo propertyInfo, IColumnTypeProvider typeProvider, ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger<ColumnInfo>();
-        _logger.LogInformation("Create column {} with corresponding property.", ColumnName);
+        _logger.LogInformation("Create column with property {}.", propertyInfo.Name);
 
         Table = table;
         PropertyInfo = propertyInfo;
@@ -90,7 +95,7 @@ public class ColumnInfo
             if (value is null)
             {
                 string methodName = ColumnName + "DefaultValueGenerator";
-                result = Table.EntityType.GetMethod(methodName, BindingFlags.Static);
+                result = Table.EntityType.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static);
             }
             else
             {
@@ -131,7 +136,28 @@ public class ColumnInfo
 
     public object? InvokeDefaultValueGenerator()
     {
-        return DefaultValueGeneratorMethod?.Invoke(null, new object?[] { this });
+        var method = this.DefaultValueGeneratorMethod;
+        if (method is null)
+        {
+            _logger.LogInformation("Try to invoke default value generator for column {} but it does not exist.", ColumnName);
+            return null;
+        }
+        var parameters = method.GetParameters();
+        if (parameters.Length == 0)
+        {
+            return method.Invoke(null, new object?[0]);
+        }
+        else if (parameters.Length == 1)
+        {
+            if (parameters[0].ParameterType != typeof(ColumnInfo))
+                throw new Exception("The default value generator method can only have a parameter of type ColumnInfo.");
+            return method.Invoke(null, new object?[] { this });
+        }
+        else
+        {
+            throw new Exception("The default value generator method can only have 0 or 1 parameter.");
+        }
+
     }
 
     public string GenerateCreateTableColumnString(string? dbProviderId = null)

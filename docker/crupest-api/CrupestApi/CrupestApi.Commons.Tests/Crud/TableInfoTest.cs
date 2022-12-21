@@ -16,9 +16,9 @@ public class TableInfoTest
     [Fact]
     public void TestColumnCount()
     {
-        Assert.Equal(4, _tableInfo.Columns.Count);
-        Assert.Equal(3, _tableInfo.PropertyColumns.Count);
-        Assert.Equal(3, _tableInfo.ColumnProperties.Count);
+        Assert.Equal(5, _tableInfo.Columns.Count);
+        Assert.Equal(4, _tableInfo.PropertyColumns.Count);
+        Assert.Equal(4, _tableInfo.ColumnProperties.Count);
         Assert.Equal(1, _tableInfo.NonColumnProperties.Count);
     }
 

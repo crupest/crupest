@@ -82,11 +82,11 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return result;
     }
 
-    public string Create(TEntity entity)
+    public object Create(TEntity entity)
     {
         var insertClause = ConvertEntityToInsertClauses(entity);
         var key = _table.Insert(_dbConnection, insertClause);
-        return (string)key;
+        return key;
     }
 
     public IUpdateClause ConvertEntityToUpdateClauses(TEntity entity, UpdateBehavior behavior)

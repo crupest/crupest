@@ -21,11 +21,26 @@ public class CrudServiceTest
     [Fact]
     public void CrudTest()
     {
-        _crudService.Create(new TestEntity()
+        var key = _crudService.Create(new TestEntity()
         {
             Name = "crupest",
             Age = 18,
         });
+
+        Assert.Equal("crupest", key);
+
+        var entity = _crudService.GetByKey(key);
+        Assert.Equal("crupest", entity.Name);
+        Assert.Equal(18, entity.Age);
+        Assert.Null(entity.Height);
+        Assert.NotEmpty(entity.Secret);
+
+        var list = _crudService.GetAll();
+        entity = Assert.Single(list);
+        Assert.Equal("crupest", entity.Name);
+        Assert.Equal(18, entity.Age);
+        Assert.Null(entity.Height);
+        Assert.NotEmpty(entity.Secret);
     }
 
 

@@ -153,6 +153,17 @@ public class TableInfo
         throw new KeyNotFoundException("No such column with given name.");
     }
 
+    public void CheckGeneratedColumnHasGenerator()
+    {
+        foreach (var column in Columns)
+        {
+            if (column.IsGenerated && column.DefaultValueGeneratorMethod is null)
+            {
+                throw new Exception($"Column '{column.ColumnName}' is generated but has no generator.");
+            }
+        }
+    }
+
     public void CheckValidity()
     {
         // Check if there is only one primary key.
@@ -183,6 +194,8 @@ public class TableInfo
                 throw new Exception($"Two columns have the same sql name '{column.ColumnName}'.");
             sqlNameSet.Add(column.ColumnName);
         }
+
+        CheckGeneratedColumnHasGenerator();
     }
 
     public string GenerateCreateIndexSql(string? dbProviderId = null)
@@ -275,7 +288,7 @@ CREATE TABLE {tableName}(
 
         if (whereClause is not null)
         {
-            result.Append(' ');
+            result.Append(" WHERE ");
             var (whereSql, whereParameters) = whereClause.GenerateSql(dbProviderId);
             parameters.AddRange(whereParameters);
             result.Append(whereSql);
@@ -284,8 +297,7 @@ CREATE TABLE {tableName}(
         if (orderByClause is not null)
         {
             result.Append(' ');
-            var (orderBySql, orderByParameters) = orderByClause.GenerateSql(dbProviderId);
-            parameters.AddRange(orderByParameters);
+            var orderBySql = orderByClause.GenerateSql(dbProviderId);
             result.Append(orderBySql);
         }
 
@@ -430,19 +442,24 @@ CREATE TABLE {tableName}(
 
     public virtual TResult MapDynamicTo<TResult>(dynamic d)
     {
-        var result = Activator.CreateInstance<TResult>();
+        var dict = (IDictionary<string, object?>)d;
 
-        Type dynamicType = d.GetType();
+        var result = Activator.CreateInstance<TResult>();
         Type resultType = typeof(TResult);
 
         foreach (var column in Columns)
         {
-            var dynamicProperty = dynamicType.GetProperty(column.ColumnName);
-            // TODO: Maybe we can do better to get result property in case ColumnName is set to another value.
             var resultProperty = resultType.GetProperty(column.ColumnName);
-            if (dynamicProperty is not null && resultProperty is not null)
+            if (dict.ContainsKey(column.ColumnName) && resultProperty is not null)
             {
-                resultProperty.SetValue(result, dynamicProperty.GetValue(d));
+                if (dict[column.ColumnName] is null)
+                {
+                    resultProperty.SetValue(result, null);
+                    continue;
+                }
+                object? value = Convert.ChangeType(dict[column.ColumnName], column.ColumnType.DatabaseClrType);
+                value = column.ColumnType.ConvertFromDatabase(value);
+                resultProperty.SetValue(result, value);
             }
         }
 
@@ -530,7 +547,7 @@ CREATE TABLE {tableName}(
             }
         }
 
-        var (sql, parameters) = GenerateInsertSql(insert);
+        var (sql, parameters) = GenerateInsertSql(realInsert);
 
         dbConnection.Execute(sql, ConvertParameters(parameters));
 
