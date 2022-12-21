@@ -44,6 +44,24 @@ public class CrudServiceTest
 
         var count = _crudService.GetCount();
         Assert.Equal(1, count);
+
+        _crudService.UpdateByKey(key, new TestEntity()
+        {
+            Name = "crupest2.0",
+            Age = 22,
+            Height = 180,
+        });
+
+        entity = _crudService.GetByKey("crupest2.0");
+        Assert.Equal("crupest2.0", entity.Name);
+        Assert.Equal(22, entity.Age);
+        Assert.Equal(180, entity.Height);
+        Assert.NotEmpty(entity.Secret);
+
+        _crudService.DeleteByKey("crupest2.0");
+
+        count = _crudService.GetCount();
+        Assert.Equal(0, count);
     }
 
 
