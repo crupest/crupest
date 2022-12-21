@@ -4,6 +4,7 @@ namespace CrupestApi.Commons.Crud;
 
 public interface IWhereClause : IClause
 {
+    // Does not contain "WHERE" keyword!
     (string sql, ParamList parameters) GenerateSql(string? dbProviderId = null);
 }
 

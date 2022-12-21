@@ -20,7 +20,8 @@ public class OrderByItem
 public interface IOrderByClause : IClause
 {
     List<OrderByItem> Items { get; }
-    (string sql, ParamList parameters) GenerateSql(string? dbProviderId = null);
+    // Contains "ORDER BY" keyword!
+    string GenerateSql(string? dbProviderId = null);
 }
 
 public class OrderByClause : IOrderByClause
@@ -42,8 +43,8 @@ public class OrderByClause : IOrderByClause
         return Items.Select(x => x.ColumnName).ToList();
     }
 
-    public (string sql, ParamList parameters) GenerateSql(string? dbProviderId = null)
+    public string GenerateSql(string? dbProviderId = null)
     {
-        return ("ORDER BY " + string.Join(", ", Items.Select(i => i.GenerateSql())), new ParamList());
+        return "ORDER BY " + string.Join(", ", Items.Select(i => i.GenerateSql()));
     }
 }
