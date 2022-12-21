@@ -68,8 +68,11 @@ public static class CrudWebApplicationExtensions
                 return;
             }
 
-            crudService.DeleteByKey(key);
-            await context.ResponseMessageAsync("Deleted.", StatusCodes.Status200OK);
+            var deleted = crudService.DeleteByKey(key);
+            if (deleted)
+                await context.ResponseMessageAsync("Deleted.", StatusCodes.Status200OK);
+            else
+                await context.ResponseMessageAsync("Not exist.", StatusCodes.Status200OK);
         });
 
         return app;
