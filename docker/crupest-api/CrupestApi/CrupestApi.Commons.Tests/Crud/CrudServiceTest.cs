@@ -41,6 +41,9 @@ public class CrudServiceTest
         Assert.Equal(18, entity.Age);
         Assert.Null(entity.Height);
         Assert.NotEmpty(entity.Secret);
+
+        var count = _crudService.GetCount();
+        Assert.Equal(1, count);
     }
 
 
