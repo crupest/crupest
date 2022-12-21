@@ -108,7 +108,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return result;
     }
 
-    public void UpdateByKey(object key, TEntity entity, UpdateBehavior behavior)
+    public void UpdateByKey(object key, TEntity entity, UpdateBehavior behavior = UpdateBehavior.None)
     {
         var affectedCount = _table.Update(_dbConnection, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key),
             ConvertEntityToUpdateClauses(entity, behavior));
