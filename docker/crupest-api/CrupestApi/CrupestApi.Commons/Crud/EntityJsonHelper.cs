@@ -17,7 +17,7 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         _jsonSerializerOptions = jsonSerializerOptions;
     }
 
-    public virtual Dictionary<string, object?> ConvertEntityToDictionary(TEntity entity, bool includeNonColumnProperties = false)
+    public Dictionary<string, object?> ConvertEntityToDictionary(TEntity entity, bool includeNonColumnProperties = false)
     {
         var result = new Dictionary<string, object?>();
 
@@ -40,131 +40,75 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         return result;
     }
 
-    public virtual string ConvertEntityToJson(TEntity entity, bool includeNonColumnProperties = false)
+    public string ConvertEntityToJson(TEntity entity, bool includeNonColumnProperties = false)
     {
         var dictionary = ConvertEntityToDictionary(entity, includeNonColumnProperties);
         return JsonSerializer.Serialize(dictionary, _jsonSerializerOptions.CurrentValue);
     }
 
-    public virtual IInsertClause ConvertJsonElementToInsertClauses(JsonElement rootElement)
+    public TEntity ConvertJsonToEntityForInsert(JsonElement jsonElement)
     {
-        var insertClause = InsertClause.Create();
+        if (jsonElement.ValueKind is not JsonValueKind.Object)
+            throw new ArgumentException("The jsonElement must be an object.");
 
-        if (rootElement.ValueKind != JsonValueKind.Object)
-        {
-            throw new UserException("The root element must be an object.");
-        }
-
+        var result = Activator.CreateInstance<TEntity>();
         foreach (var column in _table.PropertyColumns)
         {
-            object? value = null;
-            if (rootElement.TryGetProperty(column.ColumnName, out var propertyElement))
+            if (jsonElement.TryGetProperty(column.ColumnName, out var value))
             {
-                value = propertyElement.ValueKind switch
-                {
-                    JsonValueKind.Null or JsonValueKind.Undefined => null,
-                    JsonValueKind.Number => propertyElement.GetDouble(),
-                    JsonValueKind.True => true,
-                    JsonValueKind.False => false,
-                    JsonValueKind.String => propertyElement.GetString(),
-                    _ => throw new Exception($"Bad json value of property {column.ColumnName}.")
-                };
+                var realValue = column.ColumnType.ConvertFromDatabase(value);
+                column.PropertyInfo!.SetValue(result, realValue);
             }
-
-            if (column.IsGenerated && value is not null)
-            {
-                throw new UserException($"The property {column.ColumnName} is generated. You cannot specify its value.");
-            }
-
-            if (column.IsNotNull && !column.CanBeGenerated && value is null)
-            {
-                throw new UserException($"The property {column.ColumnName} can't be null or generated. But you specify a null value.");
-            }
-
-            insertClause.Add(column.ColumnName, value);
         }
 
-        return insertClause;
+        return result;
     }
 
-    public IInsertClause ConvertJsonToInsertClauses(string json)
+    public TEntity ConvertJsonToEntityForInsert(string json)
     {
-        var document = JsonSerializer.Deserialize<JsonDocument>(json, _jsonSerializerOptions.CurrentValue)!;
-        return ConvertJsonElementToInsertClauses(document.RootElement);
+        var jsonElement = JsonSerializer.Deserialize<JsonElement>(json, _jsonSerializerOptions.CurrentValue);
+        return ConvertJsonToEntityForInsert(jsonElement!);
     }
 
-    public IUpdateClause ConvertJsonElementToUpdateClause(JsonElement rootElement, bool saveNull)
+    public TEntity ConvertJsonToEntityForUpdate(JsonElement jsonElement, out UpdateBehavior updateBehavior)
     {
-        var updateClause = UpdateClause.Create();
+        if (jsonElement.ValueKind is not JsonValueKind.Object)
+            throw new UserException("The jsonElement must be an object.");
 
-        if (rootElement.ValueKind != JsonValueKind.Object)
+        updateBehavior = UpdateBehavior.None;
+
+        if (jsonElement.TryGetProperty("$saveNull", out var saveNullValue))
         {
-            throw new UserException("The root element must be an object.");
+            if (saveNullValue.ValueKind is JsonValueKind.True)
+            {
+                updateBehavior |= UpdateBehavior.SaveNull;
+            }
+            else if (saveNullValue.ValueKind is JsonValueKind.False)
+            {
+
+            }
+            else
+            {
+                throw new UserException("The $saveNull must be a boolean.");
+            }
         }
 
+        var result = Activator.CreateInstance<TEntity>();
         foreach (var column in _table.PropertyColumns)
         {
-            object? value = null;
-
-            if (rootElement.TryGetProperty(column.ColumnName, out var propertyElement))
+            if (jsonElement.TryGetProperty(column.ColumnName, out var value))
             {
-                value = propertyElement.ValueKind switch
-                {
-                    JsonValueKind.Null or JsonValueKind.Undefined => null,
-                    JsonValueKind.Number => propertyElement.GetDouble(),
-                    JsonValueKind.True => true,
-                    JsonValueKind.False => false,
-                    JsonValueKind.String => propertyElement.GetString(),
-                    _ => throw new Exception($"Bad json value of property {column.ColumnName}.")
-                };
-
-                if (column.IsNoUpdate && (value is not null || saveNull))
-                {
-                    throw new UserException($"The property {column.ColumnName} is not updatable. You cannot specify its value.");
-                }
+                var realValue = column.ColumnType.ConvertFromDatabase(value);
+                column.PropertyInfo!.SetValue(result, realValue);
             }
-
-            if (value is null && !saveNull)
-            {
-                continue;
-            }
-
-            updateClause.Add(column.ColumnName, value ?? DbNullValue.Instance);
         }
 
-        return updateClause;
+        return result;
     }
 
-    public IUpdateClause ConvertJsonElementToUpdateClause(JsonElement rootElement)
+    public TEntity ConvertJsonToEntityForUpdate(string json, out UpdateBehavior updateBehavior)
     {
-        var updateClause = UpdateClause.Create();
-
-        if (rootElement.ValueKind != JsonValueKind.Object)
-        {
-            throw new UserException("The root element must be an object.");
-        }
-
-        bool saveNull = false;
-
-        if (rootElement.TryGetProperty("$saveNull", out var propertyElement))
-        {
-            if (propertyElement.ValueKind is not JsonValueKind.True or JsonValueKind.False)
-            {
-                throw new UserException("$saveNull can only be true or false.");
-            }
-
-            if (propertyElement.ValueKind is JsonValueKind.True)
-            {
-                saveNull = true;
-            }
-        }
-
-        return ConvertJsonElementToUpdateClause(rootElement, saveNull);
-    }
-
-    public IUpdateClause ConvertJsonToUpdateClause(string json)
-    {
-        var document = JsonSerializer.Deserialize<JsonDocument>(json, _jsonSerializerOptions.CurrentValue)!;
-        return ConvertJsonElementToUpdateClause(document.RootElement);
+        var jsonElement = JsonSerializer.Deserialize<JsonElement>(json, _jsonSerializerOptions.CurrentValue);
+        return ConvertJsonToEntityForUpdate(jsonElement!, out updateBehavior);
     }
 }

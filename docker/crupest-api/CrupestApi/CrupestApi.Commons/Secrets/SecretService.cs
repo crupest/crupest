@@ -5,8 +5,8 @@ namespace CrupestApi.Commons.Secrets;
 
 public class SecretService : CrudService<SecretInfo>, ISecretService
 {
-    public SecretService(ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, EntityJsonHelper<SecretInfo> jsonHelper, ILoggerFactory loggerFactory)
-        : base(tableInfoFactory, dbConnectionFactory, jsonHelper, loggerFactory)
+    public SecretService(ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, ILoggerFactory loggerFactory)
+        : base(tableInfoFactory, dbConnectionFactory, loggerFactory)
     {
 
     }

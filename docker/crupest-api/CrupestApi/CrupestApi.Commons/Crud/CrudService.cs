@@ -1,23 +1,29 @@
 using System.Data;
-using System.Text.Json;
 using Dapper;
 
 namespace CrupestApi.Commons.Crud;
+
+[Flags]
+public enum UpdateBehavior
+{
+    None = 0,
+    SaveNull = 1
+}
 
 public class CrudService<TEntity> : IDisposable where TEntity : class
 {
     protected readonly TableInfo _table;
     protected readonly string? _connectionName;
     protected readonly IDbConnection _dbConnection;
-    protected readonly EntityJsonHelper<TEntity> _jsonHelper;
+    private readonly bool _shouldDisposeConnection;
     private readonly ILogger<CrudService<TEntity>> _logger;
 
-    public CrudService(ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, EntityJsonHelper<TEntity> jsonHelper, ILoggerFactory loggerFactory)
+    public CrudService(ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, ILoggerFactory loggerFactory)
     {
         _connectionName = GetConnectionName();
         _table = tableInfoFactory.Get(typeof(TEntity));
         _dbConnection = dbConnectionFactory.Get(_connectionName);
-        _jsonHelper = jsonHelper;
+        _shouldDisposeConnection = dbConnectionFactory.ShouldDisposeConnection;
         _logger = loggerFactory.CreateLogger<CrudService<TEntity>>();
 
         CheckDatabase(_dbConnection);
@@ -27,8 +33,6 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
     {
         return typeof(TEntity).Name;
     }
-
-    public EntityJsonHelper<TEntity> JsonHelper => _jsonHelper;
 
     protected virtual void CheckDatabase(IDbConnection dbConnection)
     {
@@ -47,7 +51,8 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
 
     public void Dispose()
     {
-        _dbConnection.Dispose();
+        if (_shouldDisposeConnection)
+            _dbConnection.Dispose();
     }
 
     public List<TEntity> GetAll()
@@ -80,17 +85,23 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return (string)key;
     }
 
-    public string Create(JsonElement jsonElement)
+    public IUpdateClause ConvertEntityToUpdateClauses(TEntity entity, UpdateBehavior behavior)
     {
-        var insertClauses = _jsonHelper.ConvertJsonElementToInsertClauses(jsonElement);
-        var key = _table.Insert(_dbConnection, insertClauses);
-        return (string)key;
+        var result = UpdateClause.Create();
+        var saveNull = behavior.HasFlag(UpdateBehavior.SaveNull);
+        foreach (var column in _table.PropertyColumns)
+        {
+            var value = column.PropertyInfo!.GetValue(entity);
+            if (!saveNull && value is null) continue;
+            result.Add(column.ColumnName, value);
+        }
+        return result;
     }
 
-    public void UpdateByKey(object key, JsonElement jsonElement)
+    public void UpdateByKey(object key, TEntity entity, UpdateBehavior behavior)
     {
-        var updateClauses = _jsonHelper.ConvertJsonElementToUpdateClause(jsonElement);
-        _table.Update(_dbConnection, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key), updateClauses);
+        _table.Update(_dbConnection, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key),
+            ConvertEntityToUpdateClauses(entity, behavior));
     }
 
     public void DeleteByKey(object key)
