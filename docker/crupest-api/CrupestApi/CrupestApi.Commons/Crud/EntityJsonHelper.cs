@@ -46,6 +46,36 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         return JsonSerializer.Serialize(dictionary, _jsonSerializerOptions.CurrentValue);
     }
 
+    private static Type MapJsonValueKindToType(JsonElement jsonElement, out object? value)
+    {
+        switch (jsonElement.ValueKind)
+        {
+            case JsonValueKind.String:
+                {
+                    value = jsonElement.GetString()!;
+                    return typeof(string);
+                }
+            case JsonValueKind.Number:
+                {
+                    value = jsonElement.GetDouble();
+                    return typeof(double);
+                }
+            case JsonValueKind.True:
+            case JsonValueKind.False:
+                {
+                    value = jsonElement.GetBoolean();
+                    return typeof(bool);
+                }
+            case JsonValueKind.Null:
+                {
+                    value = null;
+                    return typeof(object);
+                }
+            default:
+                throw new UserException("Unsupported json value type.");
+        }
+    }
+
     public TEntity ConvertJsonToEntityForInsert(JsonElement jsonElement)
     {
         if (jsonElement.ValueKind is not JsonValueKind.Object)
@@ -54,10 +84,28 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         var result = Activator.CreateInstance<TEntity>();
         foreach (var column in _table.PropertyColumns)
         {
-            if (jsonElement.TryGetProperty(column.ColumnName, out var value))
+            if (jsonElement.TryGetProperty(column.ColumnName, out var jsonValue))
             {
+                if (column.IsGenerated)
+                {
+                    throw new UserException($"Property {column.ColumnName} is auto generated, you cannot set it.");
+                }
+
+                var valueType = MapJsonValueKindToType(jsonValue, out var value);
+                if (!valueType.IsAssignableTo(column.ColumnType.DatabaseClrType))
+                {
+                    throw new UserException($"Property {column.ColumnName} is of wrong type.");
+                }
+
                 var realValue = column.ColumnType.ConvertFromDatabase(value);
                 column.PropertyInfo!.SetValue(result, realValue);
+            }
+            else
+            {
+                if (!column.CanBeGenerated)
+                {
+                    throw new UserException($"Property {column.ColumnName} is not auto generated, you must set it.");
+                }
             }
         }
 
@@ -96,8 +144,24 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         var result = Activator.CreateInstance<TEntity>();
         foreach (var column in _table.PropertyColumns)
         {
-            if (jsonElement.TryGetProperty(column.ColumnName, out var value))
+            if (jsonElement.TryGetProperty(column.ColumnName, out var jsonValue))
             {
+                if (column.IsGenerated)
+                {
+                    throw new UserException($"Property {column.ColumnName} is auto generated, you cannot set it.");
+                }
+
+                if (column.IsNoUpdate)
+                {
+                    throw new UserException($"Property {column.ColumnName} is not updatable, you cannot set it.");
+                }
+
+                var valueType = MapJsonValueKindToType(jsonValue, out var value);
+                if (!valueType.IsAssignableTo(column.ColumnType.DatabaseClrType))
+                {
+                    throw new UserException($"Property {column.ColumnName} is of wrong type.");
+                }
+
                 var realValue = column.ColumnType.ConvertFromDatabase(value);
                 column.PropertyInfo!.SetValue(result, realValue);
             }
