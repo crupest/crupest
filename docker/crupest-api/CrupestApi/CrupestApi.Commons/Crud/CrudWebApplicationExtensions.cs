@@ -8,14 +8,16 @@ public static class CrudWebApplicationExtensions
         {
             if (!context.RequirePermission(permission)) return;
             var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
+            var entityJsonHelper = context.RequestServices.GetRequiredService<EntityJsonHelper<TEntity>>();
             var allEntities = crudService.GetAll();
-            await context.ResponseJsonAsync(allEntities.Select(e => crudService.JsonHelper.ConvertEntityToDictionary(e)));
+            await context.ResponseJsonAsync(allEntities.Select(e => entityJsonHelper.ConvertEntityToDictionary(e)));
         });
 
         app.MapGet(path + "/{key}", async (context) =>
         {
             if (!context.RequirePermission(permission)) return;
             var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
+            var entityJsonHelper = context.RequestServices.GetRequiredService<EntityJsonHelper<TEntity>>();
             var key = context.Request.RouteValues["key"]?.ToString();
             if (key == null)
             {
@@ -24,23 +26,25 @@ public static class CrudWebApplicationExtensions
             }
 
             var entity = crudService.GetByKey(key);
-            await context.ResponseJsonAsync(crudService.JsonHelper.ConvertEntityToDictionary(entity));
+            await context.ResponseJsonAsync(entityJsonHelper.ConvertEntityToDictionary(entity));
         });
 
         app.MapPost(path, async (context) =>
         {
             if (!context.RequirePermission(permission)) return;
             var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
+            var entityJsonHelper = context.RequestServices.GetRequiredService<EntityJsonHelper<TEntity>>();
             var jsonDocument = await context.Request.ReadJsonAsync();
-            var key = crudService.Create(jsonDocument.RootElement);
-            await context.ResponseJsonAsync(crudService.JsonHelper.ConvertEntityToDictionary(crudService.GetByKey(key)));
+            var key = crudService.Create(entityJsonHelper.ConvertJsonToEntityForInsert(jsonDocument.RootElement));
+            await context.ResponseJsonAsync(entityJsonHelper.ConvertEntityToDictionary(crudService.GetByKey(key)));
         });
 
         app.MapPatch(path + "/{key}", async (context) =>
         {
             if (!context.RequirePermission(permission)) return;
-            var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
             var key = context.Request.RouteValues["key"]?.ToString();
+            var crudService = context.RequestServices.GetRequiredService<CrudService<TEntity>>();
+            var entityJsonHelper = context.RequestServices.GetRequiredService<EntityJsonHelper<TEntity>>();
             if (key == null)
             {
                 await context.ResponseMessageAsync("Please specify a key in path.");
@@ -48,9 +52,9 @@ public static class CrudWebApplicationExtensions
             }
 
             var jsonDocument = await context.Request.ReadJsonAsync();
-            crudService.UpdateByKey(key, jsonDocument.RootElement);
-
-            await context.ResponseJsonAsync(crudService.JsonHelper.ConvertEntityToDictionary(crudService.GetByKey(key)));
+            var entity = entityJsonHelper.ConvertJsonToEntityForUpdate(jsonDocument.RootElement, out var updateBehavior);
+            crudService.UpdateByKey(key, entity, updateBehavior);
+            await context.ResponseJsonAsync(entityJsonHelper.ConvertEntityToDictionary(crudService.GetByKey(key)));
         });
 
         app.MapDelete(path + "/{key}", async (context) =>
