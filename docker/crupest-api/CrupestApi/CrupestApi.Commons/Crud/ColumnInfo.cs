@@ -129,9 +129,36 @@ public class ColumnInfo
         }
     }
 
-    public void InvokeValidator(object value)
+    public void InvokeValidator(object? value)
     {
-        ValidatorMethod?.Invoke(null, new object?[] { this, value });
+        var method = this.ValidatorMethod;
+        if (method is null)
+        {
+            _logger.LogInformation("Try to invoke validator for column {} but it does not exist.", ColumnName);
+            return;
+        }
+        var parameters = method.GetParameters();
+        if (parameters.Length == 0)
+        {
+            throw new Exception("The validator method must have at least one parameter.");
+        }
+        else if (parameters.Length == 1)
+        {
+            method.Invoke(null, new object?[] { value });
+        }
+        else if (parameters.Length == 2)
+        {
+            if (parameters[0].ParameterType == typeof(ColumnInfo))
+                method.Invoke(null, new object?[] { this, value });
+            else if (parameters[1].ParameterType == typeof(ColumnInfo))
+                method.Invoke(null, new object?[] { value, this });
+            else
+                throw new Exception("The validator method must have a parameter of type ColumnInfo if it has 2 parameters.");
+        }
+        else
+        {
+            throw new Exception("The validator method can only have 1 or 2 parameters.");
+        }
     }
 
     public object? InvokeDefaultValueGenerator()
@@ -157,7 +184,6 @@ public class ColumnInfo
         {
             throw new Exception("The default value generator method can only have 0 or 1 parameter.");
         }
-
     }
 
     public string GenerateCreateTableColumnString(string? dbProviderId = null)
