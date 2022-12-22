@@ -11,7 +11,7 @@ public class TestEntity
     [Column]
     public float? Height { get; set; }
 
-    [Column(Generated = true, NotNull = true, NoUpdate = true)]
+    [Column(OnlyGenerated = true, NotNull = true, NoUpdate = true)]
     public string Secret { get; set; } = default!;
 
     public static string SecretDefaultValueGenerator()

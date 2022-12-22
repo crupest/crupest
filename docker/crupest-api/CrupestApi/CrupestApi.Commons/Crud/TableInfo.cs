@@ -157,7 +157,7 @@ public class TableInfo
     {
         foreach (var column in Columns)
         {
-            if (column.IsGenerated && column.DefaultValueGeneratorMethod is null)
+            if (column.IsOnlyGenerated && column.DefaultValueGeneratorMethod is null)
             {
                 throw new Exception($"Column '{column.ColumnName}' is generated but has no generator.");
             }
@@ -504,7 +504,7 @@ CREATE TABLE {tableName}(
 
             var value = item?.Value;
 
-            if (column.IsGenerated && value is not null)
+            if (column.IsOnlyGenerated && value is not null)
             {
                 throw new Exception($"The column '{column.ColumnName}' is auto generated. You can't specify it explicitly.");
             }

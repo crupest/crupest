@@ -16,7 +16,7 @@ public static class ColumnMetadataKeys
     /// <summary>
     /// This indicates that you take care of generate this column value when create entity. User calling the api can not specify the value.
     /// </summary>
-    public const string Generated = nameof(ColumnAttribute.Generated);
+    public const string OnlyGenerated = nameof(ColumnAttribute.OnlyGenerated);
 
     /// <summary>
     /// The default value generator method name in entity type. Default to null, aka, search for ColumnNameDefaultValueGenerator. 
@@ -42,14 +42,10 @@ public static class ColumnMetadataKeys
     /// </summary>
     public const string ActAsKey = nameof(ColumnAttribute.ActAsKey);
 
-    public const string DefaultValue = nameof(ColumnAttribute.DefaultValue);
-
     /// <summary>
-    /// Default value is null, aka, whether a default value generator is specified.
-    /// Set to true or false to override it.
+    /// The default value used for the column.
     /// </summary>
-    /// <returns></returns>
-    public const string CanBeGenerated = nameof(ColumnAttribute.CanBeGenerated);
+    public const string DefaultValue = nameof(ColumnAttribute.DefaultValue);
 }
 
 public interface IColumnMetadata
@@ -117,8 +113,8 @@ public class ColumnAttribute : Attribute, IColumnMetadata
     /// <seealso cref="ColumnMetadataKeys.DefaultEmptyForString"/>
     public bool DefaultEmptyForString { get; init; }
 
-    /// <seealso cref="ColumnMetadataKeys.Generated"/>
-    public bool Generated { get; init; }
+    /// <seealso cref="ColumnMetadataKeys.OnlyGenerated"/>
+    public bool OnlyGenerated { get; init; }
 
     /// <seealso cref="ColumnMetadataKeys.DefaultValueGenerator"/>
     public string? DefaultValueGenerator { get; init; }
@@ -133,8 +129,6 @@ public class ColumnAttribute : Attribute, IColumnMetadata
     public bool ActAsKey { get; init; }
 
     public object? DefaultValue { get; init; }
-
-    public bool? CanBeGenerated { get; init; } = null;
 
     public bool TryGetValue(string key, out object? value)
     {
