@@ -60,9 +60,9 @@ public class ColumnInfo
     public bool IsPrimaryKey => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsPrimaryKey) is true;
     public bool IsAutoIncrement => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsAutoIncrement) is true;
     public bool IsNotNull => IsPrimaryKey || Metadata.GetValueOrDefault(ColumnMetadataKeys.NotNull) is true;
-    public bool IsGenerated => Metadata.GetValueOrDefault(ColumnMetadataKeys.Generated) is true;
+    public bool IsOnlyGenerated => Metadata.GetValueOrDefault(ColumnMetadataKeys.OnlyGenerated) is true;
     public bool IsNoUpdate => Metadata.GetValueOrDefault(ColumnMetadataKeys.NoUpdate) is true;
-    public bool CanBeGenerated => (bool?)Metadata.GetValueOrDefault(ColumnMetadataKeys.CanBeGenerated) ?? (DefaultValueGeneratorMethod is not null || IsAutoIncrement);
+    public object? DefaultValue => Metadata.GetValueOrDefault(ColumnMetadataKeys.DefaultValue);
     /// <summary>
     /// This only returns metadata value. It doesn't not fall back to primary column. If you want to get the real key column, go to table info.
     /// </summary>
@@ -70,6 +70,11 @@ public class ColumnInfo
     /// <seealso cref="TableInfo.KeyColumn"/>
     public bool IsSpecifiedAsKey => Metadata.GetValueOrDefault(ColumnMetadataKeys.ActAsKey) is true;
     public ColumnIndexType Index => Metadata.GetValueOrDefault<ColumnIndexType?>(ColumnMetadataKeys.Index) ?? ColumnIndexType.None;
+
+    /// <summary>
+    /// Whether the column value can be generated, which means the column has a default value or a default value generator or is AUTOINCREMENT.
+    /// </summary>
+    public bool CanBeGenerated => DefaultValue is not null || DefaultValueGeneratorMethod is not null || IsAutoIncrement;
 
     /// <summary>
     /// The real column name. Maybe set in metadata or just the property name.

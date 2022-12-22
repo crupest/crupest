@@ -86,7 +86,7 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         {
             if (jsonElement.TryGetProperty(column.ColumnName, out var jsonValue))
             {
-                if (column.IsGenerated)
+                if (column.IsOnlyGenerated)
                 {
                     throw new UserException($"Property {column.ColumnName} is auto generated, you cannot set it.");
                 }
@@ -146,7 +146,7 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         {
             if (jsonElement.TryGetProperty(column.ColumnName, out var jsonValue))
             {
-                if (column.IsGenerated)
+                if (column.IsOnlyGenerated)
                 {
                     throw new UserException($"Property {column.ColumnName} is auto generated, you cannot set it.");
                 }
