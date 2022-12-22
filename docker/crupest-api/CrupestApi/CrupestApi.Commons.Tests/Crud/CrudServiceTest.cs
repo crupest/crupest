@@ -64,5 +64,13 @@ public class CrudServiceTest
         Assert.Equal(0, count);
     }
 
-
+    [Fact]
+    public void EntityNotExistTest()
+    {
+        Assert.Throws<EntityNotExistException>(() => _crudService.GetByKey("KeyNotExist"));
+        Assert.Throws<EntityNotExistException>(() => _crudService.UpdateByKey("KeyNotExist", new TestEntity
+        {
+            Name = "crupest"
+        }));
+    }
 }

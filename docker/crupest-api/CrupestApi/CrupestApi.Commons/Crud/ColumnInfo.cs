@@ -186,6 +186,23 @@ public class ColumnInfo
         }
     }
 
+    public object? GenerateDefaultValue()
+    {
+        if (DefaultValueGeneratorMethod is not null)
+        {
+            return InvokeDefaultValueGenerator();
+        }
+
+        if (Metadata.TryGetValue(ColumnMetadataKeys.DefaultValue, out object? value))
+        {
+            return value;
+        }
+        else
+        {
+            return null;
+        }
+    }
+
     public string GenerateCreateTableColumnString(string? dbProviderId = null)
     {
         StringBuilder result = new StringBuilder();

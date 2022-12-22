@@ -14,7 +14,7 @@ public class SecretInfo
     public string Description { get; set; } = default!;
     [Column(NotNull = false)]
     public DateTime? ExpireTime { get; set; }
-    [Column(NotNull = true)]
+    [Column(NotNull = true, DefaultValue = false)]
     public bool Revoked { get; set; }
     [Column(NotNull = true)]
     public DateTime CreateTime { get; set; }

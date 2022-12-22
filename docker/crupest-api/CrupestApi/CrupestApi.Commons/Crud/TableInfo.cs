@@ -511,7 +511,7 @@ CREATE TABLE {tableName}(
 
             if (value is null)
             {
-                value = column.InvokeDefaultValueGenerator();
+                value = column.GenerateDefaultValue();
             }
 
             if (value is null && column.IsAutoIncrement)
@@ -526,6 +526,8 @@ CREATE TABLE {tableName}(
 
             column.InvokeValidator(value);
 
+            InsertItem realInsertItem;
+
             if (value is DbNullValue)
             {
                 if (column.IsNotNull)
@@ -533,17 +535,18 @@ CREATE TABLE {tableName}(
                     throw new Exception($"Column '{column.ColumnName}' is not nullable. Please specify a non-null value.");
                 }
 
-                realInsert.Add(column.ColumnName, null);
+                realInsertItem = new InsertItem(column.ColumnName, null);
             }
             else
             {
-                realInsert.Add(column.ColumnName, value);
+                realInsertItem = new InsertItem(column.ColumnName, value);
             }
 
+            realInsert.Add(realInsertItem);
 
-            if (item?.ColumnName == KeyColumn.ColumnName)
+            if (realInsertItem.ColumnName == KeyColumn.ColumnName)
             {
-                key = item.Value;
+                key = realInsertItem.Value;
             }
         }
 
