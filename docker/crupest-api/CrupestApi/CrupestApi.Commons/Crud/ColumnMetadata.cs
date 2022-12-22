@@ -42,6 +42,8 @@ public static class ColumnMetadataKeys
     /// </summary>
     public const string ActAsKey = nameof(ColumnAttribute.ActAsKey);
 
+    public const string DefaultValue = nameof(ColumnAttribute.DefaultValue);
+
     /// <summary>
     /// Default value is null, aka, whether a default value generator is specified.
     /// Set to true or false to override it.
@@ -129,6 +131,8 @@ public class ColumnAttribute : Attribute, IColumnMetadata
 
     /// <seealso cref="ColumnMetadataKeys.ActAsKey"/>
     public bool ActAsKey { get; init; }
+
+    public object? DefaultValue { get; init; }
 
     public bool? CanBeGenerated { get; init; } = null;
 

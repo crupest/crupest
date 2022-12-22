@@ -8,6 +8,7 @@ namespace CrupestApi.Commons.Crud;
 
 public interface IColumnTypeInfo
 {
+    public static IColumnTypeInfo BoolColumnTypeInfo { get; } = new SimpleColumnTypeInfo<bool>();
     public static IColumnTypeInfo IntColumnTypeInfo { get; } = new SimpleColumnTypeInfo<int>();
     public static IColumnTypeInfo ShortColumnTypeInfo { get; } = new SimpleColumnTypeInfo<short>();
     public static IColumnTypeInfo SByteColumnTypeInfo { get; } = new SimpleColumnTypeInfo<sbyte>();
@@ -25,7 +26,11 @@ public interface IColumnTypeInfo
     {
         get
         {
-            if (DatabaseClrType == typeof(int))
+            if (DatabaseClrType == typeof(bool))
+            {
+                return DbType.Boolean;
+            }
+            else if (DatabaseClrType == typeof(int))
             {
                 return DbType.Int32;
             }
@@ -70,7 +75,7 @@ public interface IColumnTypeInfo
         return DbType switch
         {
             DbType.String => "TEXT",
-            DbType.Int16 or DbType.Int32 or DbType.Int64 => "INTEGER",
+            DbType.Boolean or DbType.Int16 or DbType.Int32 or DbType.Int64 => "INTEGER",
             DbType.Single or DbType.Double => "REAL",
             DbType.Binary => "BLOB",
             _ => throw new Exception($"Unsupported DbType: {DbType}"),
@@ -175,6 +180,7 @@ public class ColumnTypeProvider : IColumnTypeProvider
 
     public ColumnTypeProvider()
     {
+        _typeMap.Add(IColumnTypeInfo.BoolColumnTypeInfo.ClrType, IColumnTypeInfo.BoolColumnTypeInfo);
         _typeMap.Add(IColumnTypeInfo.IntColumnTypeInfo.ClrType, IColumnTypeInfo.IntColumnTypeInfo);
         _typeMap.Add(IColumnTypeInfo.ShortColumnTypeInfo.ClrType, IColumnTypeInfo.ShortColumnTypeInfo);
         _typeMap.Add(IColumnTypeInfo.SByteColumnTypeInfo.ClrType, IColumnTypeInfo.SByteColumnTypeInfo);

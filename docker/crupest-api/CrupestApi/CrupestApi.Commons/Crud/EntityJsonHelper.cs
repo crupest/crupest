@@ -11,7 +11,7 @@ public class EntityJsonHelper<TEntity> where TEntity : class
     private readonly TableInfo _table;
     private readonly IOptionsMonitor<JsonSerializerOptions> _jsonSerializerOptions;
 
-    public EntityJsonHelper(TableInfoFactory tableInfoFactory, IOptionsMonitor<JsonSerializerOptions> jsonSerializerOptions)
+    public EntityJsonHelper(ITableInfoFactory tableInfoFactory, IOptionsMonitor<JsonSerializerOptions> jsonSerializerOptions)
     {
         _table = tableInfoFactory.Get(typeof(TEntity));
         _jsonSerializerOptions = jsonSerializerOptions;
