@@ -2,6 +2,27 @@ namespace CrupestApi.Commons.Crud;
 
 public static class CrudWebApplicationExtensions
 {
+    public static WebApplication UseCrudCore(this WebApplication app)
+    {
+        app.Use(async (context, next) =>
+        {
+            try
+            {
+                await next();
+            }
+            catch (EntityNotExistException)
+            {
+                await context.ResponseMessageAsync("Requested entity does not exist.", StatusCodes.Status404NotFound);
+            }
+            catch (UserException e)
+            {
+                await context.ResponseMessageAsync(e.Message);
+            }
+        });
+
+        return app;
+    }
+
     public static WebApplication MapCrud<TEntity>(this WebApplication app, string path, string? permission) where TEntity : class
     {
         app.MapGet(path, async (context) =>
