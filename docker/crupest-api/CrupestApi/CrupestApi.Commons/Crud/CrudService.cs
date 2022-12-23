@@ -72,7 +72,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         var result = _table.Select<TEntity>(_dbConnection, null, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key)).SingleOrDefault();
         if (result is null)
         {
-            throw new EntityNotExistException("Required entity not found.");
+            throw new EntityNotExistException($"Required entity for key {key} not found.");
         }
         return result;
     }
@@ -91,7 +91,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
     public object Create(TEntity entity)
     {
         var insertClause = ConvertEntityToInsertClauses(entity);
-        var key = _table.Insert(_dbConnection, insertClause);
+        _table.Insert(_dbConnection, insertClause, out var key);
         return key;
     }
 
@@ -108,14 +108,16 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return result;
     }
 
-    public void UpdateByKey(object key, TEntity entity, UpdateBehavior behavior = UpdateBehavior.None)
+    // Return new key.
+    public object UpdateByKey(object key, TEntity entity, UpdateBehavior behavior = UpdateBehavior.None)
     {
         var affectedCount = _table.Update(_dbConnection, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key),
-            ConvertEntityToUpdateClauses(entity, behavior));
+            ConvertEntityToUpdateClauses(entity, behavior), out var newKey);
         if (affectedCount == 0)
         {
-            throw new EntityNotExistException("Required entity not found.");
+            throw new EntityNotExistException($"Required entity for key {key} not found.");
         }
+        return newKey ?? key;
     }
 
     public bool DeleteByKey(object key)

@@ -33,8 +33,10 @@ public static class CrupestApiJsonExtensions
 
     public static async Task<JsonDocument> ReadJsonAsync(this HttpRequest request)
     {
+        var jsonOptions = request.HttpContext.RequestServices.GetRequiredService<IOptionsSnapshot<JsonSerializerOptions>>();
         using var stream = request.Body;
-        return await JsonDocument.ParseAsync(stream);
+        var body = await JsonSerializer.DeserializeAsync<JsonDocument>(stream, jsonOptions.Value);
+        return body!;
     }
 
     public static async Task WriteJsonAsync<T>(this HttpResponse response, T bodyObject, int statusCode = 200, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
