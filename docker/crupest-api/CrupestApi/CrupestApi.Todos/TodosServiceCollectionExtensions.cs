@@ -6,7 +6,7 @@ public static class TodosServiceCollectionExtensions
 {
     public static IServiceCollection AddTodos(this IServiceCollection services)
     {
-        services.AddOptions<TodosConfiguration>().BindConfiguration("CrupestApi.Todos");
+        services.AddOptions<TodosConfiguration>().BindConfiguration("CrupestApi:Todos");
         services.PostConfigure<TodosConfiguration>(config =>
         {
             if (config.Count == 0)
