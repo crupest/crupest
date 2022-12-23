@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 
@@ -46,34 +47,63 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         return JsonSerializer.Serialize(dictionary, _jsonSerializerOptions.CurrentValue);
     }
 
-    private static Type MapJsonValueKindToType(JsonElement jsonElement, out object? value)
+    private object? ConvertJsonValue(JsonElement? optionalJsonElement, Type type, string propertyName)
     {
-        switch (jsonElement.ValueKind)
+        if (optionalJsonElement is null)
         {
-            case JsonValueKind.String:
-                {
-                    value = jsonElement.GetString()!;
-                    return typeof(string);
-                }
-            case JsonValueKind.Number:
-                {
-                    value = jsonElement.GetDouble();
-                    return typeof(double);
-                }
-            case JsonValueKind.True:
-            case JsonValueKind.False:
-                {
-                    value = jsonElement.GetBoolean();
-                    return typeof(bool);
-                }
-            case JsonValueKind.Null:
-                {
-                    value = null;
-                    return typeof(object);
-                }
-            default:
-                throw new UserException("Unsupported json value type.");
+            return null;
         }
+
+        var jsonElement = optionalJsonElement.Value;
+
+        if (jsonElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            return null;
+        }
+
+        if (jsonElement.ValueKind is JsonValueKind.String)
+        {
+            if (type != typeof(string))
+            {
+                throw new UserException($"Property {propertyName} must be a string.");
+            }
+            return jsonElement.GetString()!;
+        }
+
+        if (jsonElement.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            if (type != typeof(bool))
+            {
+                throw new UserException($"Property {propertyName} must be a boolean.");
+            }
+            return jsonElement.GetBoolean();
+        }
+
+        if (jsonElement.ValueKind is JsonValueKind.Number)
+        {
+            try
+            {
+                return Convert.ChangeType(jsonElement.GetRawText(), type, CultureInfo.InvariantCulture);
+            }
+            catch (Exception)
+            {
+                throw new UserException($"Property {propertyName} must be a valid number.");
+            }
+        }
+
+        throw new UserException($"Property {propertyName} is of wrong type.");
+    }
+
+    public Dictionary<string, JsonElement> ConvertJsonObjectToDictionary(JsonElement jsonElement)
+    {
+        var result = new Dictionary<string, JsonElement>();
+
+        foreach (var property in jsonElement.EnumerateObject())
+        {
+            result[property.Name.ToLower()] = property.Value;
+        }
+
+        return result;
     }
 
     public TEntity ConvertJsonToEntityForInsert(JsonElement jsonElement)
@@ -82,31 +112,23 @@ public class EntityJsonHelper<TEntity> where TEntity : class
             throw new ArgumentException("The jsonElement must be an object.");
 
         var result = Activator.CreateInstance<TEntity>();
+
+        Dictionary<string, JsonElement> jsonProperties = ConvertJsonObjectToDictionary(jsonElement);
+
         foreach (var column in _table.PropertyColumns)
         {
-            if (jsonElement.TryGetProperty(column.ColumnName, out var jsonValue))
+            var jsonPropertyValue = jsonProperties.GetValueOrDefault(column.ColumnName.ToLower());
+            var value = ConvertJsonValue(jsonPropertyValue, column.ColumnType.DatabaseClrType, column.ColumnName);
+            if (column.IsOnlyGenerated && value is not null)
             {
-                if (column.IsOnlyGenerated)
-                {
-                    throw new UserException($"Property {column.ColumnName} is auto generated, you cannot set it.");
-                }
-
-                var valueType = MapJsonValueKindToType(jsonValue, out var value);
-                if (!valueType.IsAssignableTo(column.ColumnType.DatabaseClrType))
-                {
-                    throw new UserException($"Property {column.ColumnName} is of wrong type.");
-                }
-
-                var realValue = column.ColumnType.ConvertFromDatabase(value);
-                column.PropertyInfo!.SetValue(result, realValue);
+                throw new UserException($"Property {column.ColumnName} is auto generated, you cannot set it.");
             }
-            else
+            if (!column.CanBeGenerated && value is null && column.IsNotNull)
             {
-                if (!column.CanBeGenerated)
-                {
-                    throw new UserException($"Property {column.ColumnName} is not auto generated, you must set it.");
-                }
+                throw new UserException($"Property {column.ColumnName} can NOT be generated, you must set it.");
             }
+            var realValue = column.ColumnType.ConvertFromDatabase(value);
+            column.PropertyInfo!.SetValue(result, realValue);
         }
 
         return result;
@@ -125,11 +147,15 @@ public class EntityJsonHelper<TEntity> where TEntity : class
 
         updateBehavior = UpdateBehavior.None;
 
-        if (jsonElement.TryGetProperty("$saveNull", out var saveNullValue))
+        Dictionary<string, JsonElement> jsonProperties = ConvertJsonObjectToDictionary(jsonElement);
+
+        bool saveNull = false;
+        if (jsonProperties.TryGetValue("$saveNull".ToLower(), out var saveNullValue))
         {
             if (saveNullValue.ValueKind is JsonValueKind.True)
             {
                 updateBehavior |= UpdateBehavior.SaveNull;
+                saveNull = true;
             }
             else if (saveNullValue.ValueKind is JsonValueKind.False)
             {
@@ -144,26 +170,28 @@ public class EntityJsonHelper<TEntity> where TEntity : class
         var result = Activator.CreateInstance<TEntity>();
         foreach (var column in _table.PropertyColumns)
         {
-            if (jsonElement.TryGetProperty(column.ColumnName, out var jsonValue))
+            if (jsonProperties.TryGetValue(column.ColumnName.ToLower(), out var jsonPropertyValue))
             {
-                if (column.IsOnlyGenerated)
+                if (jsonPropertyValue.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
                 {
-                    throw new UserException($"Property {column.ColumnName} is auto generated, you cannot set it.");
-                }
+                    if ((column.IsOnlyGenerated || column.IsNoUpdate) && saveNull)
+                    {
+                        throw new UserException($"Property {column.ColumnName} is auto generated or not updatable, you cannot set it.");
+                    }
 
-                if (column.IsNoUpdate)
+                    column.PropertyInfo!.SetValue(result, null);
+                }
+                else
                 {
-                    throw new UserException($"Property {column.ColumnName} is not updatable, you cannot set it.");
-                }
+                    if (column.IsOnlyGenerated || column.IsNoUpdate)
+                    {
+                        throw new UserException($"Property {column.ColumnName} is auto generated or not updatable, you cannot set it.");
+                    }
 
-                var valueType = MapJsonValueKindToType(jsonValue, out var value);
-                if (!valueType.IsAssignableTo(column.ColumnType.DatabaseClrType))
-                {
-                    throw new UserException($"Property {column.ColumnName} is of wrong type.");
+                    var value = ConvertJsonValue(jsonPropertyValue, column.ColumnType.DatabaseClrType, column.ColumnName);
+                    var realValue = column.ColumnType.ConvertFromDatabase(value);
+                    column.PropertyInfo!.SetValue(result, realValue);
                 }
-
-                var realValue = column.ColumnType.ConvertFromDatabase(value);
-                column.PropertyInfo!.SetValue(result, realValue);
             }
         }
 

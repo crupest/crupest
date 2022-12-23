@@ -53,8 +53,8 @@ public static class CrudWebApplicationExtensions
 
             var jsonDocument = await context.Request.ReadJsonAsync();
             var entity = entityJsonHelper.ConvertJsonToEntityForUpdate(jsonDocument.RootElement, out var updateBehavior);
-            crudService.UpdateByKey(key, entity, updateBehavior);
-            await context.ResponseJsonAsync(entityJsonHelper.ConvertEntityToDictionary(crudService.GetByKey(key)));
+            var newKey = crudService.UpdateByKey(key, entity, updateBehavior);
+            await context.ResponseJsonAsync(entityJsonHelper.ConvertEntityToDictionary(crudService.GetByKey(newKey)));
         });
 
         app.MapDelete(path + "/{key}", async (context) =>

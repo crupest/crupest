@@ -492,9 +492,9 @@ CREATE TABLE {tableName}(
     /// Insert a entity and call hooks.
     /// </summary>
     /// <returns>The key of insert entity.</returns>
-    public object Insert(IDbConnection dbConnection, IInsertClause insert)
+    public int Insert(IDbConnection dbConnection, IInsertClause insert, out object key)
     {
-        object? key = null;
+        object? finalKey = null;
 
         var realInsert = InsertClause.Create();
 
@@ -546,23 +546,31 @@ CREATE TABLE {tableName}(
 
             if (realInsertItem.ColumnName == KeyColumn.ColumnName)
             {
-                key = realInsertItem.Value;
+                finalKey = realInsertItem.Value;
             }
         }
 
+        if (finalKey is null) throw new Exception("No key???");
+        key = finalKey;
+
         var (sql, parameters) = GenerateInsertSql(realInsert);
 
-        dbConnection.Execute(sql, ConvertParameters(parameters));
+        var affectedRowCount = dbConnection.Execute(sql, ConvertParameters(parameters));
 
-        return key ?? throw new Exception("No key???");
+        if (affectedRowCount != 1)
+            throw new Exception("Failed to insert.");
+
+        return affectedRowCount;
     }
 
     /// <summary>
     /// Upgrade a entity and call hooks.
     /// </summary>
     /// <returns>The key of insert entity.</returns>
-    public virtual int Update(IDbConnection dbConnection, IWhereClause? where, IUpdateClause update)
+    public virtual int Update(IDbConnection dbConnection, IWhereClause? where, IUpdateClause update, out object? newKey)
     {
+        newKey = null;
+
         var realUpdate = UpdateClause.Create();
 
         foreach (var column in Columns)
@@ -580,6 +588,11 @@ CREATE TABLE {tableName}(
                 column.InvokeValidator(value);
 
                 realUpdate.Add(column.ColumnName, value);
+
+                if (column.ColumnName == KeyColumn.ColumnName)
+                {
+                    newKey = value;
+                }
             }
         }
 
