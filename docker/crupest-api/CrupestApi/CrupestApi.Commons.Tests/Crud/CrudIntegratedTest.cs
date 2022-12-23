@@ -20,6 +20,7 @@ public class CrudIntegratedTest : IAsyncLifetime
         builder.Services.AddCrud<TestEntity>();
         builder.WebHost.UseTestServer();
         _app = builder.Build();
+        _app.UseCrudCore();
         _app.MapCrud<TestEntity>("/test", "test-perm");
     }
 
@@ -137,6 +138,63 @@ public class CrudIntegratedTest : IAsyncLifetime
             var body = await response.Content.ReadFromJsonAsync<List<TestEntity>>();
             Assert.NotNull(body);
             Assert.Empty(body);
+        }
+    }
+
+    [Fact]
+    public async Task UnauthorizedTest()
+    {
+        {
+            using var response = await _httpClient.GetAsync("/test");
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        {
+            using var response = await _httpClient.GetAsync("/test/test");
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        {
+            using var response = await _httpClient.PostAsJsonAsync("/test", new TestEntity
+            {
+                Name = "test",
+                Age = 22
+            });
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        {
+            using var response = await _httpClient.PatchAsJsonAsync("/test/test", new TestEntity
+            {
+                Name = "test-2",
+                Age = 23,
+                Height = 188.0f
+            });
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        {
+            using var response = await _httpClient.DeleteAsync("/test/test");
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task NotFoundTest()
+    {
+        {
+            using var response = await _authorizedHttpClient.GetAsync("/test/test");
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        {
+            using var response = await _authorizedHttpClient.PatchAsJsonAsync("/test/test", new TestEntity
+            {
+                Name = "test-2",
+                Age = 23,
+                Height = 188.0f
+            });
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
     }
 }
