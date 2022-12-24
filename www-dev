@@ -1,0 +1,3 @@
+#! /usr/bin/env sh
+exec tmux new-session 'cd docker/crupest-nginx/sites/www && pnpm dev' \; \
+    split-window -h 'cd docker/crupest-api/CrupestApi/CrupestApi && dotnet run --launch-profile dev'
