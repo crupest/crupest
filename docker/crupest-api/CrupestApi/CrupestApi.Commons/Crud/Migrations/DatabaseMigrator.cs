@@ -33,17 +33,8 @@ public class Table
     public List<TableColumn> Columns { get; set; } = new List<TableColumn>();
 }
 
-public class MigrationRecord
-{
-    public string TableName { get; set; } = default!;
-    public int Version { get; set; }
-    public Table Structure { get; set; } = default!;
-}
-
 public interface IDatabaseMigrator
 {
-    List<MigrationRecord> GetRecords(IDbConnection dbConnection, string tableName);
-
     Table? GetTable(IDbConnection dbConnection, string tableName);
     Table ConvertTableInfoToTable(TableInfo tableInfo);
     string GenerateCreateTableColumnSqlSegment(TableColumn column);

@@ -16,61 +16,8 @@ public class SqliteDatabaseMigrator : IDatabaseMigrator
         }
     }
 
-    private const string MigrationHistoryTableName = "migration_history";
-
-    private class MigrationRecordEntity
-    {
-        public string TableName { get; set; } = string.Empty;
-        public int Version { get; set; }
-        public string Structure { get; set; } = string.Empty;
-    }
-
-    private void EnsureHistoryDatabase(IDbConnection dbConnection)
-    {
-        var exist = dbConnection.Query<int>($"SELECT count(*) FROM sqlite_master WHERE type='table' AND name='{MigrationHistoryTableName}';").Single() == 1;
-        if (!exist)
-        {
-            dbConnection.Execute($@"
-                CREATE TABLE {MigrationHistoryTableName} (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    TableName TEXT NOT NULL,
-                    Version INT NOT NULL,
-                    Structure TEXT NOT NULL
-                );
-            ");
-        }
-    }
-
-    public List<MigrationRecord> GetRecords(IDbConnection dbConnection, string tableName)
-    {
-        CheckTableName(tableName);
-        EnsureHistoryDatabase(dbConnection);
-
-        var recordEntities = dbConnection.Query<MigrationRecordEntity>(
-            $"SELECT * FROM {MigrationHistoryTableName} WHERE TableName = @TableName ORDER BY Version ASC;",
-            new { TableName = tableName }
-        ).ToList();
-
-        var records = recordEntities.Select(entity =>
-        {
-            var structure = JsonSerializer.Deserialize<Table>(entity.Structure);
-            if (structure is null) throw new Exception("Migration record is corrupted. Failed to convert structure.");
-            return new MigrationRecord
-            {
-                TableName = entity.TableName,
-                Version = entity.Version,
-                Structure = structure
-            };
-        }).ToList();
-
-        return records;
-    }
-
-
     public Table? GetTable(IDbConnection dbConnection, string tableName)
     {
-        CheckTableName(tableName);
-
         var count = dbConnection.QuerySingle<int>(
             "SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name = @TableName;",
             new { TableName = tableName });
