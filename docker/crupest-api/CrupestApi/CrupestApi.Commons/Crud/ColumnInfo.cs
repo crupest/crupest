@@ -222,7 +222,7 @@ public class ColumnInfo
         else if (IsNotNull)
         {
             result.Append(' ');
-            result.Append(" NOT NULL");
+            result.Append("NOT NULL");
         }
 
         if (IsAutoIncrement)

@@ -14,11 +14,11 @@ public class SecretService : CrudService<SecretInfo>, ISecretService
         _logger = loggerFactory.CreateLogger<SecretService>();
     }
 
-    protected override void AfterMigrate(IDbConnection connection, TableInfo table, ILoggerFactory loggerFactory)
+    protected override void AfterMigrate(IDbConnection connection, TableInfo table)
     {
         if (table.SelectCount(connection) == 0)
         {
-            loggerFactory.CreateLogger<SecretService>().LogInformation("No secrets found, insert default secrets.");
+            _logger.LogInformation("No secrets found, insert default secrets.");
             using var transaction = connection.BeginTransaction();
             var insertClause = InsertClause.Create()
                 .Add(nameof(SecretInfo.Key), SecretsConstants.SecretManagementKey)

@@ -27,25 +27,14 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         _shouldDisposeConnection = dbConnectionFactory.ShouldDisposeConnection;
         _migrator = migrator;
         _logger = loggerFactory.CreateLogger<CrudService<TEntity>>();
+    }
 
-        if (migrator.NeedMigrate(_dbConnection, _table))
+    protected virtual void EnsureDatabase()
+    {
+        if (_migrator.NeedMigrate(_dbConnection, _table))
         {
             _logger.LogInformation($"Entity {_table.TableName} needs migration.");
-            if (migrator.CanAutoMigrate(_dbConnection, _table))
-            {
-                _logger.LogInformation($"Entity {_table.TableName} can be auto migrated.");
-                migrator.AutoMigrate(_dbConnection, _table);
-                AfterMigrate(_dbConnection, _table, loggerFactory);
-            }
-            else
-            {
-                _logger.LogInformation($"Entity {_table.TableName} can not be auto migrated.");
-                throw new Exception($"Entity {_table.TableName} needs migration but can not be auto migrated.");
-            }
-        }
-        else
-        {
-            _logger.LogInformation($"Entity {_table.TableName} does not need migration.");
+            _migrator.AutoMigrate(_dbConnection, _table);
         }
     }
 
@@ -54,7 +43,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return typeof(TEntity).Name;
     }
 
-    protected virtual void AfterMigrate(IDbConnection dbConnection, TableInfo tableInfo, ILoggerFactory loggerFactory)
+    protected virtual void AfterMigrate(IDbConnection dbConnection, TableInfo tableInfo)
     {
 
     }
@@ -67,18 +56,21 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
 
     public List<TEntity> GetAll()
     {
+        EnsureDatabase();
         var result = _table.Select<TEntity>(_dbConnection, null);
         return result;
     }
 
     public int GetCount()
     {
+        EnsureDatabase();
         var result = _table.SelectCount(_dbConnection);
         return result;
     }
 
     public TEntity GetByKey(object key)
     {
+        EnsureDatabase();
         var result = _table.Select<TEntity>(_dbConnection, null, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key)).SingleOrDefault();
         if (result is null)
         {
@@ -100,6 +92,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
 
     public object Create(TEntity entity)
     {
+        EnsureDatabase();
         var insertClause = ConvertEntityToInsertClauses(entity);
         _table.Insert(_dbConnection, insertClause, out var key);
         return key;
@@ -121,6 +114,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
     // Return new key.
     public object UpdateByKey(object key, TEntity entity, UpdateBehavior behavior = UpdateBehavior.None)
     {
+        EnsureDatabase();
         var affectedCount = _table.Update(_dbConnection, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key),
             ConvertEntityToUpdateClauses(entity, behavior), out var newKey);
         if (affectedCount == 0)
@@ -132,6 +126,7 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
 
     public bool DeleteByKey(object key)
     {
+        EnsureDatabase();
         return _table.Delete(_dbConnection, WhereClause.Create().Eq(_table.KeyColumn.ColumnName, key)) == 1;
     }
 }
