@@ -72,7 +72,7 @@ public class SqliteDatabaseMigrator : IDatabaseMigrator
         CheckTableName(tableName);
 
         var count = dbConnection.QuerySingle<int>(
-            "SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND tbl_name = @TableName;",
+            "SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name = @TableName;",
             new { TableName = tableName });
         if (count == 0)
         {
@@ -84,7 +84,6 @@ public class SqliteDatabaseMigrator : IDatabaseMigrator
         }
         else
         {
-
             var table = new Table(tableName);
             var queryColumns = dbConnection.Query<dynamic>($"PRAGMA table_info({tableName})");
 
@@ -137,13 +136,11 @@ public class SqliteDatabaseMigrator : IDatabaseMigrator
     {
         CheckTableName(tableName);
 
-        var columnSql = string.Join(",\n", columns.Select(GenerateCreateTableColumnSqlSegment));
-
         var sql = $@"
 CREATE TABLE {tableName} (
-    {columnSql}
+    {string.Join(",\n    ", columns.Select(GenerateCreateTableColumnSqlSegment))}
 );
-        ";
+        ".Trim();
 
         return sql;
 
@@ -160,7 +157,7 @@ CREATE TABLE {tableName} (
         var notChangeColumns = wantedTableColumnNames.Where(column => databaseTableColumnNames.Contains(column)).ToList();
         var addColumns = wantedTableColumnNames.Where(column => !databaseTableColumnNames.Contains(column)).ToList();
 
-        if (databaseTable is not null && dbConnection.Query<int>($"SELECT count(*) FROM {tableName}").Single() > 0)
+        if (databaseTable is not null && dbConnection.QuerySingle<int>($"SELECT count(*) FROM {tableName}") > 0)
         {
             foreach (var columnName in addColumns)
             {
