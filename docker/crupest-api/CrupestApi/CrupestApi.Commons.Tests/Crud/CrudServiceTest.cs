@@ -1,3 +1,4 @@
+using CrupestApi.Commons.Crud.Migrations;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CrupestApi.Commons.Crud.Tests;
@@ -15,7 +16,7 @@ public class CrudServiceTest
         var dbConnectionFactory = new SqliteMemoryConnectionFactory();
 
         _crudService = new CrudService<TestEntity>(
-            tableInfoFactory, dbConnectionFactory, NullLoggerFactory.Instance);
+            tableInfoFactory, dbConnectionFactory, new SqliteDatabaseMigrator(), NullLoggerFactory.Instance);
     }
 
     [Fact]

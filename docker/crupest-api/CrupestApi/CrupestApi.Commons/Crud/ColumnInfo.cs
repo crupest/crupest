@@ -58,7 +58,7 @@ public class ColumnInfo
     public IColumnTypeInfo ColumnType { get; }
 
     public bool IsPrimaryKey => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsPrimaryKey) is true;
-    public bool IsAutoIncrement => Metadata.GetValueOrDefault(ColumnMetadataKeys.IsAutoIncrement) is true;
+    public bool IsAutoIncrement => IsPrimaryKey;
     public bool IsNotNull => IsPrimaryKey || Metadata.GetValueOrDefault(ColumnMetadataKeys.NotNull) is true;
     public bool IsOnlyGenerated => Metadata.GetValueOrDefault(ColumnMetadataKeys.OnlyGenerated) is true;
     public bool IsNoUpdate => Metadata.GetValueOrDefault(ColumnMetadataKeys.NoUpdate) is true;

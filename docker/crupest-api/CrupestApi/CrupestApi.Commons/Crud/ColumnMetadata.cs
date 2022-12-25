@@ -5,7 +5,6 @@ public static class ColumnMetadataKeys
     public const string ColumnName = nameof(ColumnAttribute.ColumnName);
     public const string NotNull = nameof(ColumnAttribute.NotNull);
     public const string IsPrimaryKey = nameof(ColumnAttribute.IsPrimaryKey);
-    public const string IsAutoIncrement = nameof(ColumnAttribute.IsAutoIncrement);
     public const string Index = nameof(ColumnAttribute.Index);
 
     /// <summary>
@@ -103,9 +102,6 @@ public class ColumnAttribute : Attribute, IColumnMetadata
 
     // default false
     public bool IsPrimaryKey { get; init; }
-
-    // default false
-    public bool IsAutoIncrement { get; init; }
 
     // default None
     public ColumnIndexType Index { get; init; } = ColumnIndexType.None;

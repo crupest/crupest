@@ -1,5 +1,5 @@
 using System.Data;
-using Dapper;
+using CrupestApi.Commons.Crud.Migrations;
 
 namespace CrupestApi.Commons.Crud;
 
@@ -16,17 +16,37 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
     protected readonly string? _connectionName;
     protected readonly IDbConnection _dbConnection;
     private readonly bool _shouldDisposeConnection;
+    private IDatabaseMigrator _migrator;
     private readonly ILogger<CrudService<TEntity>> _logger;
 
-    public CrudService(ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, ILoggerFactory loggerFactory)
+    public CrudService(ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, IDatabaseMigrator migrator, ILoggerFactory loggerFactory)
     {
         _connectionName = GetConnectionName();
         _table = tableInfoFactory.Get(typeof(TEntity));
         _dbConnection = dbConnectionFactory.Get(_connectionName);
         _shouldDisposeConnection = dbConnectionFactory.ShouldDisposeConnection;
+        _migrator = migrator;
         _logger = loggerFactory.CreateLogger<CrudService<TEntity>>();
 
-        CheckDatabase(_dbConnection);
+        if (migrator.NeedMigrate(_dbConnection, _table))
+        {
+            _logger.LogInformation($"Entity {_table.TableName} needs migration.");
+            if (migrator.CanAutoMigrate(_dbConnection, _table))
+            {
+                _logger.LogInformation($"Entity {_table.TableName} can be auto migrated.");
+                migrator.AutoMigrate(_dbConnection, _table);
+                AfterMigrate(_dbConnection, _table, loggerFactory);
+            }
+            else
+            {
+                _logger.LogInformation($"Entity {_table.TableName} can not be auto migrated.");
+                throw new Exception($"Entity {_table.TableName} needs migration but can not be auto migrated.");
+            }
+        }
+        else
+        {
+            _logger.LogInformation($"Entity {_table.TableName} does not need migration.");
+        }
     }
 
     protected virtual string GetConnectionName()
@@ -34,19 +54,9 @@ public class CrudService<TEntity> : IDisposable where TEntity : class
         return typeof(TEntity).Name;
     }
 
-    protected virtual void CheckDatabase(IDbConnection dbConnection)
+    protected virtual void AfterMigrate(IDbConnection dbConnection, TableInfo tableInfo, ILoggerFactory loggerFactory)
     {
-        if (!_table.CheckExistence(dbConnection))
-        {
-            DoInitializeDatabase(dbConnection);
-        }
-    }
 
-    protected virtual void DoInitializeDatabase(IDbConnection connection)
-    {
-        using var transaction = connection.BeginTransaction();
-        connection.Execute(_table.GenerateCreateTableSql(), transaction: transaction);
-        transaction.Commit();
     }
 
     public void Dispose()

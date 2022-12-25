@@ -115,7 +115,6 @@ public class TableInfo
                     ColumnName = "Id",
                     NotNull = true,
                     IsPrimaryKey = true,
-                    IsAutoIncrement = true,
                 },
             typeof(long), _columnTypeProvider, _loggerFactory);
     }
@@ -229,26 +228,6 @@ CREATE TABLE {tableName}(
         }
 
         return sql;
-    }
-
-    public bool CheckExistence(IDbConnection connection)
-    {
-        var tableName = TableName;
-        var count = connection.QuerySingle<int>(
-            @"SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND tbl_name = @TableName;",
-            new { TableName = tableName });
-        if (count == 0)
-        {
-            return false;
-        }
-        else if (count > 1)
-        {
-            throw new Exception($"More than 1 table has name {tableName}. What happened?");
-        }
-        else
-        {
-            return true;
-        }
     }
 
     public void CheckColumnName(string columnName)
