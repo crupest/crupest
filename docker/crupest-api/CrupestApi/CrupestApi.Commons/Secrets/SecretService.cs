@@ -1,26 +1,32 @@
 using System.Data;
 using CrupestApi.Commons.Crud;
+using CrupestApi.Commons.Crud.Migrations;
 
 namespace CrupestApi.Commons.Secrets;
 
 public class SecretService : CrudService<SecretInfo>, ISecretService
 {
-    public SecretService(ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, ILoggerFactory loggerFactory)
-        : base(tableInfoFactory, dbConnectionFactory, loggerFactory)
-    {
+    private readonly ILogger<SecretService> _logger;
 
+    public SecretService(ITableInfoFactory tableInfoFactory, IDbConnectionFactory dbConnectionFactory, IDatabaseMigrator migrator, ILoggerFactory loggerFactory)
+        : base(tableInfoFactory, dbConnectionFactory, migrator, loggerFactory)
+    {
+        _logger = loggerFactory.CreateLogger<SecretService>();
     }
 
-    protected override void DoInitializeDatabase(IDbConnection connection)
+    protected override void AfterMigrate(IDbConnection connection, TableInfo table, ILoggerFactory loggerFactory)
     {
-        base.DoInitializeDatabase(connection);
-        using var transaction = connection.BeginTransaction();
-        var insertClause = InsertClause.Create()
-            .Add(nameof(SecretInfo.Key), SecretsConstants.SecretManagementKey)
-            .Add(nameof(SecretInfo.Secret), "crupest")
-            .Add(nameof(SecretInfo.Description), "This is the init key. Please revoke it immediately after creating a new one.");
-        _table.Insert(connection, insertClause, out var _);
-        transaction.Commit();
+        if (table.SelectCount(connection) == 0)
+        {
+            loggerFactory.CreateLogger<SecretService>().LogInformation("No secrets found, insert default secrets.");
+            using var transaction = connection.BeginTransaction();
+            var insertClause = InsertClause.Create()
+                .Add(nameof(SecretInfo.Key), SecretsConstants.SecretManagementKey)
+                .Add(nameof(SecretInfo.Secret), "crupest")
+                .Add(nameof(SecretInfo.Description), "This is the init key. Please revoke it immediately after creating a new one.");
+            _table.Insert(connection, insertClause, out var _);
+            transaction.Commit();
+        }
     }
 
     public void CreateTestSecret(string key, string secret)

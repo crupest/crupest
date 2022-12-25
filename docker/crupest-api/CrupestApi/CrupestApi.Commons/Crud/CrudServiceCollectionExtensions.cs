@@ -1,3 +1,4 @@
+using CrupestApi.Commons.Crud.Migrations;
 using CrupestApi.Commons.Secrets;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -10,6 +11,7 @@ public static class CrudServiceCollectionExtensions
         services.TryAddSingleton<IDbConnectionFactory, SqliteConnectionFactory>();
         services.TryAddSingleton<IColumnTypeProvider, ColumnTypeProvider>();
         services.TryAddSingleton<ITableInfoFactory, TableInfoFactory>();
+        services.TryAddSingleton<IDatabaseMigrator, SqliteDatabaseMigrator>();
         services.AddSecrets();
         return services;
     }
