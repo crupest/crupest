@@ -6,8 +6,8 @@ public class TableColumn
 {
     public TableColumn(string name, string type, bool notNull, int primaryKey)
     {
-        Name = name.ToLowerInvariant();
-        Type = type.ToLowerInvariant();
+        Name = name;
+        Type = type;
         NotNull = notNull;
         PrimaryKey = primaryKey;
     }
