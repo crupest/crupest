@@ -18,6 +18,7 @@ var app = builder.Build();
 
 app.UseCrudCore();
 app.MapTodos("/api/todos");
-app.MapSecrets("/api/secrets");
+// TODO: It's not safe now!
+// app.MapSecrets("/api/secrets");
 
 app.Run();
