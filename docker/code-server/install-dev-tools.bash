@@ -3,16 +3,14 @@
 set -e
 
 apt-get update
-apt-get install -y vim wget git
+apt-get install -y vim lsb-release wget git software-properties-common gnupg
+apt-get install -y gcc g++ make gdb
 
 git config --global user.email "$GIT_EMAIL"
 git config --global user.name "$GIT_NAME"
 
-wget https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-dpkg -i packages-microsoft-prod.deb
-rm packages-microsoft-prod.deb
-
-apt-get update
-apt-get install -y dotnet-sdk-7.0
+source ./install-llvm.bash
+source ./install-cmake.bash
+source ./install-dotnet.bash
 
 rm -rf /var/lib/apt/lists/*
