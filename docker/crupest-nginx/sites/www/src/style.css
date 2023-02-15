@@ -42,3 +42,30 @@ body {
   text-align: center;
   color: white;
 }
+
+#slogan {
+  height: 36px;
+  line-height: 36px;
+  text-align: center;
+  background-color: dodgerblue;
+  font-size: 1.2em;
+  color: white;
+}
+
+.friend-link {
+  display: inline-block;
+}
+
+.friend-img {
+  display: block;
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.friend-name {
+  display: block;
+  text-align: center;
+  font-size: 1.2em;
+}
