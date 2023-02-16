@@ -50,6 +50,9 @@ body {
   background-color: dodgerblue;
   font-size: 1.2em;
   color: white;
+  white-space: nowrap;
+  overflow-x: auto;
+  padding: 0 1em;
 }
 
 .friend-link {
