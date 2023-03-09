@@ -1,5 +1,4 @@
 using System.Text.Json;
-using CrupestApi.Commons.Secrets;
 using Microsoft.Extensions.Options;
 
 namespace CrupestApi.Commons;
@@ -61,53 +60,5 @@ public static class CrupestApiJsonExtensions
     public static async Task WriteMessageAsync(this HttpResponse response, string message, int statusCode = 400, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
     {
         await response.WriteJsonAsync(new MessageBody(message), statusCode: statusCode, beforeWriteBody, cancellationToken);
-    }
-
-    public static Task ResponseJsonAsync<T>(this HttpContext context, T bodyObject, int statusCode = 200, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
-    {
-        return context.Response.WriteJsonAsync<T>(bodyObject, statusCode, beforeWriteBody, cancellationToken);
-    }
-
-    public static Task ResponseMessageAsync(this HttpContext context, string message, int statusCode = 400, HttpResponseAction? beforeWriteBody = null, CancellationToken cancellationToken = default)
-    {
-        return context.Response.WriteMessageAsync(message, statusCode, beforeWriteBody, cancellationToken);
-    }
-
-    public static string? GetToken(this HttpRequest request)
-    {
-        var token = request.Headers["Authorization"].ToString();
-        if (token.StartsWith("Bearer "))
-        {
-            token = token.Substring("Bearer ".Length);
-            return token;
-        }
-
-        if (request.Query.TryGetValue("token", out var tokenValues))
-        {
-            return tokenValues.Last();
-        }
-
-        return null;
-    }
-
-    public static bool RequirePermission(this HttpContext context, string? permission)
-    {
-        if (permission is null) return true;
-
-        var token = context.Request.GetToken();
-        if (token is null)
-        {
-            context.ResponseMessageAsync("Unauthorized", 401);
-            return false;
-        }
-
-        var secretService = context.RequestServices.GetRequiredService<ISecretService>();
-        var permissions = secretService.GetPermissions(token);
-        if (!permissions.Contains(permission))
-        {
-            context.ResponseMessageAsync("Forbidden", 403);
-            return false;
-        }
-        return true;
     }
 }

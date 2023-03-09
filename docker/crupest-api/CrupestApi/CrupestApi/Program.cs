@@ -1,5 +1,4 @@
 using CrupestApi.Commons;
-using CrupestApi.Commons.Crud;
 using CrupestApi.Secrets;
 using CrupestApi.Todos;
 
@@ -16,7 +15,6 @@ builder.Services.AddSecrets();
 
 var app = builder.Build();
 
-app.UseCrudCore();
 app.MapTodos("/api/todos");
 // TODO: It's not safe now!
 // app.MapSecrets("/api/secrets");

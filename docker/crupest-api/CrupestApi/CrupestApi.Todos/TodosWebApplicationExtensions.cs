@@ -4,7 +4,7 @@ namespace CrupestApi.Todos;
 
 public static class TodosWebApplicationExtensions
 {
-    public static WebApplication MapTodos(this WebApplication app, string path)
+    public static IEndpointRouteBuilder MapTodos(this IEndpointRouteBuilder app, string path)
     {
         if (app is null)
         {

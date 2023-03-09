@@ -12,9 +12,12 @@ public static class CrupestApiConfigExtensions
         services.AddOptions<CrupestApiConfig>().BindConfiguration("CrupestApi");
         services.PostConfigure<CrupestApiConfig>(config =>
         {
-            if (config.DataDir is null || config.DataDir.Length == 0)
+            if (string.IsNullOrEmpty(config.DataDir))
             {
-                config.DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "crupest-api");
+                config.DataDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    "crupest-api"
+                );
             }
         });
 
