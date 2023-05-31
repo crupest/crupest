@@ -1,10 +1,11 @@
-import pwd
-import grp
 import os
 import typing
+import uuid
 from rich.prompt import Prompt
 from .path import config_file_path
 
+def generate_uuid():
+    return str(uuid.uuid4())
 
 class ConfigVar:
     def __init__(self, name: str, description: str, default_value_generator: typing.Callable[[], str] | str, /, default_value_for_ask=str | None):
@@ -48,6 +49,12 @@ config_var_list: list = [
               "github token for fetching todos", "Please input your github token for fetching todos"),
     ConfigVar("CRUPEST_GITHUB_TODO_COUNT",
               "github todo count", "Please input your github todo count", 10),
+    ConfigVar("CRUPEST_GITHUB_TODO_COUNT",
+              "github todo count", "Please input your github todo count", 10),
+    ConfigVar("CRUPEST_V2RAY_TOKEN",
+              "v2ray user id", generate_uuid),
+    ConfigVar("CRUPEST_V2RAY_PATH",
+              "v2ray path, which will be prefixed by _", generate_uuid),
 ]
 
 config_var_name_set = set([config_var.name for config_var in config_var_list])

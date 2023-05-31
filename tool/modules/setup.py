@@ -143,7 +143,7 @@ def template_generate(console):
                         "Great! Check the config file and see you next time!", style="green")
                     to_gen = False
 
-        domain = config["CRUPEST_DOMAIN"]
+        domain = get_domain()
 
         if to_gen:
             console.print(
@@ -186,7 +186,7 @@ def template_generate(console):
                     to_gen_nginx_conf = Confirm.ask("[yellow]It seems you have already generated nginx config. Do you want to overwrite it?[/]",
                                                     default=False, console=console)
             if to_gen_nginx_conf:
-                nginx(domain, console)
+                nginx(domain, config, console)
     data_dir_check(domain, console)
 
 
