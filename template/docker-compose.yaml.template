@@ -89,8 +89,6 @@ services:
     restart: on-failure:3
     volumes:
       - "./v2ray-config.json:/etc/v2fly/config.json:ro"
-    expose:
-      - "10000:10000"
     networks:
       - v2ray-network
 
