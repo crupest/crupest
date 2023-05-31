@@ -11,7 +11,6 @@ except ImportError:
 from os.path import *
 import argparse
 import subprocess
-from rich.console import Console
 from rich.prompt import Confirm
 from modules.install_docker import *
 from modules.path import *
@@ -24,7 +23,8 @@ from modules.test import *
 from modules.dns import *
 from modules.setup import *
 
-console = Console()
+from modules.common import console
+
 
 parser = argparse.ArgumentParser(
     description="Crupest server all-in-one setup script. Have fun play with it!")
@@ -130,7 +130,7 @@ if args.yes:
         default_text = ""
         if default is not None:
             default_text = "(y)" if default else "(n)"
-        text = f"[prompt]{prompt}[/] [prompt.choices]\[y/n][/] [prompt.default]{default_text}[/]"
+        text = f"[prompt]{prompt}[/] [prompt.choices]\\[y/n][/] [prompt.default]{default_text}[/]"
         console.print(text)
         return True
 
@@ -159,6 +159,7 @@ def check_domain_is_defined():
         return get_domain()
     except Exception as e:
         console.print(e.args[0], style="red")
+        raise e
 
 
 def git_update():

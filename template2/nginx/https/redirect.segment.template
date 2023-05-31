@@ -1,0 +1,7 @@
+location = ${PATH} {
+    return ${REDIRECT_CODE} ${REDIRECT_URL};
+}
+
+location ^${PATH}/(?<redirect_path>.*)$ {
+    return ${REDIRECT_CODE} ${REDIRECT_URL}/$redirect_path;
+}

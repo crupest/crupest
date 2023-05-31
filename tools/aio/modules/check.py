@@ -1,6 +1,6 @@
 import sys
 import re
-from os.path import *
+from os.path import exists
 
 
 def check_python_version(required_version=(3, 10)):
