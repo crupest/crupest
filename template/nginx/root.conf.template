@@ -11,6 +11,22 @@ server {
         root /srv/www;
     }
 
+    location /_$CRUPEST_V2RAY_PATH {
+        if ($http_upgrade != "websocket") {
+            return 404;
+        }
+
+        proxy_redirect off;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://crupest-v2ray:10000;
+    }
+
     location /api {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -21,6 +37,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_pass http://crupest-api;
     }
+
 }
 
 server {

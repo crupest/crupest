@@ -239,8 +239,7 @@ def run():
                 console.print(domain)
 
         case "nginx":
-            domain = check_domain_is_defined()
-            nginx(domain, console)
+            raise Exception("This command is deprecated.")
 
         case "certbot":
             domain = check_domain_is_defined()

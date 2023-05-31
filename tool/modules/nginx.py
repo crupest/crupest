@@ -50,7 +50,7 @@ def list_domains(domain: str) -> list:
     return [domain, *list_subdomains(domain)]
 
 
-def generate_nginx_config(domain: str, dest: str) -> None:
+def generate_nginx_config(domain: str, original_config, dest: str) -> None:
     if not isdir(dest):
         raise ValueError('dest must be a directory')
     # copy ssl.conf and https-redirect.conf which need no variable substitution
@@ -58,12 +58,19 @@ def generate_nginx_config(domain: str, dest: str) -> None:
         src = join(nginx_template_dir, filename)
         dst = join(dest, filename)
         shutil.copyfile(src, dst)
-    config = {"CRUPEST_DOMAIN": domain}
+    config = {
+        "CRUPEST_DOMAIN": domain,
+        "CRUPEST_V2RAY_TOKEN": original_config["CRUPEST_V2RAY_TOKEN"],
+        "CRUPEST_V2RAY_PATH": original_config["CRUPEST_V2RAY_PATH"]
+    }
     # generate ssl.conf
     with open(join(dest, 'ssl.conf'), 'w') as f:
         f.write(ssl_template.generate(config))
     # generate root.conf
     with open(join(dest, f'{domain}.conf'), 'w') as f:
+        root_config = config.copy()
+        root_config["CRUPEST_V2RAY_TOKEN"] = config["CRUPEST_V2RAY_TOKEN"]
+        root_config["CRUPEST_V2RAY_PATH"] = config["CRUPEST_V2RAY_PATH"]
         f.write(root_template.generate(config))
     # generate nginx config for each site
     sites: list = server["sites"]
@@ -113,7 +120,7 @@ def restart_nginx(force=False) -> bool:
     return True
 
 
-def nginx(domain: str, /, console) -> None:
+def nginx(domain: str, config, /, console) -> None:
     bad_files = check_nginx_config_dir(nginx_config_dir, domain)
     if len(bad_files) > 0:
         console.print(
@@ -133,7 +140,7 @@ def nginx(domain: str, /, console) -> None:
         os.mkdir(nginx_config_dir)
         console.print(
             f"Nginx config directory created at [magenta]{nginx_config_dir}[/]", style="green")
-    generate_nginx_config(domain, dest=nginx_config_dir)
+    generate_nginx_config(domain, config, dest=nginx_config_dir)
     console.print("Nginx config generated.", style="green")
     if restart_nginx():
         console.print('Nginx restarted.', style="green")
