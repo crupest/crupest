@@ -3,23 +3,36 @@ import typing
 import uuid
 import random
 import string
+from dataclasses import dataclass
+
 from rich.prompt import Prompt
+
+from cru.config import Configuration
+from cru.parsing import SimpleLineConfigParser
 from .path import config_file_path
 
-def generate_uuid():
-    return str(uuid.uuid4())
 
-# generate random characters of digits and alphabets
-def generate_random_string(length: int):
-    characters = string.ascii_letters + string.digits
-    random_string = ''.join(random.choice(characters) for _ in range(length))
-    return random_string
+@dataclass
+class ConfigurationMigrationInfo:
+    duplicate_item_in_old_config: list[str]
+    item
 
-def generate_random_string_32():
-    return generate_random_string(32)
+
+class OldConfiguration:
+    def __init__(self, items: None | dict[str, str] = None) -> None:
+        self._items = items or {}
+
+    @staticmethod
+    def load_from_str(s: str) -> tuple["OldConfiguration", list[str, str]]:
+        d, duplicate = SimpleLineConfigParser().parse_to_dict(s, True)
+        return OldConfiguration(d), duplicate
+
+    def convert_to_new_config(self) -> Configuration:
+
 
 class ConfigVar:
-    def __init__(self, name: str, description: str, default_value_generator: typing.Callable[[], str] | str, /, default_value_for_ask=str | None):
+    def __init__(self, name: str, description: str, default_value_generator: typing.Callable[[], str] | str, /,
+                 default_value_for_ask=str | None):
         """Create a config var.
 
         Args:
@@ -45,17 +58,22 @@ config_var_list: list = [
     ConfigVar("CRUPEST_EMAIL", "admin email address",
               "Please input your email address"),
     ConfigVar("CRUPEST_AUTO_BACKUP_COS_SECRET_ID",
-              "access key id for Tencent COS, used for auto backup", "Please input your Tencent COS access key id for backup"),
+              "access key id for Tencent COS, used for auto backup",
+              "Please input your Tencent COS access key id for backup"),
     ConfigVar("CRUPEST_AUTO_BACKUP_COS_SECRET_KEY",
-              "access key secret for Tencent COS, used for auto backup", "Please input your Tencent COS access key for backup"),
+              "access key secret for Tencent COS, used for auto backup",
+              "Please input your Tencent COS access key for backup"),
     ConfigVar("CRUPEST_AUTO_BACKUP_COS_REGION",
-              "region for Tencent COS, used for auto backup", "Please input your Tencent COS region for backup", "ap-hongkong"),
+              "region for Tencent COS, used for auto backup", "Please input your Tencent COS region for backup",
+              "ap-hongkong"),
     ConfigVar("CRUPEST_AUTO_BACKUP_BUCKET_NAME",
-              "bucket name for Tencent COS, used for auto backup", "Please input your Tencent COS bucket name for backup"),
+              "bucket name for Tencent COS, used for auto backup",
+              "Please input your Tencent COS bucket name for backup"),
     ConfigVar("CRUPEST_GITHUB_USERNAME",
               "github username for fetching todos", "Please input your github username for fetching todos", "crupest"),
     ConfigVar("CRUPEST_GITHUB_PROJECT_NUMBER",
-              "github project number for fetching todos", "Please input your github project number for fetching todos", "2"),
+              "github project number for fetching todos", "Please input your github project number for fetching todos",
+              "2"),
     ConfigVar("CRUPEST_GITHUB_TOKEN",
               "github token for fetching todos", "Please input your github token for fetching todos"),
     ConfigVar("CRUPEST_GITHUB_TODO_COUNT",
@@ -81,7 +99,7 @@ config_var_list: list = [
 config_var_name_set = set([config_var.name for config_var in config_var_list])
 
 
-def check_config_var_set(needed_config_var_set: set):
+def check_config_var_set(needed_config_var_set: set[str]) -> tuple[bool, list[str], list[str]]:
     more = []
     less = []
     for var_name in needed_config_var_set:
@@ -94,35 +112,17 @@ def check_config_var_set(needed_config_var_set: set):
 
 
 def config_file_exists():
-    return os.path.isfile(config_file_path)
+    return ensure_file(Paths.config_file_path, must_exist=False)
 
 
-def parse_config(str: str) -> dict:
-    config = {}
-    for line_number, line in enumerate(str.splitlines()):
-        # check if it's a comment
-        if line.startswith("#"):
-            continue
-        # check if there is a '='
-        if line.find("=") == -1:
-            raise ValueError(
-                f"Invalid config string. Please check line {line_number + 1}. There is even no '='!")
-        # split at first '='
-        key, value = line.split("=", 1)
-        key = key.strip()
-        value = value.strip()
-        config[key] = value
-    return config
+def parse_config(str: str) -> dict[str, str]:
+    return ConfigMap().load_from_str(str).to_dict()
 
 
 def get_domain() -> str:
-    if not config_file_exists():
+    if configuration is None:
         raise ValueError("Config file not found!")
-    with open(config_file_path) as f:
-        config = parse_config(f.read())
-    if "CRUPEST_DOMAIN" not in config:
-        raise ValueError("Domain not found in config file!")
-    return config["CRUPEST_DOMAIN"]
+    return configuration.get_domain()
 
 
 def config_to_str(config: dict) -> str:
