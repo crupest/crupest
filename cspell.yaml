@@ -12,7 +12,6 @@ dictionaries:
   - fonts
   - filetypes
   - npm
-  - crupest-words
 
 dictionaryDefinitions:
   - name: crupest-words
