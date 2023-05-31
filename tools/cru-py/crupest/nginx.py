@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-
+from typing import cast
 import json
 import jsonschema
 import os
@@ -210,7 +209,8 @@ def get_cert_domains(cert_path, root_domain):
         cert = load_pem_x509_certificate(f.read())
         ext = cert.extensions.get_extension_for_oid(
             ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
-        domains: list = ext.value.get_values_for_type(DNSName)
+        domains: list[str] = cast(
+                SubjectAlternativeName, ext.value).get_values_for_type(DNSName)
         domains.remove(root_domain)
         domains = [root_domain, *domains]
         return domains
@@ -227,7 +227,6 @@ def check_ssl_cert(domain, console):
     cert_path = get_cert_path(domain)
     tmp_cert_path = join(tmp_dir, "fullchain.pem")
     console.print("Temporarily copy cert to tmp...", style="yellow")
-    ensure_tmp_dir()
     subprocess.run(
         ["sudo", "cp", cert_path, tmp_cert_path], check=True)
     subprocess.run(["sudo", "chown", str(os.geteuid()),
