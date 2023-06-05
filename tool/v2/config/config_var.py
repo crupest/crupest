@@ -118,9 +118,7 @@ def get_config_var_type(v: Union[str, ConfigVarType]) -> ConfigVarType:
         return v
 
 
-ConfigVarType = Union[TextConfigVarType,
-                      IntegerConfigVarType, BooleanConfigVarType]
-ConfigVarDefaultGenerator = Callable[[], Any]
+ConfigVarDefaultGenerator = Callable[[ConfigVarType], Any]
 
 
 class ConfigVar:
@@ -149,7 +147,7 @@ class ConfigVar:
         return self.type.convert_value_to_str(value)
 
     def generate_default_value(self) -> Any:
-        d = self.default_value_generator()
+        d = self.default_value_generator(self.type)
         self.check_value_type(d)
         return d
 
@@ -158,24 +156,23 @@ class ConfigVar:
 
     @staticmethod
     def auto_gen_var(name: str, description: str, default_value: Union[Any, ConfigVarDefaultGenerator], *, type: Union[str, ConfigVarType] = config_var_text_type) -> "ConfigVar":
-        def default_value_generator() -> Any:
-            return default_value() if callable(default_value) else default_value
+        def default_value_generator(type) -> Any:
+            return default_value(type) if callable(default_value) else default_value
 
         return ConfigVar(name, description, default_value_generator, type=type)
 
     @staticmethod
     def ask_var(name: str, description: str, prompt_str: str, /, default_value: Union[None, Any, ConfigVarDefaultGenerator] = None, *, type: Union[str, ConfigVarType] = config_var_text_type) -> "ConfigVar":
-        t = get_config_var_type(type)
-
-        def default_value_generator() -> Any:
+        def default_value_generator(type) -> Any:
             if default_value is None:
                 s = Prompt.ask(prompt_str, console=console)
-                return t.convert_value_to_str(s)
+                return type.convert_value_to_str(s)
             else:
-                d = default_value() if callable(default_value) else default_value
+                d = default_value(type) if callable(
+                    default_value) else default_value
                 s = Prompt.ask(prompt_str, console=console,
-                               default=t.convert_value_to_str(d))
-                return t.convert_value_to_str(s)
+                               default=type.convert_value_to_str(d))
+                return type.convert_value_to_str(s)
 
         return ConfigVar(name, description, default_value_generator, type=type)
 
@@ -223,11 +220,6 @@ config_var_list: list[ConfigVar] = [
 
 
 def check_config_vars(config_vars: list[ConfigVar]):
-    """
-    Check if there are duplicated config vars.
-    Args:
-        config_vars (list[ConfigVar]): The config vars to check.
-    """
     names = set()
     for var in config_vars:
         if var.name in names:
