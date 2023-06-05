@@ -1,8 +1,8 @@
-from typing import Callable, ClassVar, Literal, Union, Any
+from typing import Callable, ClassVar, Any
 import uuid
 import re
 from rich.prompt import Prompt
-from ..console import console
+from ..common import console, UserFriendlyException
 
 
 def _generate_uuid() -> str:
@@ -28,24 +28,24 @@ class ConfigVarType:
     def check_value_type(self, value: Any) -> None:
         if not isinstance(value, self.type):
             raise Exception(
-                f"Config var {self.name} is not a {self.type}!")
+                f"Config value is not a {self.type}!")
 
     def check_str_format(self, s: str) -> None:
         raise NotImplementedError()
 
-    def do_convert_value_to_str(self, value: Any) -> str:
+    def _do_convert_value_to_str(self, value: Any) -> str:
         raise NotImplementedError()
 
     def convert_value_to_str(self, value: Any) -> str:
         self.check_value_type(value)
-        return self.do_convert_value_to_str(value)
+        return self._do_convert_value_to_str(value)
 
-    def do_convert_str_to_value(self, value: str) -> Any:
+    def _do_convert_str_to_value(self, value: str) -> Any:
         raise NotImplementedError()
 
     def convert_str_to_value(self, value: str) -> Any:
         self.check_str_format(value)
-        return self.do_convert_str_to_value(value)
+        return self._do_convert_str_to_value(value)
 
 
 class TextConfigVarType(ConfigVarType):
@@ -55,10 +55,10 @@ class TextConfigVarType(ConfigVarType):
     def check_str_format(self, s: str) -> None:
         return
 
-    def do_convert_value_to_str(self, value: str) -> str:
+    def _do_convert_value_to_str(self, value: str) -> str:
         return value
 
-    def do_convert_str_to_value(self, value: str) -> str:
+    def _do_convert_str_to_value(self, value: str) -> str:
         return value
 
 
@@ -71,30 +71,35 @@ class IntegerConfigVarType(ConfigVarType):
 
     def check_str_format(self, s: str) -> None:
         if not IntegerConfigVarType._int_regex.match(s):
-            raise Exception(
-                f"Config var {self.name} is not an integer!")
+            raise UserFriendlyException("Value is not an integer!")
 
-    def do_convert_value_to_str(self, value: int) -> str:
+    def _do_convert_value_to_str(self, value: int) -> str:
         return str(value)
 
-    def do_convert_str_to_value(self, value: str) -> int:
+    def _do_convert_str_to_value(self, value: str) -> int:
         return int(value)
 
 
 class BooleanConfigVarType(ConfigVarType):
+    _valid_true_str_list: ClassVar[list[str]] = ["true", "yes", "y", "on", "1"]
+    _valid_false_str_list: ClassVar[list[str]] = [
+        "false", "no", "n", "off", "0"]
+    _valid_boolean_str_list: ClassVar[list[str]
+                                      ] = _valid_true_str_list + _valid_false_str_list
+
     def __init__(self) -> None:
         super().__init__("boolean", bool)
 
     def check_str_format(self, s: str) -> None:
-        if s.lower() not in ["true", "false"]:
-            raise Exception(
-                f"Config var {self.name} is not a boolean!")
+        if s.lower() not in BooleanConfigVarType._valid_boolean_str_list:
+            raise UserFriendlyException(
+                f"Value is not a boolean! Valid true value: {' '.join(BooleanConfigVarType._valid_true_str_list)}. Valid false value: {' '.join(BooleanConfigVarType._valid_false_str_list)}. All is case insensitive.")
 
-    def do_convert_value_to_str(self, value: bool) -> str:
+    def _do_convert_value_to_str(self, value: bool) -> str:
         return str(value).lower()
 
     def convert_str_to_value(self, value: str) -> bool:
-        return value.lower() == "true"
+        return value.lower() in BooleanConfigVarType._valid_true_str_list
 
 
 config_var_text_type = TextConfigVarType()
@@ -106,7 +111,7 @@ config_var_type_list = [config_var_text_type,
 config_var_type_dict = {t.name: t for t in config_var_type_list}
 
 
-def get_config_var_type(v: Union[str, ConfigVarType]) -> ConfigVarType:
+def get_config_var_type(v: str | ConfigVarType) -> ConfigVarType:
     if isinstance(v, str):
         if v not in config_var_type_dict:
             raise Exception(f"Unknown config var type name {v}!")
@@ -123,10 +128,11 @@ ConfigVarDefaultGenerator = Callable[[ConfigVarType], Any]
 
 class ConfigVar:
 
-    def __init__(self, name: str, description: str, default_value_generator: ConfigVarDefaultGenerator, *, type: Union[str, ConfigVarType] = config_var_text_type):
+    def __init__(self, name: str, description: str, default_value_generator: ConfigVarDefaultGenerator, *, interactive_generator=False, type: str | ConfigVarType = config_var_text_type):
         self.name = get_config_var_prefix() + "_" + name
         self.description = description
         self.default_value_generator = default_value_generator
+        self.interactive_generator = interactive_generator
         self.type = get_config_var_type(type)
 
     def check_value_type(self, value: Any):
@@ -155,14 +161,14 @@ class ConfigVar:
         return self.convert_value_to_str(self.generate_default_value())
 
     @staticmethod
-    def auto_gen_var(name: str, description: str, default_value: Union[Any, ConfigVarDefaultGenerator], *, type: Union[str, ConfigVarType] = config_var_text_type) -> "ConfigVar":
+    def auto_gen_var(name: str, description: str, default_value: Any | ConfigVarDefaultGenerator, *, type: str | ConfigVarType = config_var_text_type) -> "ConfigVar":
         def default_value_generator(type) -> Any:
             return default_value(type) if callable(default_value) else default_value
 
         return ConfigVar(name, description, default_value_generator, type=type)
 
     @staticmethod
-    def ask_var(name: str, description: str, prompt_str: str, /, default_value: Union[None, Any, ConfigVarDefaultGenerator] = None, *, type: Union[str, ConfigVarType] = config_var_text_type) -> "ConfigVar":
+    def ask_var(name: str, description: str, prompt_str: str, /, default_value: None | Any | ConfigVarDefaultGenerator = None, *, type: str | ConfigVarType = config_var_text_type) -> "ConfigVar":
         def default_value_generator(type) -> Any:
             if default_value is None:
                 s = Prompt.ask(prompt_str, console=console)
@@ -174,7 +180,7 @@ class ConfigVar:
                                default=type.convert_value_to_str(d))
                 return type.convert_value_to_str(s)
 
-        return ConfigVar(name, description, default_value_generator, type=type)
+        return ConfigVar(name, description, default_value_generator, interactive_generator=True, type=type)
 
 
 config_var_list: list[ConfigVar] = [
