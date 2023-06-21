@@ -2,19 +2,11 @@ from typing import Callable, ClassVar, Any
 import uuid
 import re
 from rich.prompt import Prompt
-from ..common import console, UserFriendlyException
+from common import UserFriendlyException, console
 
 
 def _generate_uuid() -> str:
     return str(uuid.uuid4())
-
-
-def get_config_var_prefix() -> str:
-    """
-    The prefix of config var.
-    TODO: Make this configurable.
-    """
-    return "CRUPEST"
 
 
 class ConfigVarType:
@@ -129,7 +121,7 @@ ConfigVarDefaultGenerator = Callable[[ConfigVarType], Any]
 class ConfigVar:
 
     def __init__(self, name: str, description: str, default_value_generator: ConfigVarDefaultGenerator, *, interactive_generator=False, type: str | ConfigVarType = config_var_text_type):
-        self.name = get_config_var_prefix() + "_" + name
+        self.name = name
         self.description = description
         self.default_value_generator = default_value_generator
         self.interactive_generator = interactive_generator

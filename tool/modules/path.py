@@ -15,16 +15,34 @@ nginx_config_dir = os.path.join(project_dir, "nginx-config")
 log_dir = os.path.join(project_dir, "log")
 
 
-def ensure_log_dir():
-    if not os.path.exists(log_dir):
-        os.mkdir(log_dir)
+def ensure_file(path: str, /, must_exist: bool = True) -> bool:
+    if must_exist and not os.path.exists(path):
+        raise Exception(f"File {path} does not exist!")
+    if not os.path.exists(path):
+        return False
+    if not os.path.isfile(path):
+        raise Exception(f"{path} is not a file!")
+    return True
 
 
-def ensure_tmp_dir():
-    if not os.path.exists(tmp_dir):
-        os.mkdir(tmp_dir)
+def ensure_dir(path: str, /, must_exist: bool = True) -> bool:
+    if must_exist and not os.path.exists(path):
+        raise Exception(f"Directory {path} does not exist!")
+    if not os.path.exists(path):
+        return False
+    if not os.path.isdir(path):
+        raise Exception(f"{path} is not a directory!")
+    return True
 
 
-def ensure_backup_dir():
-    if not os.path.exists(backup_dir):
-        os.mkdir(backup_dir)
+class Paths:
+    script_dir = os.path.relpath(os.path.dirname(__file__))
+    project_dir = os.path.normpath(os.path.join(script_dir, "../../"))
+    project_abs_path = os.path.abspath(project_dir)
+    data_dir = os.path.join(project_dir, "data")
+    config_file_path = os.path.join(data_dir, "config")
+    template_dir = os.path.join(project_dir, "template")
+    tool_dir = os.path.join(project_dir, "tool")
+    tmp_dir = os.path.join(project_dir, "tmp")
+    backup_dir = os.path.join(project_dir, "backup")
+    log_dir = os.path.join(project_dir, "log")
