@@ -130,7 +130,7 @@ if args.yes:
         default_text = ""
         if default is not None:
             default_text = "(y)" if default else "(n)"
-        text = f"[prompt]{prompt}[/] [prompt.choices]\[y/n][/] [prompt.default]{default_text}[/]"
+        text = f"[prompt]{prompt}[/] [prompt.choices]\\[y/n][/] [prompt.default]{default_text}[/]"
         console.print(text)
         return True
 

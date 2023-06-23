@@ -1,0 +1,13 @@
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${CRUPEST_NGINX_SUBDOMAIN}.${CRUPEST_DOMAIN};
+
+    location / {
+        return 444;
+    }
+
+    location /.well-known/acme-challenge {
+        root /srv/acme;
+    }
+}
