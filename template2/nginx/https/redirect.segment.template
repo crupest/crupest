@@ -1,0 +1,4 @@
+location ${URL_PATH} {
+    rewrite ^(.*)
+    return ${CODE};
+}

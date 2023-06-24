@@ -40,6 +40,9 @@
         },
         "StaticFileService": {
             "properties": {
+                "no_strip_prefix": {
+                    "type": "boolean"
+                },
                 "path": {
                     "type": "string"
                 },
