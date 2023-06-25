@@ -63,9 +63,6 @@
                 "name": {
                     "type": "string"
                 },
-                "no_cert": {
-                    "type": "boolean"
-                },
                 "services": {
                     "items": {
                         "anyOf": [

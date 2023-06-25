@@ -1,5 +1,8 @@
 // Used to generate json schema.
 
+// path should start with "/", end without "/" and contain no special characters in regex.
+// the special case is root path "/", which is allowed.
+
 // For example:
 // Given
 //   path: /a/b
@@ -13,8 +16,8 @@
 // If you want a domain-only redirect, just specify the path as "/".
 export interface RedirectService {
   type: "redirect";
-  path: string; // must be a path
-  to: string; // must be a url
+  path: string; // must be a path, should start with "/", end without "/"
+  to: string; // must be a url, should start with scheme (http:// or https://), end without "/"
   code?: number; // default to 307
 }
 
@@ -30,8 +33,8 @@ export interface RedirectService {
 //   file path: /e/f/a/b/c/d
 export interface StaticFileService {
   type: "static-file";
-  path: string;
-  root: string;
+  path: string; // must be a path, should start with "/", end without "/"
+  root: string; // must be a path (directory), should start with "/", end without "/"
   no_strip_prefix?: boolean; // default to false. If true, the path prefix is not removed from the url when finding the file.
 }
 
@@ -47,8 +50,8 @@ export interface StaticFileService {
 //   Because the upstream server will mess up the path handling if the prefix is not kept.
 export interface ReverseProxyService {
   type: "reverse-proxy";
-  path: string;
-  upstream: string;
+  path: string; // must be a path, should start with "/", end without "/"
+  upstream: string; // should be a [host]:[port], like "localhost:1234"
 }
 
 export type Service = RedirectService | StaticFileService | ReverseProxyService;
@@ -56,7 +59,6 @@ export type Service = RedirectService | StaticFileService | ReverseProxyService;
 export interface SubDomain {
   name: string; // @ for root domain
   services: Service[];
-  no_cert?: boolean; // default to false, if true, we don't get a ssl cert from Let's Encrypt for this domain
 }
 
 export interface Server {

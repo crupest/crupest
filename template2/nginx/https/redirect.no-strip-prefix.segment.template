@@ -1,3 +1,0 @@
-location ${URL_PATH} {
-    return 301 ${REDIRECT_URL}$request_uri;
-}
