@@ -46,3 +46,5 @@ class Paths:
     tmp_dir = os.path.join(project_dir, "tmp")
     backup_dir = os.path.join(project_dir, "backup")
     log_dir = os.path.join(project_dir, "log")
+    template2_dir = os.path.join(project_dir, "template2")
+    nginx2_template_dir = os.path.join(template2_dir, "nginx")

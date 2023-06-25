@@ -23,7 +23,7 @@ from modules.test import *
 from modules.dns import *
 from modules.setup import *
 
-from .modules.common import console
+from modules.common import console
 
 
 parser = argparse.ArgumentParser(

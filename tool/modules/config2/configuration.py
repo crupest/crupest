@@ -1,3 +1,4 @@
+from typing import ClassVar, Optional
 from .config_var import ConfigVar, config_var_list, check_config_vars
 from .config_map import ConfigMap, ConfigItem
 from ..common import UserFriendlyException, Paths, MY_NAME, ensure_file, console
@@ -13,7 +14,7 @@ _old_prefix = MY_NAME.upper() + "_"
 
 
 class Configuration(ConfigMap):
-    configuration: "Configuration" | None = None
+    configuration: ClassVar[Optional["Configuration"]] = None
 
     def __init__(self, config_vars: list[ConfigVar] = config_var_list):
         super().__init__()

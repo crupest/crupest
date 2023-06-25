@@ -1,4 +1,4 @@
-from common import console
+from .common import console
 
 good_style = "green"
 warning_style = "yellow"

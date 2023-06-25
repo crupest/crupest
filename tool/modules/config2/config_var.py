@@ -2,7 +2,7 @@ from typing import Callable, ClassVar, Any
 import uuid
 import re
 from rich.prompt import Prompt
-from common import UserFriendlyException, console
+from ..common import UserFriendlyException, console
 
 
 def _generate_uuid() -> str:
