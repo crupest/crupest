@@ -1,14 +1,18 @@
-from typing import Literal, Any, cast
+from typing import Literal, Any, cast, ClassVar
 import os
 from os.path import join, basename, dirname
 import shutil
 import subprocess
+import re
+from re import Pattern
 from cryptography.x509 import *
 from cryptography.x509.oid import ExtensionOID
 import json
 import jsonschema
+
+from tool.modules.nginx2 import NginxSourceFile
 from .template2 import Template2
-from .common import Paths
+from .common import Paths, UserFriendlyException
 
 _server_data_filename = "server.json"
 _server_schema_filename = "server.schema.json"
@@ -20,13 +24,6 @@ with open(join(Paths.nginx2_template_dir, _server_schema_filename)) as f:
     schema = json.load(f)
 
 jsonschema.validate(server, schema)
-
-
-class NginxSubDomain:
-
-
-class NginxServer:
-
 
 _domain_template_filename = "domain.conf.template"
 
@@ -90,7 +87,7 @@ class NginxSourceFile:
         return self._scope
 
 
-_domain_source = NginxSourceFile(_domain_template_filename)
+_domain_template_source = NginxSourceFile(_domain_template_filename)
 
 _client_max_body_size_source = NginxSourceFile(
     "global/client-max-body-size.conf")
@@ -99,18 +96,20 @@ _forbid_unknown_domain_source = NginxSourceFile(
 _ssl_template_source = NginxSourceFile("global/ssl.conf.template")
 _websocket_source = NginxSourceFile("global/websocket.conf")
 
-global_source_files = [
+_global_source_files = [
     _client_max_body_size_source,
     _forbid_unknown_domain_source,
     _ssl_template_source,
     _websocket_source
 ]
 
-global_target_files = [f.global_target_filename for f in global_source_files]
+_global_target_files = [f.global_target_filename for f in _global_source_files]
 
 _http_444_source = NginxSourceFile("http/444.segment")
 _http_redirect_to_https_source = NginxSourceFile(
     "http/redirect-to-https.segment")
+
+_http_source_files = [_http_444_source, _http_redirect_to_https_source]
 
 _https_redirect_template_source = NginxSourceFile(
     "https/redirect.segment.template")
@@ -121,43 +120,201 @@ _https_static_file_template_source = NginxSourceFile(
 _https_static_file_no_strip_prefix_template_source = NginxSourceFile(
     "https/static-file.no-strip-prefix.segment.template")
 
+_https_source_files = [
+    _https_redirect_template_source,
+    _https_reverse_proxy_template_source,
+    _https_static_file_template_source,
+    _https_static_file_no_strip_prefix_template_source
+]
+
 
 class NginxService:
-    def __init__(self, type: str, nginx_source: NginxSourceFile) -> None:
+    def __init__(self, type: str, path: str) -> None:
         self.type = type
-        self.nginx_source = nginx_source
+        self.path = path
+        self._check_path(path)
 
-    @property
-    def template(self) -> Template2:
-        return self.nginx_source.template
+    @staticmethod
+    def _check_path(path: str) -> None:
+        assert isinstance(path, str)
+        if path == "" or path == "/":
+            return
+        if not path.startswith("/"):
+            raise UserFriendlyException("Service path should start with '/'.")
+        if path.endswith("/"):
+            raise UserFriendlyException(
+                "Service path should not end with '/'.")
 
-    def generate_https_segment(self, attrs: dict[str, Any]):
-        if "path" not in attrs:
-            raise Exception("path is required")
-        path = attrs["path"]
-        
-    
-    def _generate_segment(self, path: str, other_attrs: dict[str, Any]) -> str:
-        return self.template.render(attr)
+    def generate_https_segment(self) -> str:
+        raise NotImplementedError()
 
 
 class NginxRedirectService(NginxService):
-    def __init__(self) -> None:
-        super().__init__("redirect", _https_redirect_template_source)
+    def __init__(self, path: str, redirect_url: str, redirect_code: int = 307) -> None:
+        if redirect_url.endswith("/"):
+            raise UserFriendlyException(
+                "Redirect URL should not end with '/'.")
 
-    def generate_https_segment(self, attr: dict[str, Any]):
+        super().__init__("redirect", path)
+
+        self.redirect_url = redirect_url
+        self.redirect_code = redirect_code
+
+    def generate_https_segment(self) -> str:
+        vars = {
+            "PATH": self.path,
+            "REDIRECT_CODE": self.redirect_code,
+            "REDIRECT_URL": self.redirect_url
+        }
+        return _https_redirect_template_source.template.render(vars)
+
+    @staticmethod
+    def from_json(json: dict[str, Any]) -> "NginxRedirectService":
+        path = json["path"]
+        redirect_url = json["to"]
+        redirect_code = json.get("code", 307)
+        assert isinstance(path, str)
+        assert isinstance(redirect_url, str)
+        assert isinstance(redirect_code, int)
+        return NginxRedirectService(path, redirect_url, redirect_code)
 
 
-def list_subdomain_names() -> list:
-    return [s["subdomain"] for s in server["sites"]]
+class NginxReverseProxyService(NginxService):
+
+    _upstream_regex: ClassVar[Pattern[str]] = re.compile(
+        r"^[-_0-9a-zA-Z]+:[0-9]+$")
+
+    def __init__(self, path: str, upstream: str) -> None:
+        if not self._upstream_regex.match(upstream):
+            raise UserFriendlyException(
+                f"Invalid upstream format: {upstream}.")
+
+        super().__init__("reverse-proxy", path)
+
+        self.upstream = upstream
+
+    def generate_https_segment(self) -> str:
+        vars = {
+            "PATH": self.path,
+            "UPSTREAM": self.upstream
+        }
+        return _https_reverse_proxy_template_source.template.render(vars)
+
+    @staticmethod
+    def from_json(json: dict[str, Any]) -> "NginxReverseProxyService":
+        path = json["path"]
+        upstream = json["upstream"]
+        assert isinstance(path, str)
+        assert isinstance(upstream, str)
+        return NginxReverseProxyService(path, upstream)
 
 
-def list_subdomains(domain: str) -> list:
-    return [f"{s['subdomain']}.{domain}" for s in server["sites"]]
+class NginxStaticFileService(NginxService):
+    def __init__(self, path: str, root: str, no_strip_prefix: bool = False) -> None:
+        super().__init__("static-file", path)
+
+        self.root = root
+        self.no_strip_prefix = no_strip_prefix
+
+    def generate_https_segment(self) -> str:
+        vars = {
+            "PATH": self.path,
+            "ROOT": self.root,
+        }
+        if self.no_strip_prefix:
+            return _https_static_file_no_strip_prefix_template_source.template.render(vars)
+        else:
+            return _https_static_file_template_source.template.render(vars)
+
+    @staticmethod
+    def from_json(json: dict[str, Any]) -> "NginxStaticFileService":
+        path = json["path"]
+        root = json["root"]
+        no_strip_prefix = json.get("no_strip_prefix", False)
+        assert isinstance(path, str)
+        assert isinstance(root, str)
+        assert isinstance(no_strip_prefix, bool)
+        return NginxStaticFileService(path, root, no_strip_prefix)
 
 
-def list_domains(domain: str) -> list:
-    return [domain, *list_subdomains(domain)]
+def nginx_service_from_json(json: dict[str, Any]) -> NginxService:
+    type = json["type"]
+    if type == "redirect":
+        return NginxRedirectService.from_json(json)
+    elif type == "reverse-proxy":
+        return NginxReverseProxyService.from_json(json)
+    elif type == "static-file":
+        return NginxStaticFileService.from_json(json)
+    else:
+        raise UserFriendlyException(f"Invalid service type: {type}.")
+
+
+def _prepend_indent(text: str, indent: str = " " * 4) -> str:
+    lines = text.split("\n")
+    for i in range(len(lines)):
+        if lines[i] != "":
+            lines[i] = indent + lines[i]
+    return "\n".join(lines)
+
+
+class NginxDomain:
+    def __init__(self, domain: str, services: list[NginxService] = []) -> None:
+        self.domain = domain
+        self.services = services
+
+    def add_service(self, service: NginxService) -> None:
+        self.services.append(service)
+
+    def generate_http_segment(self) -> str:
+        if len(self.services) == 0:
+            return _http_444_source.content
+        else:
+            return _http_redirect_to_https_source.content
+
+    def generate_https_segment(self) -> str:
+        return "\n\n".join([s.generate_https_segment() for s in self.services])
+
+    def generate(self) -> str:
+        vars = {
+            "DOMAIN": self.domain,
+            "HTTP_SEGMENT": _prepend_indent(self.generate_http_segment()),
+            "HTTPS_SEGMENT": _prepend_indent(self.generate_https_segment()),
+        }
+        return _domain_template_source.template.render(vars)
+
+    @staticmethod
+    def from_json(root_domain, json: dict[str, Any]) -> "NginxDomain":
+        name = json["name"]
+        assert isinstance(name, str)
+        if name == "@" or name == "":
+            domain = root_domain
+        else:
+            domain = f"{name}.{root_domain}"
+        assert isinstance(json["services"], list)
+        services = [nginx_service_from_json(s) for s in json["services"]]
+        return NginxDomain(domain, services)
+
+
+class NginxServer:
+    def __init__(self, root_domain: str) -> None:
+        self.root_domain = root_domain
+        self.domains: list[NginxDomain] = []
+
+    def add_sub_domain(self, sub_domain: str, services: list[NginxService]) -> None:
+        if sub_domain == "" or sub_domain == "@":
+            domain = self.root_domain
+        else:
+            domain = f"{sub_domain}.{self.root_domain}"
+        self.domains.append(NginxDomain(domain, services))
+
+    @staticmethod
+    def from_json(root_domain: str, json: dict[str, Any]) -> "NginxServer":
+        server = NginxServer(root_domain)
+        sub_domains = json["domains"]
+        assert isinstance(sub_domains, list)
+        server.domains = [NginxDomain.from_json(
+            root_domain, d) for d in sub_domains]
+        return server
 
 
 def generate_nginx_config(domain: str, original_config, dest: str) -> None:
@@ -222,7 +379,7 @@ def check_nginx_config_dir(dir_path: str, domain: str) -> list:
 def restart_nginx(force=False) -> bool:
     if not force:
         p = subprocess.run(['docker', "container", "ls",
-                           "-f", "name=nginx", "-q"], capture_output=True)
+                            "-f", "name=nginx", "-q"], capture_output=True)
         container: str = p.stdout.decode("utf-8")
         if len(container.strip()) == 0:
             return False
