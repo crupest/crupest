@@ -14,16 +14,12 @@ from tool.modules.nginx2 import NginxSourceFile
 from .template2 import Template2
 from .common import Paths, UserFriendlyException
 
-_server_data_filename = "server.json"
+_server_data_template_filename = "server.json.template"
 _server_schema_filename = "server.schema.json"
 
-with open(join(Paths.nginx2_template_dir, _server_data_filename)) as f:
-    server = json.load(f)
-
 with open(join(Paths.nginx2_template_dir, _server_schema_filename)) as f:
-    schema = json.load(f)
+    server_json_schema = json.load(f)
 
-jsonschema.validate(server, schema)
 
 _domain_template_filename = "domain.conf.template"
 
