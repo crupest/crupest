@@ -48,3 +48,8 @@ class Paths:
     log_dir = os.path.join(project_dir, "log")
     template2_dir = os.path.join(project_dir, "template2")
     nginx2_template_dir = os.path.join(template2_dir, "nginx")
+
+
+def create_dir_if_not_exists(path: str) -> None:
+    if not ensure_dir(path, must_exist=False):
+        os.mkdir(path)

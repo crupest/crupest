@@ -15,8 +15,13 @@ dictionaries:
 words:
   - ASPNETCORE
   - autoincrement
+  - certbot
+  - certonly
   - crupest
+  - fullchain
   - Fxxk
+  - letsencrypt
   - outbounds
   - todos
   - vmess
+  - webroot

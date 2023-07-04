@@ -1,10 +1,11 @@
-from .path import Paths, ensure_dir, ensure_file
+from .path import Paths, ensure_dir, ensure_file, create_dir_if_not_exists
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
 
 Paths = Paths
 Prompt = Prompt
 Confirm = Confirm
+create_dir_if_not_exists = create_dir_if_not_exists
 ensure_dir = ensure_dir
 ensure_file = ensure_file
 
