@@ -28,6 +28,8 @@ class NginxSourceFile:
         self._path = path
         is_template = path.endswith(".template")
         self._is_template = is_template
+        filename = basename(path)
+        self.name = filename[:-len(".template")] if is_template else filename
         if is_template:
             self._template = Template2.from_file(
                 join(Paths.nginx2_template_dir, path))
@@ -86,20 +88,9 @@ _forbid_unknown_domain_source = NginxSourceFile(
 _ssl_template_source = NginxSourceFile("global/ssl.conf.template")
 _websocket_source = NginxSourceFile("global/websocket.conf")
 
-_global_source_files = [
-    _client_max_body_size_source,
-    _forbid_unknown_domain_source,
-    _ssl_template_source,
-    _websocket_source
-]
-
-_global_target_files = [f.global_target_filename for f in _global_source_files]
-
 _http_444_source = NginxSourceFile("http/444.segment")
 _http_redirect_to_https_source = NginxSourceFile(
     "http/redirect-to-https.segment")
-
-_http_source_files = [_http_444_source, _http_redirect_to_https_source]
 
 _https_redirect_template_source = NginxSourceFile(
     "https/redirect.segment.template")
@@ -109,13 +100,6 @@ _https_static_file_template_source = NginxSourceFile(
     "https/static-file.segment.template")
 _https_static_file_no_strip_prefix_template_source = NginxSourceFile(
     "https/static-file.no-strip-prefix.segment.template")
-
-_https_source_files = [
-    _https_redirect_template_source,
-    _https_reverse_proxy_template_source,
-    _https_static_file_template_source,
-    _https_static_file_no_strip_prefix_template_source
-]
 
 
 class NginxService:
@@ -311,10 +295,38 @@ class NginxServer:
         })
 
     def generate_global_files(self, dir: str) -> None:
-        for file in _global_source_files.
+        for source in [_client_max_body_size_source, _forbid_unknown_domain_source, _websocket_source]:
+            with open(join(dir, source.name), "w") as f:
+                f.write(source.content)
+        with open(join(dir, _ssl_template_source.name), "w") as f:
+            f.write(self.generate_ssl())
+
+    def generate_domain_files(self, dir: str) -> None:
+        for domain in self.domains:
+            domain.generate_config_file(join(dir, f"{domain.domain}.conf"))
 
     def generate_config(self, dir: str) -> None:
         create_dir_if_not_exists(dir)
+        self.generate_global_files(dir)
+
+    def get_allowed_files(self) -> list[str]:
+        files = []
+        for source in [_client_max_body_size_source, _forbid_unknown_domain_source, _ssl_template_source, _websocket_source]:
+            files.append(source.name)
+        for domain in self.domains:
+            files.append(f"{domain.domain}.conf")
+        return files
+
+    def check_bad_files(self, dir: str) -> list[str] | None:
+        allowed_files = self.get_allowed_files()
+        bad_files = []
+        for path in os.listdir(dir):
+            if path not in allowed_files:
+                bad_files.append(path)
+        if len(bad_files) == 0:
+            return None
+        else:
+            return bad_files
 
     @staticmethod
     def from_json(root_domain: str, json: dict[str, Any]) -> "NginxServer":
@@ -325,19 +337,6 @@ class NginxServer:
         server.domains = [NginxDomain.from_json(
             root_domain, d) for d in sub_domains]
         return server
-
-
-def check_nginx_config_dir(dir_path: str, domain: str) -> list:
-    if not exists(dir_path):
-        return []
-    good_files = [*non_template_files, "ssl.conf", *
-                  [f"{full_domain}.conf" for full_domain in list_domains(domain)]]
-    bad_files = []
-    for path in os.listdir(dir_path):
-        file_name = basename(path)
-        if file_name not in good_files:
-            bad_files.append(file_name)
-    return bad_files
 
 
 def restart_nginx(force=False) -> bool:
