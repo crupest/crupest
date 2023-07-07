@@ -44,15 +44,17 @@ body {
 }
 
 #slogan {
-  height: 36px;
-  line-height: 36px;
-  text-align: center;
+  width: 100%;
   background-color: dodgerblue;
-  font-size: 1.2em;
+  text-align: center;
+  padding: 0.5em 1em;
+}
+
+.slogan-text {
+  display: inline-block;
+  text-align: initial;
   color: white;
-  white-space: nowrap;
-  overflow-x: auto;
-  padding: 0 1em;
+  font-size: 1.2em;
 }
 
 .friend-link {
