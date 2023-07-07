@@ -1,13 +1,8 @@
 FROM debian:latest
 
-ARG GIT_NAME=crupest
-ARG GIT_EMAIL=${CRUPEST_EMAIL}
-ENV GIT_NAME=$GIT_NAME
-ENV GIT_EMAIL=$GIT_EMAIL
-
 WORKDIR /scripts
 COPY *.bash /scripts/
-RUN /scripts/install-code-server.bash && /scripts/install-dev-tools.bash && rm -r /scripts
+RUN /scripts/install-code-server.bash
 
 ENV LANG en_US.utf8
 ENV CODE_SERVER_CONFIG="/data/code-server-config.yaml"
