@@ -7,7 +7,20 @@ import json
 import jsonschema
 
 from .template2 import Template2
-from .common import Paths, UserFriendlyException, create_dir_if_not_exists
+from .common import Paths, UserFriendlyException, create_dir_if_not_exists, console, Confirm, ensure_dir
+from .ui_base import file_name_style
+
+
+def restart_nginx(force=False) -> bool:
+    if not force:
+        p = subprocess.run(['docker', "container", "ls",
+                            "-f", "name=nginx", "-q"], capture_output=True)
+        container: str = p.stdout.decode("utf-8")
+        if len(container.strip()) == 0:
+            return False
+    subprocess.run(['docker', 'restart', 'nginx'])
+    return True
+
 
 _server_schema_filename = "server.schema.json"
 
@@ -261,7 +274,7 @@ class NginxDomain:
             f.write(self.generate_config())
 
     @staticmethod
-    def from_json(root_domain, json: dict[str, Any]) -> "NginxDomain":
+    def from_json(root_domain: str, json: dict[str, Any]) -> "NginxDomain":
         name = json["name"]
         assert isinstance(name, str)
         if name == "@" or name == "":
@@ -294,20 +307,20 @@ class NginxServer:
             "ROOT_DOMAIN": self.root_domain
         })
 
-    def generate_global_files(self, dir: str) -> None:
+    def generate_global_files(self, d: str) -> None:
         for source in [_client_max_body_size_source, _forbid_unknown_domain_source, _websocket_source]:
-            with open(join(dir, source.name), "w") as f:
+            with open(join(d, source.name), "w") as f:
                 f.write(source.content)
-        with open(join(dir, _ssl_template_source.name), "w") as f:
+        with open(join(d, _ssl_template_source.name), "w") as f:
             f.write(self.generate_ssl())
 
-    def generate_domain_files(self, dir: str) -> None:
+    def generate_domain_files(self, d: str) -> None:
         for domain in self.domains:
-            domain.generate_config_file(join(dir, f"{domain.domain}.conf"))
+            domain.generate_config_file(join(d, f"{domain.domain}.conf"))
 
-    def generate_config(self, dir: str) -> None:
-        create_dir_if_not_exists(dir)
-        self.generate_global_files(dir)
+    def generate_config(self, d: str) -> None:
+        create_dir_if_not_exists(d)
+        self.generate_global_files(d)
 
     def get_allowed_files(self) -> list[str]:
         files = []
@@ -317,16 +330,15 @@ class NginxServer:
             files.append(f"{domain.domain}.conf")
         return files
 
-    def check_bad_files(self, dir: str) -> list[str] | None:
+    def check_bad_files(self, d: str) -> list[str]:
         allowed_files = self.get_allowed_files()
         bad_files = []
-        for path in os.listdir(dir):
+        if not ensure_dir(d, must_exist=False):
+            return []
+        for path in os.listdir(d):
             if path not in allowed_files:
                 bad_files.append(path)
-        if len(bad_files) == 0:
-            return None
-        else:
-            return bad_files
+        return bad_files
 
     @staticmethod
     def from_json(root_domain: str, json: dict[str, Any]) -> "NginxServer":
@@ -338,39 +350,28 @@ class NginxServer:
             root_domain, d) for d in sub_domains]
         return server
 
+    @staticmethod
+    def from_json_str(root_domain: str, json_str: str) -> "NginxServer":
+        return NginxServer.from_json(root_domain, json.loads(json_str))
 
-def restart_nginx(force=False) -> bool:
-    if not force:
-        p = subprocess.run(['docker', "container", "ls",
-                            "-f", "name=nginx", "-q"], capture_output=True)
-        container: str = p.stdout.decode("utf-8")
-        if len(container.strip()) == 0:
-            return False
-    subprocess.run(['docker', 'restart', 'nginx'])
-    return True
-
-
-def nginx(domain: str, config, /, console) -> None:
-    bad_files = check_nginx_config_dir(nginx_config_dir, domain)
-    if len(bad_files) > 0:
-        console.print(
-            "WARNING: It seems there are some bad conf files in the nginx config directory:", style="yellow")
-        for bad_file in bad_files:
-            console.print(bad_file, style="cyan")
-        to_delete = Confirm.ask(
-            "They will affect nginx in a [red]bad[/] way. Do you want to delete them?", default=True, console=console)
-        if to_delete:
-            for file in bad_files:
-                os.remove(join(nginx_config_dir, file))
-    console.print(
-        "I have found following var in nginx templates:", style="green")
-    for var in nginx_var_set:
-        console.print(var, style="magenta")
-    if not exists(nginx_config_dir):
-        os.mkdir(nginx_config_dir)
-        console.print(
-            f"Nginx config directory created at [magenta]{nginx_config_dir}[/]", style="green")
-    generate_nginx_config(domain, config, dest=nginx_config_dir)
-    console.print("Nginx config generated.", style="green")
-    if restart_nginx():
-        console.print('Nginx restarted.', style="green")
+    def go(self):
+        bad_files = self.check_bad_files(Paths.nginx_generated_dir)
+        if len(bad_files) > 0:
+            console.print(
+                "WARNING: It seems there are some bad conf files in the nginx config directory:", style="yellow")
+            for bad_file in bad_files:
+                console.print(bad_file, style=file_name_style)
+            to_delete = Confirm.ask(
+                "They will affect nginx in a [red]bad[/] way. Do you want to delete them?", default=True, console=console)
+            if to_delete:
+                for file in bad_files:
+                    os.remove(join(Paths.nginx_generated_dir, file))
+        create_dir_if_not_exists(Paths.generated_dir)
+        if not ensure_dir(Paths.nginx_generated_dir, must_exist=False):
+            os.mkdir(Paths.nginx_generated_dir)
+            console.print(
+                f"Nginx config directory created at [magenta]{Paths.nginx_generated_dir}[/]", style="green")
+        self.generate_config(Paths.nginx_generated_dir)
+        console.print("Nginx config generated.", style="green")
+        if restart_nginx():
+            console.print('Nginx restarted.', style="green")
