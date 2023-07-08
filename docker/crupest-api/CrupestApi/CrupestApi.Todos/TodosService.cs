@@ -33,7 +33,11 @@ public class TodosService
         projectV2(number: {{todoConfiguration.ProjectNumber}}) {
             items(last: {{todoConfiguration.Count}}) {
                 nodes {
-                    __typename
+                    fieldValueByName(name: "Status") {
+                    	... on ProjectV2ItemFieldSingleSelectValue {
+                        name
+                      }
+                  	}
                     content {
                         __typename
                         ... on Issue {
@@ -107,23 +111,43 @@ public class TodosService
                 {
                     throw new Exception("Fail to get title.");
                 }
+
+                bool done = false;
+
+                var statusField = node.GetProperty("fieldValueByName");
+                if (statusField.ValueKind != JsonValueKind.Null) // if there is a "Status" field
+                {
+                    var statusName = statusField.GetProperty("name").GetString();
+                    if (statusName is null)
+                    {
+                        throw new Exception("Fail to get status.");
+                    }
+
+                    // if name is "Done", then it is closed, otherwise we check if the issue is closed
+                    if (statusName.Equals("Done", StringComparison.OrdinalIgnoreCase))
+                    {
+                        done = true;
+                    }
+                }
+
                 JsonElement closedElement;
-                bool closed;
-                if (content.TryGetProperty("closed", out closedElement))
+                // if item has a "closed" field, then it is a pull request or an issue, and we check if it is closed
+                if (content.TryGetProperty("closed", out closedElement) && closedElement.GetBoolean())
                 {
-                    closed = closedElement.GetBoolean();
+                    done = true;
                 }
-                else
-                {
-                    closed = false;
-                }
+
+                // If item "Status" field is "Done' or item is a pull request or issue and it is closed, then it is done.
+                // Otherwise it is not closed. Like:
+                // 1. it is a draft issue with no "Status" field or "Status" field is not "Done"
+                // 2. it is a pull request or issue with no "Status" field or "Status" field is not "Done" and it is not closed
 
                 result.Add(new TodosItem
                 {
                     Title = title,
-                    Status = closed ? "Done" : "Todo",
-                    Closed = closed,
-                    Color = closed ? "green" : "blue"
+                    Status = done ? "Done" : "Todo",
+                    Closed = done,
+                    Color = done ? "green" : "blue"
                 });
             }
 
