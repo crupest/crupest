@@ -8,16 +8,6 @@ body {
   box-sizing: border-box;
 }
 
-#music-163 {
-  display: block;
-}
-
-@media (min-width: 576px) {
-  #music-163 {
-    float: right;
-  }
-}
-
 #main-article {
   padding: 0 1em;
 }
