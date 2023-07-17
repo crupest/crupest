@@ -1,7 +1,3 @@
-upstream ${CRUPEST_NGINX_UPSTREAM_NAME} {
-    server ${CRUPEST_NGINX_UPSTREAM_SERVER};
-}
-
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
@@ -15,7 +11,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_pass http://${CRUPEST_NGINX_UPSTREAM_NAME};
+        proxy_pass http://${CRUPEST_NGINX_UPSTREAM_SERVER};
     }
     
     client_max_body_size 5G;

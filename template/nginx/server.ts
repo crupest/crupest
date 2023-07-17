@@ -3,10 +3,7 @@
 export interface ReverseProxySite {
   type: "reverse-proxy";
   subdomain: string;
-  upstream: {
-    name: string;
-    server: string;
-  };
+  upstream: string;
 }
 
 export interface StaticFileSite {

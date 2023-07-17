@@ -4,18 +4,12 @@
         {
             "type": "reverse-proxy",
             "subdomain": "code",
-            "upstream": {
-                "name": "code-server",
-                "server": "code-server:8080"
-            }
+            "upstream": "code-server:8080"
         },
         {
             "type": "reverse-proxy",
             "subdomain": "timeline",
-            "upstream": {
-                "name": "timeline",
-                "server": "timeline:5000"
-            }
+            "upstream": "timeline:5000"
         },
         {
             "type": "static-file",
