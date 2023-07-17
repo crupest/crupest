@@ -35,10 +35,17 @@ body {
 
 #slogan {
   width: 100%;
-  background-color: dodgerblue;
   text-align: center;
   padding: 0.5em 1em;
   box-sizing: border-box;
+}
+
+#slogan.good {
+  background-color: dodgerblue;
+}
+
+#slogan.bad {
+  background-color: orangered;
 }
 
 .slogan-text {

@@ -14,6 +14,28 @@ for (let i = 0; i < 10; i++) {
   colorStripContainer.appendChild(colorStripBlock);
 }
 
+/** @type {HTMLDivElement} */
+const sloganElement = document.querySelector("#slogan");
+const sloganTextElement = document.querySelector("#slogan .slogan-text");
+
+/** @type {"good" | "bad"} */
+let sloganState = "good";
+const slogans = {
+  "good": sloganTextElement.textContent,
+  "bad": "The world is a piece of shit, so let's make it a little better!"
+}
+
+function toggleSlogan() {
+  const newState = sloganState === "good" ? "bad" : "good";
+  sloganElement.classList.remove(sloganState)
+  sloganElement.classList.add(newState);
+  sloganTextElement.textContent = slogans[newState];
+  sloganState = newState;
+}
+
+sloganElement.addEventListener("click", toggleSlogan);
+
+
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("Try to fetch GitHub project(number: 2) of crupest.");
 
