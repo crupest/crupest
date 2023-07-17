@@ -6,6 +6,7 @@ body {
   width: 100%;
   margin: 0;
   box-sizing: border-box;
+  transition: padding-top 1s;
 }
 
 #main-article {
@@ -18,34 +19,36 @@ body {
   }
 }
 
-#color-strip-container {
+.slogan-container {
   width: 100%;
-  height: 36px;
+  position: fixed;
+  top: 0;
 }
 
-.color-strip-block {
-  display: inline-block;
-  width: 10%;
-  height: 100%;
-  line-height: 36px;
-  vertical-align: middle;
-  text-align: center;
-  color: white;
-}
-
-#slogan {
+.slogan {
   width: 100%;
-  text-align: center;
   padding: 0.5em 1em;
+  text-align: center;
   box-sizing: border-box;
+  position: absolute;
+  transform: translateY(-100%);
+  transition: transform 1s;
 }
 
-#slogan.good {
+.slogan.happy {
   background-color: dodgerblue;
 }
 
-#slogan.bad {
+.slogan.angry {
   background-color: orangered;
+}
+
+.slogan-container[data-slogan-emotion="happy"] .slogan.happy {
+  transform: translateY(0);
+}
+
+.slogan-container[data-slogan-emotion="angry"] .slogan.angry {
+  transform: translateY(0);
 }
 
 .slogan-text {
