@@ -1,39 +1,40 @@
 import "./style.css";
 
-const colorStripContainer = document.getElementById("color-strip-container");
+const happy = "happy";
+const angry = "angry";
 
-const colorStripText = "FANCYSTRIP";
-
-for (let i = 0; i < 10; i++) {
-  const colorStripBlock = document.createElement("span");
-
-  const hsl = `hsl(${i * 36}, 100%, 50%)`;
-  colorStripBlock.classList.add("color-strip-block");
-  colorStripBlock.style.backgroundColor = hsl;
-  colorStripBlock.textContent = colorStripText[i];
-  colorStripContainer.appendChild(colorStripBlock);
+function emotionOpposite(emotion) {
+  if (emotion === happy) {
+    return angry;
+  } else if (emotion === angry) {
+    return happy;
+  }
 }
+
+function emotionElement(emotion) {
+  return document.querySelector(`.slogan.${emotion}`);
+}
+
+function emotionElementHeight(emotion) {
+  return emotionElement(emotion).clientHeight;
+}
+
+function setBodyPaddingForEmotion(emotion) {
+  document.body.style.paddingTop = `${emotionElementHeight(emotion)}px`;
+}
+
+setBodyPaddingForEmotion(happy);
 
 /** @type {HTMLDivElement} */
-const sloganElement = document.querySelector("#slogan");
-const sloganTextElement = document.querySelector("#slogan .slogan-text");
+const sloganContainer = document.querySelector(".slogan-container")
 
-/** @type {"good" | "bad"} */
-let sloganState = "good";
-const slogans = {
-  "good": sloganTextElement.textContent,
-  "bad": "The world is a piece of shit, so let's make it a little better!"
+for (const emotion of [happy, angry]) {
+  emotionElement(emotion).addEventListener("click", () => {
+    const opposite = emotionOpposite(emotion);
+    sloganContainer.dataset.sloganEmotion = opposite;
+    setBodyPaddingForEmotion(opposite);
+  });
 }
-
-function toggleSlogan() {
-  const newState = sloganState === "good" ? "bad" : "good";
-  sloganElement.classList.remove(sloganState)
-  sloganElement.classList.add(newState);
-  sloganTextElement.textContent = slogans[newState];
-  sloganState = newState;
-}
-
-sloganElement.addEventListener("click", toggleSlogan);
 
 
 document.addEventListener("DOMContentLoaded", async () => {
