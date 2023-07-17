@@ -44,34 +44,10 @@
                     "type": "string"
                 },
                 "upstream": {
-                    "properties": {
-                        "name": {
-                            "type": "string"
-                        },
-                        "server": {
-                            "type": "string"
-                        }
-                    },
-                    "type": "object"
+                    "type": "string"
                 }
             },
             "type": "object"
-        },
-        "Site": {
-            "anyOf": [
-                {
-                    "$ref": "#/definitions/ReverseProxySite"
-                },
-                {
-                    "$ref": "#/definitions/StaticFileSite"
-                },
-                {
-                    "$ref": "#/definitions/RedirectSite"
-                },
-                {
-                    "$ref": "#/definitions/CertOnlySite"
-                }
-            ]
         },
         "StaticFileSite": {
             "properties": {
@@ -94,10 +70,24 @@
     "properties": {
         "sites": {
             "items": {
-                "$ref": "#/definitions/Site"
+                "anyOf": [
+                    {
+                        "$ref": "#/definitions/ReverseProxySite"
+                    },
+                    {
+                        "$ref": "#/definitions/StaticFileSite"
+                    },
+                    {
+                        "$ref": "#/definitions/RedirectSite"
+                    },
+                    {
+                        "$ref": "#/definitions/CertOnlySite"
+                    }
+                ]
             },
             "type": "array"
         }
     },
     "type": "object"
 }
+

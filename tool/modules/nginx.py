@@ -83,8 +83,7 @@ def generate_nginx_config(domain: str, original_config, dest: str) -> None:
             local_config['CRUPEST_NGINX_ROOT'] = site["root"]
         elif site["type"] == 'reverse-proxy':
             template = reverse_proxy_template
-            local_config['CRUPEST_NGINX_UPSTREAM_NAME'] = site["upstream"]["name"]
-            local_config['CRUPEST_NGINX_UPSTREAM_SERVER'] = site["upstream"]["server"]
+            local_config['CRUPEST_NGINX_UPSTREAM_SERVER'] = site["upstream"]
         elif site["type"] == 'redirect':
             template = redirect_template
             local_config['CRUPEST_NGINX_URL'] = site["url"]
