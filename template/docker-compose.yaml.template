@@ -9,8 +9,6 @@ services:
       - TIMELINE_DisableAutoBackup=true
     volumes:
       - ./data/timeline:/root/timeline
-    networks:
-      - timeline-network
 
   code-server:
     pull_policy: build
@@ -25,8 +23,6 @@ services:
     volumes:
       - ./data/code-server:/data
       - code-server-home:/root
-    networks:
-      - code-server-network
 
   crupest-blog:
     pull_policy: build
@@ -60,12 +56,6 @@ services:
       - "./data/certbot/certs:/etc/letsencrypt:ro"
       - "./data/certbot/webroot:/srv/acme:ro"
       - "blog-public:/srv/blog:ro"
-    networks:
-      - timeline-network
-      - code-server-network
-      - auto-certbot-network
-      - crupest-api-network
-      - v2ray-network
 
   crupest-api:
     pull_policy: build
@@ -78,8 +68,6 @@ services:
     container_name: crupest-api
     volumes:
       - "./crupest-api-config.json:/crupest-api-config.json:ro"
-    networks:
-      - crupest-api-network
 
   v2ray:
     image: v2fly/v2fly-core:latest
@@ -89,8 +77,6 @@ services:
     restart: on-failure:3
     volumes:
       - "./v2ray-config.json:/etc/v2fly/config.json:ro"
-    networks:
-      - v2ray-network
 
   auto-certbot:
     pull_policy: build
@@ -115,8 +101,6 @@ services:
       # map docker socket to allow auto-certbot to restart nginx
       - "/var/run/docker.sock:/var/run/docker.sock"
     restart: on-failure:3
-    networks:
-      - auto-certbot-network
 
   auto-backup:
     pull_policy: build
@@ -169,13 +153,6 @@ services:
       test: "ss --listening --tcp | grep -P 'LISTEN.+:smtp' || exit 1"
       timeout: 3s
       retries: 0
-
-networks:
-  timeline-network:
-  code-server-network:
-  auto-certbot-network:
-  crupest-api-network:
-  v2ray-network:
 
 
 volumes:
