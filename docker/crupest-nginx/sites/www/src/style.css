@@ -6,11 +6,23 @@ body {
   width: 100%;
   margin: 0;
   box-sizing: border-box;
-  transition: padding-top 1s;
+}
+
+@keyframes article-enter {
+  from {
+    opacity: 0;
+    transform: translateY(100px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 #main-article {
   padding: 0 1em;
+  animation: article-enter 1s;
 }
 
 @media (min-width: 576px) {
