@@ -23,14 +23,30 @@ function setBodyPaddingForEmotion(emotion) {
   document.body.style.paddingTop = `${emotionElementHeight(emotion)}px`;
 }
 
-setBodyPaddingForEmotion(happy);
+const sloganEmotionKey = "sloganEmotion";
+
+const savedEmotion = localStorage.getItem(sloganEmotionKey) ?? happy;
+if (savedEmotion !== happy && savedEmotion !== angry) {
+  console.error(`Invalid saved emotion: ${savedEmotion}`);
+}
+
+setBodyPaddingForEmotion(savedEmotion);
+setTimeout(() => {
+  document.body.style.transition = "padding-top 1s";
+})
 
 /** @type {HTMLDivElement} */
 const sloganContainer = document.querySelector(".slogan-container")
 
+setTimeout(() => {
+  sloganContainer.dataset.sloganEmotion = savedEmotion;
+  setBodyPaddingForEmotion(savedEmotion);
+}, 500);
+
 for (const emotion of [happy, angry]) {
   emotionElement(emotion).addEventListener("click", () => {
     const opposite = emotionOpposite(emotion);
+    localStorage.setItem(sloganEmotionKey, opposite);
     sloganContainer.dataset.sloganEmotion = opposite;
     setBodyPaddingForEmotion(opposite);
   });
