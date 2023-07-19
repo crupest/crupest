@@ -71,10 +71,11 @@ async function loadTodos(syncWith: Promise<unknown>): Promise<void> {
     const todosPromise = fetchTodos();
     await syncWith; // Let's wait this first.
     const todos = await todosPromise;
-    todos.forEach((item) => {
+    todos.forEach((item, index) => {
       const { status, title, closed } = item;
       const li = document.createElement("li");
       li.dataset.status = closed ? "closed" : "open";
+      li.style.animationDelay = `${index * 0.04}s`;
       // The color from api server is kind of ugly at present.
       // li.style.background = color;
       const statusSpan = document.createElement("span");
