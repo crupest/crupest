@@ -1,11 +1,17 @@
 html {
   width: 100%;
+  line-height: 1.5;
+  font-family: ui-sans-serif;
 }
 
 body {
   width: 100%;
   margin: 0;
   box-sizing: border-box;
+}
+
+a.mono {
+  font-family: ui-monospace;
 }
 
 .h-note {
@@ -29,10 +35,11 @@ body {
   --main-article-horizontal-padding: 1em;
   --main-article-horizontal-margin-shrink: -1em;
 
+  --im-me: deepskyblue;
   --im-happy: dodgerblue;
   --im-angry: orangered;
-  --im-good: green;
-  --im-active: blue;
+  --im-good: hsl(120, 85%, 85%);
+  --im-active: hsl(20, 85%, 85%);
 }
 
 @media (min-width: 576px) {
@@ -47,9 +54,50 @@ body {
   animation: article-enter 1s;
 }
 
+#title {
+  font-size: 2em;
+}
+
+@keyframes title-name-enter {
+  from {
+    background-color: white;
+  }
+
+  to {
+    background-color: var(--im-me);
+  }
+}
+
+#title-name {
+  font-family: ui-monospace;
+  border-radius: 8px;
+  background-color: white;
+  animation: title-name-enter 3s 2s forwards;
+}
+
+@keyframes avatar-enter {
+  from {
+    opacity: 0;
+    transform: translateX(calc(100% + var(--main-article-horizontal-padding)));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+#avatar {
+  float: right;
+  transform: translateX(calc(100% + var(--main-article-horizontal-padding)));
+  animation: avatar-enter 0.5s 1s forwards;
+}
+
+
 .slogan-container {
   width: 100%;
   position: fixed;
+  z-index: 1;
   top: 0;
 }
 
@@ -92,13 +140,7 @@ body {
   padding-inline: 0;
 }
 
-#todo-container li {
-  margin: 0 var(--main-article-horizontal-margin-shrink);
-  padding: 0.6em 3em;
-  color: white;
-}
-
-@keyframes todo-enter-left {
+@keyframes todo-enter {
   from {
     opacity: 0;
     transform: translateX(-100%);
@@ -110,16 +152,11 @@ body {
   }
 }
 
-@keyframes todo-enter-right {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+#todo-container li {
+  margin: 0 var(--main-article-horizontal-margin-shrink);
+  padding: 0.25em 3em;
+  transform: translateX(-100%);
+  animation: todo-enter 1s forwards;
 }
 
 #todo-container li[data-status="closed"] {
@@ -128,14 +165,6 @@ body {
 
 #todo-container li[data-status="open"] {
   background-color: var(--im-active);
-}
-
-#todo-container li:nth-child(odd) {
-  animation: todo-enter-left 1s;
-}
-
-#todo-container li:nth-child(even) {
-  animation: todo-enter-right 1s;
 }
 
 .friend-link {
