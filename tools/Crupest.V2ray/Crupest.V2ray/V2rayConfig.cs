@@ -7,7 +7,8 @@ public class V2rayConfig
     private const string VmessAnchor = "VMESS_PROXY_ANCHOR";
     private const string RoutingAnchor = "ROUTING_ANCHOR";
 
-    public V2rayConfig(string template, V2rayVmessProxy vmess, V2rayRouting router) {
+    public V2rayConfig(string template, V2rayVmessProxy vmess, V2rayRouting router)
+    {
         Template = template;
         Vmess = vmess;
         Routing = router;

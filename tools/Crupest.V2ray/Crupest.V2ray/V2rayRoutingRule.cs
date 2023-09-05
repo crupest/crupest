@@ -1,5 +1,3 @@
-using System.Linq;
-
 namespace Crupest.V2ray;
 
 public record V2rayRoutingRule(V2rayRoutingRuleMatcher Matcher, string OutboundTag)

@@ -7,7 +7,7 @@ public class V2rayVmessProxy
         public static VmessOutboundJsonObject ByWs(string address, int port, string uuid, string tag, string path)
         {
             return new VmessOutboundJsonObject("vmess", new SettingsJsonObject(
-                new List<VnextJsonObject>{ new VnextJsonObject(address, port, new List<VnextUserJsonObject> { new VnextUserJsonObject(uuid) }) }
+                new List<VnextJsonObject> { new VnextJsonObject(address, port, new List<VnextUserJsonObject> { new VnextUserJsonObject(uuid) }) }
             ), tag, StreamSettingsJsonObject.Ws(path));
         }
     }
@@ -18,7 +18,8 @@ public class V2rayVmessProxy
 
     public record VnextUserJsonObject(string Id, int AlterId = 0, string Security = "auto", int Level = 0);
 
-    public record StreamSettingsJsonObject(string Network, string Security, WsSettingsJsonObject WsSettings) {
+    public record StreamSettingsJsonObject(string Network, string Security, WsSettingsJsonObject WsSettings)
+    {
         public static StreamSettingsJsonObject Ws(string path)
         {
             return new StreamSettingsJsonObject("ws", "tls", new WsSettingsJsonObject(path, new()));
@@ -33,7 +34,8 @@ public class V2rayVmessProxy
     public string UserId { get; set; }
 
 
-    public V2rayVmessProxy(string host, int port, string userId, string path) {
+    public V2rayVmessProxy(string host, int port, string userId, string path)
+    {
         Host = host;
         Port = port;
         UserId = userId;
