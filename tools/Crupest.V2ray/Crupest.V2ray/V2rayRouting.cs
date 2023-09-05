@@ -17,7 +17,7 @@ public record V2rayRouting(List<V2rayRoutingRule> Rules, string DomainStrategy =
     {
         var ruleJsonObjects = new List<object>();
 
-        foreach (var(outBoundTag, proxyRules) in V2rayRoutingRule.GroupByOutboundTag(Rules))
+        foreach (var (outBoundTag, proxyRules) in V2rayRoutingRule.GroupByOutboundTag(Rules))
         {
             foreach (var (matchByKind, rules) in V2rayRoutingRule.GroupByMatchByKind(proxyRules))
             {
@@ -32,7 +32,7 @@ public record V2rayRouting(List<V2rayRoutingRule> Rules, string DomainStrategy =
             }
         }
 
-        return new RoutingJsonObject(DomainStrategy ,ruleJsonObjects);
+        return new RoutingJsonObject(DomainStrategy, ruleJsonObjects);
     }
 
     public static V2rayRouting FromStringList(List<string> list, string outboundTag = "proxy")

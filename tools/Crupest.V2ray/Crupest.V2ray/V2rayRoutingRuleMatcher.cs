@@ -43,8 +43,10 @@ public record V2rayRoutingRuleMatcher(V2rayRoutingRuleMatcher.MatchKind Kind, st
 
         var kind = MatchKind.DomainSuffix;
 
-        foreach (var name in Enum.GetNames<MatchKind>()) {
-            if (line.StartsWith(name)) {
+        foreach (var name in Enum.GetNames<MatchKind>())
+        {
+            if (line.StartsWith(name))
+            {
                 kind = Enum.Parse<MatchKind>(name);
                 line = line[name.Length..];
                 line = line.Trim();
