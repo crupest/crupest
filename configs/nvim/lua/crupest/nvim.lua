@@ -54,6 +54,11 @@ end
 -- If no previous buffer (no other buffers), create a unnamed one. (So the window does not quit.)
 local function win_close_buf()
     local buf = vim.api.nvim_get_current_buf()
+
+    if vim.fn.bufexists(buf) == 0 or vim.fn.buflisted(buf) == 0 then
+        return
+    end
+
     local jumps_info = vim.fn.getjumplist()
 
     local old_jumps = { unpack(jumps_info[1], 1, jumps_info[2]) }

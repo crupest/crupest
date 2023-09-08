@@ -49,7 +49,6 @@ require("lazy").setup("plugins")
 require("nvim-tree").setup()
 
 local nvim_tree_api = require("nvim-tree.api")
-vim.keymap.set('n', '<leader>t', nvim_tree_api.tree.toggle, {})
 vim.api.nvim_create_autocmd("DirChanged", {
     pattern = "global",
     callback = function(args)
@@ -240,13 +239,6 @@ vim.keymap.set('n', '<leader>h', builtin.help_tags, {})
 
 -- setup keymap fnamemodifyfor lsp
 
--- Global mappings.
--- See `:help vim.diagnostic.*` for documentation on any of the below functions
-vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
-vim.keymap.set('n', '[d', vim.diagnostic.goto_prev)
-vim.keymap.set('n', ']d', vim.diagnostic.goto_next)
-vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
-
 -- Use LspAttach autocommand to only map the following keys
 -- after the language server attaches to the current buffer
 vim.api.nvim_create_autocmd('LspAttach', {
@@ -285,6 +277,16 @@ require("catppuccin").setup{
 vim.cmd.colorscheme "catppuccin"
 
 -- custom keymaps
+vim.keymap.set('n', '<leader>tt', nvim_tree_api.tree.toggle, {})
+vim.keymap.set('n', '<leader>tr', '<cmd>NvimTreeRefresh<cr>')
+
+-- See `:help vim.diagnostic.*` for documentation on any of the below functions
+vim.keymap.set('n', '<leader>le', vim.diagnostic.open_float)
+vim.keymap.set('n', '<leader>l[', vim.diagnostic.goto_prev)
+vim.keymap.set('n', '<leader>l]', vim.diagnostic.goto_next)
+vim.keymap.set('n', '<leader>lt', vim.diagnostic.setloclist)
+vim.keymap.set('n', '<leader>ll', lint.try_lint)
+
 
 vim.keymap.set("n", "<c-tab>", "<cmd>bnext<cr>")
 vim.keymap.set("n", "<c-s-tab>", "<cmd>bNext<cr>")
