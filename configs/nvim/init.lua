@@ -1,6 +1,12 @@
+-- disable netrw for nvim-tree
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+
+
 vim.cmd.cd("~");
 vim.opt.shell = "pwsh";
 
+vim.opt.termguicolors = true;
 vim.opt.fileformats = "unix,dos";
 vim.opt.softtabstop = 4;
 vim.opt.shiftwidth = 4;
@@ -30,6 +36,8 @@ vim.opt.rtp:prepend(lazypath)
 
 -- Use lazy.nvim
 require("lazy").setup("plugins")
+
+require("nvim-tree").setup()
 
 -- setup nvim-cmp
 local cmp = require("cmp")
