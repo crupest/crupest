@@ -37,7 +37,28 @@ vim.opt.rtp:prepend(lazypath)
 -- Use lazy.nvim
 require("lazy").setup("plugins")
 
+-- setup nvim-tree
 require("nvim-tree").setup()
+
+-- setup lualine
+require('lualine').setup()
+
+-- setup bufferline
+require("bufferline").setup{
+    options = {
+        offsets = {
+            {
+                filetype = "NvimTree",
+                text = "File Explorer",
+                highlight = "Directory",
+                separator = true
+            }
+        }
+    }
+}
+
+-- setup gitsigns
+require('gitsigns').setup()
 
 -- setup nvim-cmp
 local cmp = require("cmp")
@@ -72,4 +93,11 @@ local lspconfig = require("lspconfig")
 lspconfig.clangd.setup {
     capabilities = capabilites
 }
+
+-- setup keymap for telescope
+local builtin = require('telescope.builtin')
+vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
+vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
+vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
+vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
 
