@@ -230,15 +230,6 @@ lspconfig.tsserver.setup{
 -- setup trouble
 require("trouble").setup()
 
--- setup keymap for telescope
-local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<leader>f', builtin.find_files, {})
-vim.keymap.set('n', '<leader>g', builtin.live_grep, {})
-vim.keymap.set('n', '<leader>b', builtin.buffers, {})
-vim.keymap.set('n', '<leader>h', builtin.help_tags, {})
-
--- setup keymap fnamemodifyfor lsp
-
 -- Use LspAttach autocommand to only map the following keys
 -- after the language server attaches to the current buffer
 vim.api.nvim_create_autocmd('LspAttach', {
@@ -277,6 +268,15 @@ require("catppuccin").setup{
 vim.cmd.colorscheme "catppuccin"
 
 -- custom keymaps
+--
+-- setup keymap for telescope
+local builtin = require('telescope.builtin')
+vim.keymap.set('n', '<leader>f', builtin.find_files, {})
+vim.keymap.set('n', '<leader>g', builtin.live_grep, {})
+vim.keymap.set('n', '<leader>b', builtin.buffers, {})
+vim.keymap.set('n', '<leader>h', builtin.help_tags, {})
+
+-- setup ketmap for tree
 vim.keymap.set('n', '<leader>tt', nvim_tree_api.tree.toggle, {})
 vim.keymap.set('n', '<leader>tr', '<cmd>NvimTreeRefresh<cr>')
 
@@ -293,4 +293,49 @@ vim.keymap.set("n", "<c-s-tab>", "<cmd>bNext<cr>")
 vim.keymap.set("n", "<s-tab>", "<c-o>")
 vim.keymap.set("n", "<c-q>", require("crupest.nvim").win_close_buf)
 vim.keymap.set("n", "<esc>", require("crupest.nvim").close_float)
+
+vim.api.nvim_create_user_command("Mv", function(opts)
+    require("crupest.nvim").mv_buf_file(vim.api.nvim_get_current_buf(), opts.fargs[1])
+end, {
+    nargs = 1,
+    complete = "file"
+})
+
+vim.api.nvim_create_user_command("MvFile", function(opts)
+    if (#opts.fargs ~= 2) then
+        vim.notify("MvFile accepts exactly two arguments, old file and new file.")
+    end
+    require("crupest.nvim").mv_file(opts.fargs[1], opts.fargs[2])
+end, {
+    nargs = "+",
+    complete = "file"
+})
+
+vim.api.nvim_create_user_command("MvDir", function(opts)
+    if (#opts.fargs ~= 2) then
+        vim.notify("MvDir accepts exactly two arguments, old dir and new dir.")
+    end
+    require("crupest.nvim").mv_dir(opts.fargs[1], opts.fargs[2])
+end, {
+    nargs = "+",
+    complete = "file"
+})
+
+
+vim.api.nvim_create_user_command("Rename", function(opts)
+    require("crupest.nvim").rename_buf_file(vim.api.nvim_get_current_buf(), opts.fargs[1])
+end, {
+    nargs = 1,
+    complete = "file"
+})
+
+vim.api.nvim_create_user_command("RenameFile", function(opts)
+    if (#opts.fargs ~= 2) then
+        vim.notify("RenameFile accepts exactly two arguments, old file and new file.")
+    end
+    require("crupest.nvim").rename_file(opts.fargs[1], opts.fargs[2])
+end, {
+    nargs = "+",
+    complete = "file"
+})
 
