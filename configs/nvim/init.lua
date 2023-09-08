@@ -22,10 +22,10 @@ vim.opt.number = true;
 vim.keymap.set('t', '<esc>', [[<C-\><C-n>]])
 
 if vim.g.neovide then
-    vim.opt.guifont = "FiraCodeNerdFont";
+    vim.opt.guifont = "FiraCode Nerd Font";
     vim.g.neovide_transparency = 0.95;
     vim.g.neovide_input_ime = false;
-    vim.g.neovide_cursor_vfx_mode = "railgun";
+    vim.g.neovide_cursor_vfx_mode = "ripple";
 end
 
 -- Init lazy.nvim
@@ -48,6 +48,15 @@ require("lazy").setup("plugins")
 -- setup nvim-tree
 require("nvim-tree").setup()
 
+local nvim_tree_api = require("nvim-tree.api")
+vim.keymap.set('n', '<leader>t', nvim_tree_api.tree.toggle, {})
+vim.api.nvim_create_autocmd("DirChanged", {
+    pattern = "global",
+    callback = function(args)
+        nvim_tree_api.tree.change_root(args.file)
+    end
+})
+
 -- setup lualine
 require('lualine').setup()
 
@@ -69,7 +78,10 @@ require("bufferline").setup {
 require('gitsigns').setup()
 
 -- setup toggleterm
-require("toggleterm").setup()
+require("toggleterm").setup {
+    open_mapping = "<C-`>",
+    start_in_insert = false,
+}
 
 -- setup autopairs
 require("nvim-autopairs").setup {}
@@ -222,10 +234,10 @@ require("trouble").setup()
 
 -- setup keymap for telescope
 local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
-vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
-vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
-vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
+vim.keymap.set('n', '<leader>f', builtin.find_files, {})
+vim.keymap.set('n', '<leader>g', builtin.live_grep, {})
+vim.keymap.set('n', '<leader>b', builtin.buffers, {})
+vim.keymap.set('n', '<leader>h', builtin.help_tags, {})
 
 -- setup keymap fnamemodifyfor lsp
 
@@ -267,15 +279,9 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end,
 })
 
--- My keymaps
-vim.keymap.set('n', '<C-`>', '<cmd>ToggleTerm<CR>', {})
+require("catppuccin").setup{
+    flavour = "mocha"
+}
 
-local nvim_tree_api = require("nvim-tree.api")
-vim.keymap.set('n', '<leader>t', nvim_tree_api.tree.toggle, {})
-vim.api.nvim_create_autocmd("DirChanged", {
-    pattern = "global",
-    callback = function(args)
-        nvim_tree_api.tree.change_root(args.file)
-    end
-})
+vim.cmd.colorscheme "catppuccin"
 
