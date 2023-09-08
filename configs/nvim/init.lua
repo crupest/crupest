@@ -69,6 +69,22 @@ require('gitsigns').setup()
 -- setup toggleterm
 require("toggleterm").setup()
 
+-- setup autopairs
+require("nvim-autopairs").setup {}
+
+-- setup lint
+local lint = require("lint")
+lint.linters_by_ft = {
+    javascript = { "eslint", "cspell" },
+    javascriptreact = { "eslint", "cspell" },
+    typescript = { "eslint", "cspell" },
+    typescriptreact = { "eslint", "cspell" },
+}
+
+-- setup formatter
+require("formatter").setup {
+}
+
 -- setup nvim-cmp
 local cmp = require("cmp")
 
