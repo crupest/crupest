@@ -269,5 +269,13 @@ vim.api.nvim_create_autocmd('LspAttach', {
 
 -- My keymaps
 vim.keymap.set('n', '<C-`>', '<cmd>ToggleTerm<CR>', {})
-vim.keymap.set('n', '<leader>t', require("nvim-tree.api").tree.toggle, {})
+
+local nvim_tree_api = require("nvim-tree.api")
+vim.keymap.set('n', '<leader>t', nvim_tree_api.tree.toggle, {})
+vim.api.nvim_create_autocmd("DirChanged", {
+    pattern = "global",
+    callback = function(args)
+        nvim_tree_api.tree.change_root(args.file)
+    end
+})
 
