@@ -10,6 +10,8 @@ vim.cmd([[
     set shellquote= shellxquote=
 ]])
 
+vim.cmd.cd("~")
+
 vim.opt.termguicolors = true;
 vim.opt.fileformats = "unix,dos";
 vim.opt.softtabstop = 4;
@@ -264,3 +266,8 @@ vim.api.nvim_create_autocmd('LspAttach', {
         end, opts)
     end,
 })
+
+-- My keymaps
+vim.keymap.set('n', '<C-`>', '<cmd>ToggleTerm<CR>', {})
+vim.keymap.set('n', '<leader>t', require("nvim-tree.api").tree.toggle, {})
+
