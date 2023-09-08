@@ -74,6 +74,15 @@ require("nvim-autopairs").setup {}
 
 -- setup lint
 local lint = require("lint")
+
+local linter_eslint = require("lint.linters.eslint")
+linter_eslint.cmd = function ()
+    local current_buffer = vim.api.nvim_buf_get_name(0)
+    local local_eslint = require("crupest-util").find_npm_exe(current_buffer, "eslint")
+    if local_eslint then return local_eslint end
+    return "eslint"
+end
+
 lint.linters_by_ft = {
     javascript = { "eslint", "cspell" },
     javascriptreact = { "eslint", "cspell" },
@@ -81,8 +90,34 @@ lint.linters_by_ft = {
     typescriptreact = { "eslint", "cspell" },
 }
 
+vim.api.nvim_create_autocmd({ "BufWritePost" }, {
+  callback = function()
+    lint.try_lint()
+  end,
+})
+
 -- setup formatter
 require("formatter").setup {
+    filetype = {
+        html = {
+            require("formatter.filetypes.html").prettier
+        },
+        css = {
+            require("formatter.filetypes.css").prettier
+        },
+        javascript = {
+            require("formatter.filetypes.javascript").prettier
+        },
+        javascriptreact = {
+            require("formatter.filetypes.javascriptreact").prettier
+        },
+        typescript = {
+            require("formatter.filetypes.typescript").prettier
+        },
+        typescriptreact = {
+            require("formatter.filetypes.typescriptreact").prettier
+        }
+    }
 }
 
 -- setup nvim-cmp
@@ -121,7 +156,7 @@ lspconfig.clangd.setup {
 }
 
 -- setup lsp lua
-require("lspconfig").lua_ls.setup {
+lspconfig.lua_ls.setup {
     capabilities = capabilities,
     settings = {
         Lua = {
@@ -142,6 +177,18 @@ require("lspconfig").lua_ls.setup {
     },
 }
 
+-- setup lsp frontend
+lspconfig.cssls.setup {}
+lspconfig.html.setup {}
+lspconfig.tsserver.setup{
+    on_new_config = function (new_config, new_root_dir)
+        local local_tsserver = require("crupest-util").find_npm_exe(new_root_dir, "typescript-language-server");
+        if local_tsserver then
+            new_config.cmd = { local_tsserver, "--stdio" }
+        end
+    end,
+}
+
 -- setup trouble
 require("trouble").setup()
 
@@ -152,7 +199,7 @@ vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
 vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
 vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
 
--- setup keymap for lsp
+-- setup keymap fnamemodifyfor lsp
 
 -- Global mappings.
 -- See `:help vim.diagnostic.*` for documentation on any of the below functions
