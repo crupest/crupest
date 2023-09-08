@@ -76,7 +76,7 @@ require("nvim-autopairs").setup {}
 local prettier_formatter = function ()
     local current_buffer = vim.api.nvim_buf_get_name(0)
     local prettier_exe = require("crupest-util").find_npm_exe(current_buffer, "prettier") or "prettier"
-    
+
     if vim.fn.has("win32") ~= 0 then
         local escape = function (str)
             return ({ string.gsub(str, " ", "\\ " )})[1]
@@ -130,7 +130,7 @@ linter_eslint.cmd = function ()
 end
 -- lint library use 'cmd /C' to run exe, but we don't need this, so explicitly
 -- set args to empty.
-linter_eslint.args = {} 
+linter_eslint.args = {}
 linter_eslint.append_fname = true
 
 lint.linters_by_ft = {
