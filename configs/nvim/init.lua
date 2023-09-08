@@ -72,6 +72,52 @@ require("toggleterm").setup()
 -- setup autopairs
 require("nvim-autopairs").setup {}
 
+-- setup formatter
+local prettier_formatter = function ()
+    local current_buffer = vim.api.nvim_buf_get_name(0)
+    local prettier_exe = require("crupest-util").find_npm_exe(current_buffer, "prettier") or "prettier"
+    
+    if vim.fn.has("win32") ~= 0 then
+        local escape = function (str)
+            return ({ string.gsub(str, " ", "\\ " )})[1]
+        end
+
+        current_buffer = escape(current_buffer)
+prettier_exe = escape(prettier_exe)
+end
+    return {
+        exe = prettier_exe,
+        args = {
+            "--stdin-filepath",
+            current_buffer
+        },
+        stdin = true,
+    }
+end
+
+require("formatter").setup {
+    filetype = {
+        html = {
+            prettier_formatter
+        },
+        css = {
+            prettier_formatter
+        },
+        javascript = {
+            prettier_formatter
+        },
+        javascriptreact = {
+            prettier_formatter
+        },
+        typescript = {
+            prettier_formatter
+        },
+        typescriptreact = {
+            prettier_formatter
+        }
+    }
+}
+
 -- setup lint
 local lint = require("lint")
 
@@ -82,6 +128,10 @@ linter_eslint.cmd = function ()
     if local_eslint then return local_eslint end
     return "eslint"
 end
+-- lint library use 'cmd /C' to run exe, but we don't need this, so explicitly
+-- set args to empty.
+linter_eslint.args = {} 
+linter_eslint.append_fname = true
 
 lint.linters_by_ft = {
     javascript = { "eslint", "cspell" },
@@ -91,34 +141,10 @@ lint.linters_by_ft = {
 }
 
 vim.api.nvim_create_autocmd({ "BufWritePost" }, {
-  callback = function()
-    lint.try_lint()
-  end,
+    callback = function()
+        lint.try_lint()
+    end,
 })
-
--- setup formatter
-require("formatter").setup {
-    filetype = {
-        html = {
-            require("formatter.filetypes.html").prettier
-        },
-        css = {
-            require("formatter.filetypes.css").prettier
-        },
-        javascript = {
-            require("formatter.filetypes.javascript").prettier
-        },
-        javascriptreact = {
-            require("formatter.filetypes.javascriptreact").prettier
-        },
-        typescript = {
-            require("formatter.filetypes.typescript").prettier
-        },
-        typescriptreact = {
-            require("formatter.filetypes.typescriptreact").prettier
-        }
-    }
-}
 
 -- setup nvim-cmp
 local cmp = require("cmp")
