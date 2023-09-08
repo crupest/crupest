@@ -1,6 +1,7 @@
 {
   "LuaSnip": { "branch": "master", "commit": "ea7d7ea510c641c4f15042becd27f35b3e5b3c2b" },
   "bufferline.nvim": { "branch": "main", "commit": "9961d87bb3ec008213c46ba14b3f384a5f520eb5" },
+  "catppuccin": { "branch": "main", "commit": "85e93601e0f0b48aa2c6bbfae4d0e9d7a1898280" },
   "cmp-buffer": { "branch": "main", "commit": "3022dbc9166796b644a841a02de8dd1cc1d311fa" },
   "cmp-cmdline": { "branch": "main", "commit": "8ee981b4a91f536f52add291594e89fb6645e451" },
   "cmp-nvim-lsp": { "branch": "main", "commit": "44b16d11215dce86f253ce0c30949813c0a90765" },
@@ -19,7 +20,5 @@
   "plenary.nvim": { "branch": "master", "commit": "a56bf0071bf63d35274fdc4738bb1e8821cfd2ea" },
   "telescope.nvim": { "branch": "master", "commit": "3d8e051c8c479c1e6e347bd9b1d3bdafdc4d5c5d" },
   "toggleterm.nvim": { "branch": "main", "commit": "f2c720746238bc3ec620fe4bf92b58368317c266" },
-  "tokyonight.nvim": { "branch": "main", "commit": "9a01eada39558dc3243278e6805d90e8dff45dc0" },
-  "trouble.nvim": { "branch": "main", "commit": "3f85d8ed30e97ceeddbbcf80224245d347053711" },
-  "which-key.nvim": { "branch": "main", "commit": "7ccf476ebe0445a741b64e36c78a682c1c6118b7" }
+  "trouble.nvim": { "branch": "main", "commit": "3f85d8ed30e97ceeddbbcf80224245d347053711" }
 }
