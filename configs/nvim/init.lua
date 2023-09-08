@@ -2,7 +2,13 @@
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
-vim.opt.shell = "pwsh";
+vim.cmd([[
+    let &shell = executable('pwsh') ? 'pwsh' : 'powershell'
+    let &shellcmdflag = '-NoLogo -ExecutionPolicy RemoteSigned -Command [Console]::InputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();$PSDefaultParameterValues[''Out-File:Encoding'']=''utf8'';Remove-Alias -Force -ErrorAction SilentlyContinue tee;'
+    let &shellredir = '2>&1 | %%{ "$_" } | Out-File %s; exit $LastExitCode'
+    let &shellpipe  = '2>&1 | %%{ "$_" } | tee %s; exit $LastExitCode'
+    set shellquote= shellxquote=
+]])
 
 vim.opt.termguicolors = true;
 vim.opt.fileformats = "unix,dos";
@@ -11,6 +17,7 @@ vim.opt.shiftwidth = 4;
 vim.opt.expandtab = true;
 vim.opt.wrap = false;
 vim.opt.number = true;
+vim.keymap.set('t', '<esc>', [[<C-\><C-n>]])
 
 if vim.g.neovide then
     vim.opt.guifont = "FiraCodeNerdFont";
@@ -59,6 +66,9 @@ require("bufferline").setup {
 -- setup gitsigns
 require('gitsigns').setup()
 
+-- setup toggleterm
+require("toggleterm").setup()
+
 -- setup nvim-cmp
 local cmp = require("cmp")
 
@@ -95,40 +105,29 @@ lspconfig.clangd.setup {
 }
 
 -- setup lsp lua
-require 'lspconfig'.lua_ls.setup {
-    on_init = function(client)
-        local path = client.workspace_folders[1].name
-        if not vim.loop.fs_stat(path .. '/.luarc.json') and not vim.loop.fs_stat(path .. '/.luarc.jsonc') then
-            client.config.settings = vim.tbl_deep_extend('force', client.config.settings, {
-                Lua = {
-                    runtime = {
-                        -- Tell the language server which version of Lua you're using
-                        -- (most likely LuaJIT in the case of Neovim)
-                        version = 'LuaJIT'
-                    },
-                    -- Make the server aware of Neovim runtime files
-                    workspace = {
-                        checkThirdParty = false,
-                        library = {
-                            vim.env.VIMRUNTIME
-                            -- "${3rd}/luv/library"
-                            -- "${3rd}/busted/library",
-                        }
-                        -- or pull in all of 'runtimepath'. NOTE: this is a lot slower
-                        -- library = vim.api.nvim_get_runtime_file("", true)
-                    }
-                }
-            })
-
-            client.notify("workspace/didChangeConfiguration", { settings = client.config.settings })
-        end
-        return true
-    end
+require("lspconfig").lua_ls.setup {
+    capabilities = capabilities,
+    settings = {
+        Lua = {
+            diagnostics = {
+                globals = { "vim" },
+            },
+            workspace = {
+                library = {
+                    [vim.fn.expand "$VIMRUNTIME/lua"] = true,
+                    [vim.fn.expand "$VIMRUNTIME/lua/vim/lsp"] = true,
+                    [vim.fn.stdpath "data" .. "/lazy/ui/nvchad_types"] = true,
+                    [vim.fn.stdpath "data" .. "/lazy/lazy.nvim/lua/lazy"] = true,
+                },
+                maxPreload = 100000,
+                preloadFileSize = 10000,
+            },
+        },
+    },
 }
 
 -- setup trouble
 require("trouble").setup()
-require("trouble.providers.telescope")
 
 -- setup keymap for telescope
 local builtin = require('telescope.builtin')
