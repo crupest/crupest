@@ -97,8 +97,9 @@ local prettier_formatter = function ()
         end
 
         current_buffer = escape(current_buffer)
-prettier_exe = escape(prettier_exe)
-end
+        prettier_exe = escape(prettier_exe)
+    end
+
     return {
         exe = prettier_exe,
         args = {
