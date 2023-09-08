@@ -25,6 +25,6 @@ end
 
 return {
     remove_element = remove_element,
-    element_at = element_at
+    element_at = element_at,
 }
 
