@@ -89,13 +89,10 @@ require("nvim-autopairs").setup {}
 -- setup formatter
 local prettier_formatter = function ()
     local current_buffer = vim.api.nvim_buf_get_name(0)
-    local prettier_exe = require("crupest-util").find_npm_exe(current_buffer, "prettier") or "prettier"
+    local prettier_exe = require("crupest.system").find_npm_exe(current_buffer, "prettier") or "prettier"
 
     if vim.fn.has("win32") ~= 0 then
-        local escape = function (str)
-            return ({ string.gsub(str, " ", "\\ " )})[1]
-        end
-
+        local escape = require("crupest.system").escape_space
         current_buffer = escape(current_buffer)
         prettier_exe = escape(prettier_exe)
     end
@@ -139,9 +136,7 @@ local lint = require("lint")
 local linter_eslint = require("lint.linters.eslint")
 linter_eslint.cmd = function ()
     local current_buffer = vim.api.nvim_buf_get_name(0)
-    local local_eslint = require("crupest-util").find_npm_exe(current_buffer, "eslint")
-    if local_eslint then return local_eslint end
-    return "eslint"
+    return require("crupest.system").find_npm_exe(current_buffer, "eslint") or "eslint"
 end
 -- lint library use 'cmd /C' to run exe, but we don't need this, so explicitly
 -- set args to empty.
@@ -201,6 +196,9 @@ lspconfig.lua_ls.setup {
     capabilities = capabilities,
     settings = {
         Lua = {
+            runtime = {
+                version = "LuaJIT"
+            },
             diagnostics = {
                 globals = { "vim" },
             },
@@ -291,85 +289,6 @@ vim.cmd.colorscheme "catppuccin"
 vim.keymap.set("n", "<c-tab>", "<cmd>bnext<cr>")
 vim.keymap.set("n", "<c-s-tab>", "<cmd>bNext<cr>")
 vim.keymap.set("n", "<s-tab>", "<c-o>")
-
-local list_listed_bufs = function ()
-    local bufs = vim.api.nvim_list_bufs()
-    local result = {}
-    for _, v in ipairs(bufs) do
-        if vim.fn.buflisted(v) ~= 0 then
-            table.insert(result, v)
-        end
-    end
-    return result
-end
-
-local get_previous_buffer = function (buf)
-    local bufs = list_listed_bufs()
-
-    -- no buffers at all
-    if #bufs == 0 then return nil end
-
-    -- find the buf in bufs
-    local index = 0
-    for i, v in ipairs(bufs) do
-        if buf == v then
-            index = i
-            break
-        end
-    end
-
-    -- it's the only one
-    if #bufs == 1 and index == 1 then
-        return nil
-    end
-
-    -- it's the first one
-    if index == 1 then
-        return bufs[2]
-    end
-
-    return bufs[index - 1]
-end
-
--- Delete current buffer and jump back.
--- If no previous jump, switch to previous buffer.
--- If no previous buffer (no other buffers), create a unnamed one. (So the window does not quit.)
-vim.keymap.set("n", "<c-q>", function ()
-    local current_buffer = vim.api.nvim_get_current_buf()
-    local jumps_info = vim.fn.getjumplist()
-
-    local old_jump_list = { unpack(jumps_info[1], 1, jumps_info[2]) }
-    while #old_jump_list ~= 0 do
-        local last_jump = old_jump_list[#old_jump_list]
-        if last_jump.bufnr ~= current_buffer and vim.fn.bufexists(last_jump.bufnr) ~= 0 and vim.fn.buflisted(last_jump.bufnr) ~= 0 then
-            break
-        end
-        table.remove(old_jump_list, #old_jump_list)
-    end
-
-    if #old_jump_list ~= 0 then
-        local last_jump = old_jump_list[#old_jump_list]
-        vim.api.nvim_win_set_buf(0, last_jump.bufnr)
-        vim.api.nvim_win_set_cursor(0, {last_jump.lnum, last_jump.col})
-    else
-        local previous_buf = get_previous_buffer(current_buffer)
-        if previous_buf then
-            vim.api.nvim_win_set_buf(0, previous_buf)
-        else
-            local new_buf = vim.api.nvim_create_buf(true, false)
-            vim.api.nvim_win_set_buf(0, new_buf)
-        end
-    end
-
-    vim.api.nvim_buf_delete(current_buffer, {})
-end)
-
-vim.keymap.set("n", "<esc>", function ()
-    local wins = vim.api.nvim_list_wins()
-    for _, v in ipairs(wins) do
-        if vim.api.nvim_win_get_config(v).relative ~= '' then
-            vim.api.nvim_win_close(v, false)
-        end
-    end
-end)
+vim.keymap.set("n", "<c-q>", require("crupest.nvim").win_close_buf)
+vim.keymap.set("n", "<esc>", require("crupest.nvim").close_float)
 
