@@ -1,7 +1,7 @@
 local M = {}
 
 M.clean_path = function (path)
-    return path and ({string.gsub(path, "[/\\]+", "/")})[1]
+    return path and (string.gsub(path, "[/\\]+", "/"))
 end
 
 M.get_exe = function (path)
@@ -59,6 +59,20 @@ M.find_npm_exe = function (path, exe)
     local exe_path = M.get_exe(try_exe_path)
     if exe_path then return M.clean_path(exe_path) end
     return nil
+end
+
+function M.remove_element(tbl, element)
+    local index = nil
+    for i, v in ipairs(tbl) do
+        if element == v then
+            index = i
+            break
+        end
+    end
+    if index then
+        table.remove(tbl, index)
+    end
+    return tbl
 end
 
 return M
