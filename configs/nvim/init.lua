@@ -2,13 +2,17 @@
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
-vim.cmd([[
+local is_win = vim.fn.has("win32") ~= 0
+
+if is_win then
+    vim.cmd([[
     let &shell = executable('pwsh') ? 'pwsh' : 'powershell'
     let &shellcmdflag = '-NoLogo -ExecutionPolicy RemoteSigned -Command [Console]::InputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();$PSDefaultParameterValues[''Out-File:Encoding'']=''utf8'';Remove-Alias -Force -ErrorAction SilentlyContinue tee;'
     let &shellredir = '2>&1 | %%{ "$_" } | Out-File %s; exit $LastExitCode'
     let &shellpipe  = '2>&1 | %%{ "$_" } | tee %s; exit $LastExitCode'
     set shellquote= shellxquote=
 ]])
+end
 
 vim.cmd.cd("~")
 
@@ -22,7 +26,7 @@ vim.opt.number = true;
 vim.keymap.set('t', '<leader><esc>', [[<C-\><C-n>]])
 
 if vim.g.neovide then
-    vim.opt.guifont = "FiraCode Nerd Font";
+    vim.opt.guifont = "CaskaydiaCove Nerd Font";
     vim.g.neovide_transparency = 0.95;
     vim.g.neovide_input_ime = false;
     vim.g.neovide_cursor_vfx_mode = "ripple";
@@ -86,7 +90,7 @@ require("toggleterm").setup {
 require("nvim-autopairs").setup {}
 
 -- setup formatter
-local prettier_formatter = function ()
+local prettier_formatter = function()
     local current_buffer = vim.api.nvim_buf_get_name(0)
     local prettier_exe = require("crupest.system").find_npm_exe(current_buffer, "prettier") or "prettier"
 
@@ -133,7 +137,7 @@ require("formatter").setup {
 local lint = require("lint")
 
 local linter_eslint = require("lint.linters.eslint")
-linter_eslint.cmd = function ()
+linter_eslint.cmd = function()
     local current_buffer = vim.api.nvim_buf_get_name(0)
     return require("crupest.system").find_npm_exe(current_buffer, "eslint") or "eslint"
 end
@@ -227,15 +231,62 @@ lspconfig.html.setup {
     capabilities = capabilities
 }
 
-lspconfig.tsserver.setup{
+lspconfig.tsserver.setup {
     capabilities = capabilities,
-    on_new_config = function (new_config, new_root_dir)
+    on_new_config = function(new_config, new_root_dir)
         local local_tsserver = require("crupest-util").find_npm_exe(new_root_dir, "typescript-language-server");
         if local_tsserver then
             new_config.cmd = { local_tsserver, "--stdio" }
         end
     end,
 }
+
+local omnisharp_cmd = nil
+
+if is_win then
+    omnisharp_cmd = { "C:/Users/crupest/Programs/omnisharp-win-x64/OmniSharp.exe" }
+end
+
+if omnisharp_cmd then
+    require 'lspconfig'.omnisharp.setup {
+        cmd = omnisharp_cmd,
+
+        -- Enables support for reading code style, naming convention and analyzer
+        -- settings from .editorconfig.
+        enable_editorconfig_support = true,
+
+        -- If true, MSBuild project system will only load projects for files that
+        -- were opened in the editor. This setting is useful for big C# codebases
+        -- and allows for faster initialization of code navigation features only
+        -- for projects that are relevant to code that is being edited. With this
+        -- setting enabled OmniSharp may load fewer projects and may thus display
+        -- incomplete reference lists for symbols.
+        enable_ms_build_load_projects_on_demand = false,
+
+        -- Enables support for roslyn analyzers, code fixes and rulesets.
+        enable_roslyn_analyzers = true,
+
+        -- Specifies whether 'using' directives should be grouped and sorted during
+        -- document formatting.
+        organize_imports_on_format = false,
+
+        -- Enables support for showing unimported types and unimported extension
+        -- methods in completion lists. When committed, the appropriate using
+        -- directive will be added at the top of the current file. This option can
+        -- have a negative impact on initial completion responsiveness,
+        -- particularly for the first few completion sessions after opening a
+        -- solution.
+        enable_import_completion = true,
+
+        -- Specifies whether to include preview versions of the .NET SDK when
+        -- determining which version to use for project loading.
+        sdk_include_prereleases = true,
+
+        -- Only run analyzers against open files when 'enableRoslynAnalyzers' is
+        -- true
+        analyze_open_documents_only = false,
+    }
+end
 
 -- setup trouble
 require("trouble").setup()
@@ -271,11 +322,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end,
 })
 
-require("catppuccin").setup{
-    flavour = "mocha"
-}
-
-vim.cmd.colorscheme "catppuccin"
+vim.cmd [[colorscheme tokyonight-night]]
 
 -- custom keymaps
 --
@@ -348,4 +395,3 @@ end, {
     nargs = "+",
     complete = "file"
 })
-
