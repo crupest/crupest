@@ -3,11 +3,6 @@
     "sites": [
         {
             "type": "reverse-proxy",
-            "subdomain": "code",
-            "upstream": "code-server:8080"
-        },
-        {
-            "type": "reverse-proxy",
             "subdomain": "timeline",
             "upstream": "timeline:5000"
         },
