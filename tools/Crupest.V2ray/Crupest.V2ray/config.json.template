@@ -37,7 +37,7 @@
   ],
   "routing": ${ROUTING_ANCHOR},
   "dns": {
-    "hosts": {},
+    "hosts": ${HOSTS_ANCHOR},
     "servers": [
       "https://doh.pub/dns-query",
       "1.1.1.1",

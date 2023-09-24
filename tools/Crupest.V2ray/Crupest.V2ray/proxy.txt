@@ -14,3 +14,6 @@ GeoSite creativecommons
 GeoSite sci-hub
 GeoSite v2ray
 GeoSite imgur
+GeoSite npmjs
+GeoSite onedrive
+
