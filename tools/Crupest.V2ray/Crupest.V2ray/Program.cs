@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Reflection;
 
 namespace Crupest.V2ray;
@@ -8,6 +7,7 @@ public static class Program
     public const string ConfigTemplateFileName = "config.json.template";
     public const string VmessConfigFileName = "vmess.txt";
     public const string ProxyConfigFileName = "proxy.txt";
+    public const string HostsConfigFileName = "hosts.txt";
     public const string ConfigOutputFileName = "config.json";
 
     public static string ExeDir { get; } = Path.GetFullPath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? throw new Exception("Can't get the path of exe."));
@@ -28,6 +28,7 @@ public static class Program
                 geoDataDonwloader.Download(ExeDir);
                 return;
             }
+            throw new Exception("Invalid command line arguments.");
         }
 
         var v2rayController = new V2rayController();
