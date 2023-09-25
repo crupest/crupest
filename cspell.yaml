@@ -1,22 +1,29 @@
 version: "0.2"
 language: en
+
+ignorePaths:
+  - "node_modules"
+  - "obj"
+  - "bin"
+
+dictionaryDefinitions:
+  - name: project-words
+    path: "./project-words.txt"
+    addWords: true
+
 dictionaries:
+  - project-words
   - en_US
   - softwareTerms
   - node
   - typescript
-  - python
   - html
   - css
+  - cpp
+  - csharp
+  - python
   - bash
   - fonts
   - filetypes
   - npm
-words:
-  - ASPNETCORE
-  - autoincrement
-  - crupest
-  - Fxxk
-  - outbounds
-  - todos
-  - vmess
+
