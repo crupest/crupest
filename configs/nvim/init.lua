@@ -2,6 +2,10 @@
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
+if not vim.uv then
+    vim.uv = vim.loop
+end
+
 local is_win = vim.fn.has("win32") ~= 0
 
 if is_win then
