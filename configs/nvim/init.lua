@@ -6,6 +6,13 @@ if not vim.uv then
     vim.uv = vim.loop
 end
 
+if vim.g.neovide then
+    vim.opt.guifont = "CaskaydiaCove Nerd Font";
+    vim.g.neovide_transparency = 0.98;
+    vim.g.neovide_input_ime = false;
+    vim.g.neovide_cursor_vfx_mode = "ripple";
+end
+
 local is_win = vim.fn.has("win32") ~= 0
 
 if is_win then
@@ -27,14 +34,6 @@ vim.opt.shiftwidth = 4;
 vim.opt.expandtab = true;
 vim.opt.wrap = false;
 vim.opt.number = true;
-vim.keymap.set('t', '<leader><esc>', [[<C-\><C-n>]])
-
-if vim.g.neovide then
-    vim.opt.guifont = "CaskaydiaCove Nerd Font";
-    vim.g.neovide_transparency = 0.95;
-    vim.g.neovide_input_ime = false;
-    vim.g.neovide_cursor_vfx_mode = "ripple";
-end
 
 -- Init lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -155,6 +154,7 @@ lint.linters_by_ft = {
     javascriptreact = { "eslint", "cspell" },
     typescript = { "eslint", "cspell" },
     typescriptreact = { "eslint", "cspell" },
+    cs = { "cspell" }
 }
 
 vim.api.nvim_create_autocmd({ "BufWritePost" }, {
@@ -253,6 +253,10 @@ end
 
 if omnisharp_cmd then
     require 'lspconfig'.omnisharp.setup {
+        handlers = {
+            ["textDocument/definition"] = require('omnisharp_extended').handler,
+        },
+
         cmd = omnisharp_cmd,
 
         -- Enables support for reading code style, naming convention and analyzer
@@ -268,7 +272,7 @@ if omnisharp_cmd then
         enable_ms_build_load_projects_on_demand = false,
 
         -- Enables support for roslyn analyzers, code fixes and rulesets.
-        enable_roslyn_analyzers = true,
+        enable_roslyn_analyzers = false,
 
         -- Specifies whether 'using' directives should be grouped and sorted during
         -- document formatting.
@@ -328,8 +332,11 @@ vim.api.nvim_create_autocmd('LspAttach', {
 
 vim.cmd [[colorscheme tokyonight-night]]
 
--- custom keymaps
---
+-- custom keymapss
+
+-- For terminal emulator
+vim.keymap.set('t', '<leader><esc>', [[<C-\><C-n>]])
+
 -- setup keymap for telescope
 local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<leader>f', builtin.find_files, {})
