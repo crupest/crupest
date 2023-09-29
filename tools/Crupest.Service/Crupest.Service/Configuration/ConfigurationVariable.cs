@@ -1,4 +1,4 @@
-namespace Crupest.ServiceManager.Configuration;
+namespace Crupest.Service.Configuration;
 
 public class ConfigurationVariable
 {

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Crupest.ServiceManager;
+namespace Crupest.Service.Utility;
 
 public static partial class FileUtility
 {

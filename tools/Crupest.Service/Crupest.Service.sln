@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Crupest.Service", "Crupest.Service\Crupest.Service.csproj", "{EE5A906A-E392-4157-A8D9-2A587D5261B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Crupest.Service.Tests", "Crupest.Service.Tests\Crupest.Service.Tests.csproj", "{157930F4-20CC-4651-85E0-C5A3C32D51D2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EE5A906A-E392-4157-A8D9-2A587D5261B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE5A906A-E392-4157-A8D9-2A587D5261B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE5A906A-E392-4157-A8D9-2A587D5261B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE5A906A-E392-4157-A8D9-2A587D5261B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{157930F4-20CC-4651-85E0-C5A3C32D51D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{157930F4-20CC-4651-85E0-C5A3C32D51D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{157930F4-20CC-4651-85E0-C5A3C32D51D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{157930F4-20CC-4651-85E0-C5A3C32D51D2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
