@@ -52,6 +52,8 @@ vim.opt.rtp:prepend(lazypath)
 -- Use lazy.nvim
 require("lazy").setup("plugins")
 
+vim.cmd("colorscheme everforest")
+
 -- setup neo-tree
 require("neo-tree").setup({
     filesystem = {
@@ -318,7 +320,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end,
 })
 
-vim.cmd("colorscheme everforest")
 
 -- For terminal emulator
 vim.keymap.set('t', '<leader><esc>', [[<C-\><C-n>]])
