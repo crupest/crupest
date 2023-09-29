@@ -35,6 +35,10 @@ vim.opt.expandtab = true;
 vim.opt.wrap = false;
 vim.opt.number = true;
 
+if is_win then
+    vim.opt.shellslash = true
+end
+
 -- Init lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.uv.fs_stat(lazypath) then
@@ -389,7 +393,6 @@ end, {
     nargs = "+",
     complete = "file"
 })
-
 
 vim.api.nvim_create_user_command("Rename", function(opts)
     require("crupest.nvim").rename_buf_file(vim.api.nvim_get_current_buf(), opts.fargs[1])
