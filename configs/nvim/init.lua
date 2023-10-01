@@ -3,6 +3,7 @@ if not vim.uv then
 end
 
 if vim.g.neovide then
+    -- spellchecker: disable-next-line
     vim.opt.guifont = "CaskaydiaCove Nerd Font";
     vim.g.neovide_transparency = 0.98;
     vim.g.neovide_input_ime = false;
@@ -11,6 +12,7 @@ end
 
 local is_win = vim.fn.has("win32") ~= 0
 
+-- spellchecker: disable
 if is_win then
     vim.cmd([[
     let &shell = executable('pwsh') ? 'pwsh' : 'powershell'
@@ -20,9 +22,11 @@ if is_win then
     set shellquote= shellxquote=
 ]])
 end
+-- spellchecker: enable
 
 vim.cmd.cd("~")
 
+-- spellchecker: disable
 vim.opt.termguicolors = true;
 vim.opt.fileformats = "unix,dos";
 vim.opt.softtabstop = 4;
@@ -30,24 +34,26 @@ vim.opt.shiftwidth = 4;
 vim.opt.expandtab = true;
 vim.opt.wrap = false;
 vim.opt.number = true;
+-- spellchecker: enable
 
 if is_win then
+    -- spellchecker: disable-next-line
     vim.opt.completeslash = 'slash'
 end
 
 -- Init lazy.nvim
-local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.uv.fs_stat(lazypath) then
+local lazy_path = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.uv.fs_stat(lazy_path) then
     vim.fn.system({
         "git",
         "clone",
         "--filter=blob:none",
         "https://github.com/folke/lazy.nvim.git",
         "--branch=stable", -- latest stable release
-        lazypath,
+        lazy_path,
     })
 end
-vim.opt.rtp:prepend(lazypath)
+vim.opt.rtp:prepend(lazy_path)
 
 -- Use lazy.nvim
 require("lazy").setup("plugins")
@@ -159,44 +165,10 @@ cmp.setup({
     })
 })
 
--- setup lsp
-local capabilities = require("cmp_nvim_lsp").default_capabilities()
-local lspconfig = require("lspconfig")
 
--- setup lsp clangd
-lspconfig.clangd.setup {
-    capabilities = capabilities
-}
-
--- setup lsp lua
-lspconfig.lua_ls.setup {
-    capabilities = capabilities,
-    settings = {
-        Lua = {
-            runtime = {
-                version = "LuaJIT"
-            },
-            diagnostics = {
-                globals = { "vim" },
-            },
-            workspace = {
-                library = {
-                    [vim.fn.expand "$VIMRUNTIME/lua"] = true,
-                    [vim.fn.expand "$VIMRUNTIME/lua/vim/lsp"] = true,
-                    [vim.fn.stdpath "data" .. "/lazy/ui/nvchad_types"] = true,
-                    [vim.fn.stdpath "data" .. "/lazy/lazy.nvim/lua/lazy"] = true,
-                },
-                maxPreload = 100000,
-                preloadFileSize = 10000,
-            },
-        },
-    },
-}
-
--- setup lsp frontend
+require("crupest.nvim.lsp.c").setup_lsp_c()
+require("crupest.nvim.lsp.lua").setup_lsp_lua()
 require("crupest.nvim.lsp.frontend").setup_lsp_frontend()
-
--- setup lsp csharp
 require("crupest.nvim.lsp.csharp").setup_lsp_csharp()
 
 -- Use LspAttach autocommand to only map the following keys
@@ -242,15 +214,15 @@ vim.keymap.set('n', '<leader>g', builtin.live_grep, {})
 vim.keymap.set('n', '<leader>b', builtin.buffers, {})
 vim.keymap.set('n', '<leader>h', builtin.help_tags, {})
 
--- setup ketmap for tree
+-- setup keymap for tree
 vim.keymap.set('n', '<leader>t', "<cmd>Neotree toggle<cr>", {})
 
 -- See `:help vim.diagnostic.*` for documentation on any of the below functions
 vim.keymap.set('n', '<leader>le', vim.diagnostic.open_float)
 vim.keymap.set('n', '<leader>l[', vim.diagnostic.goto_prev)
 vim.keymap.set('n', '<leader>l]', vim.diagnostic.goto_next)
-vim.keymap.set('n', '<leader>lt', vim.diagnostic.setloclist)
-vim.keymap.set('n', '<leader>ll', lint.run_lint)
+vim.keymap.set('n', '<leader>ll', vim.diagnostic.setloclist)
+vim.keymap.set('n', '<leader>lr', lint.run_lint)
 
 
 vim.keymap.set("n", "<c-tab>", "<cmd>bnext<cr>")

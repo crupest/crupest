@@ -1,3 +1,4 @@
+-- spellchecker: disable
 return {
     "neovim/nvim-lspconfig",
     "Hoffs/omnisharp-extended-lsp.nvim",

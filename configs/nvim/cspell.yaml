@@ -1,0 +1,13 @@
+dictionaryDefinitions:
+  - name: nvim-words
+    path: './nvim-words.txt'
+    addWords: true
+
+dictionaries:
+  - nvim-words
+
+words:
+  - crupest
+
+ignorePaths:
+  - lazy-lock.json
