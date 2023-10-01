@@ -1,7 +1,3 @@
--- disable netrw for nvim-tree
-vim.g.loaded_netrw = 1
-vim.g.loaded_netrwPlugin = 1
-
 if not vim.uv then
     vim.uv = vim.loop
 end
@@ -56,33 +52,23 @@ vim.opt.rtp:prepend(lazypath)
 -- Use lazy.nvim
 require("lazy").setup("plugins")
 
--- setup nvim-tree
-require("nvim-tree").setup()
-
-local nvim_tree_api = require("nvim-tree.api")
-vim.api.nvim_create_autocmd("DirChanged", {
-    pattern = "global",
-    callback = function(args)
-        nvim_tree_api.tree.change_root(args.file)
-    end
+-- setup neo-tree
+require("neo-tree").setup({
+    filesystem = {
+        filtered_items = {
+            hide_dotfiles = true,
+            hide_gitignored = true,
+            hide_hidden = true, -- only works on Windows for hidden files/directories
+        }
+    }
 })
 
 -- setup lualine
-require('lualine').setup()
-
--- setup bufferline
-require("bufferline").setup {
+require('lualine').setup({
     options = {
-        offsets = {
-            {
-                filetype = "NvimTree",
-                text = "File Explorer",
-                highlight = "Directory",
-                separator = true
-            }
-        }
+        theme = "auto", -- Can also be "auto" to detect automatically.
     }
-}
+})
 
 -- setup gitsigns
 require('gitsigns').setup()
@@ -300,9 +286,6 @@ if omnisharp_cmd then
     }
 end
 
--- setup trouble
-require("trouble").setup()
-
 -- Use LspAttach autocommand to only map the following keys
 -- after the language server attaches to the current buffer
 vim.api.nvim_create_autocmd('LspAttach', {
@@ -335,9 +318,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end,
 })
 
-vim.cmd [[colorscheme tokyonight-night]]
-
--- custom keymapss
+vim.cmd("colorscheme everforest")
 
 -- For terminal emulator
 vim.keymap.set('t', '<leader><esc>', [[<C-\><C-n>]])
@@ -350,8 +331,7 @@ vim.keymap.set('n', '<leader>b', builtin.buffers, {})
 vim.keymap.set('n', '<leader>h', builtin.help_tags, {})
 
 -- setup ketmap for tree
-vim.keymap.set('n', '<leader>tt', nvim_tree_api.tree.toggle, {})
-vim.keymap.set('n', '<leader>tr', '<cmd>NvimTreeRefresh<cr>')
+vim.keymap.set('n', '<leader>t', "<cmd>Neotree toggle<cr>", {})
 
 -- See `:help vim.diagnostic.*` for documentation on any of the below functions
 vim.keymap.set('n', '<leader>le', vim.diagnostic.open_float)
@@ -367,46 +347,4 @@ vim.keymap.set("n", "<s-tab>", "<c-o>")
 vim.keymap.set("n", "<c-q>", require("crupest.nvim").win_close_buf)
 vim.keymap.set("n", "<esc>", require("crupest.nvim").close_float)
 
-vim.api.nvim_create_user_command("Mv", function(opts)
-    require("crupest.nvim").mv_buf_file(vim.api.nvim_get_current_buf(), opts.fargs[1])
-end, {
-    nargs = 1,
-    complete = "file"
-})
-
-vim.api.nvim_create_user_command("MvFile", function(opts)
-    if (#opts.fargs ~= 2) then
-        vim.notify("MvFile accepts exactly two arguments, old file and new file.")
-    end
-    require("crupest.nvim").mv_file(opts.fargs[1], opts.fargs[2])
-end, {
-    nargs = "+",
-    complete = "file"
-})
-
-vim.api.nvim_create_user_command("MvDir", function(opts)
-    if (#opts.fargs ~= 2) then
-        vim.notify("MvDir accepts exactly two arguments, old dir and new dir.")
-    end
-    require("crupest.nvim").mv_dir(opts.fargs[1], opts.fargs[2])
-end, {
-    nargs = "+",
-    complete = "file"
-})
-
-vim.api.nvim_create_user_command("Rename", function(opts)
-    require("crupest.nvim").rename_buf_file(vim.api.nvim_get_current_buf(), opts.fargs[1])
-end, {
-    nargs = 1,
-    complete = "file"
-})
-
-vim.api.nvim_create_user_command("RenameFile", function(opts)
-    if (#opts.fargs ~= 2) then
-        vim.notify("RenameFile accepts exactly two arguments, old file and new file.")
-    end
-    require("crupest.nvim").rename_file(opts.fargs[1], opts.fargs[2])
-end, {
-    nargs = "+",
-    complete = "file"
-})
+require("crupest.filesystem-cmd").setup_filesystem_user_commands()
