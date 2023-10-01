@@ -7,7 +7,6 @@
   "cmp_luasnip": { "branch": "master", "commit": "18095520391186d634a0045dacaa346291096566" },
   "everforest": { "branch": "master", "commit": "83b666410d7ae0eccf96dbbe3b4b6ac5b8172d38" },
   "formatter.nvim": { "branch": "master", "commit": "34dcdfa0c75df667743b2a50dd99c84a557376f0" },
-  "gitsigns.nvim": { "branch": "main", "commit": "bdeba1cec3faddd89146690c10b9a87949c0ee66" },
   "lazy.nvim": { "branch": "main", "commit": "59335c5b9d116f5d3948f833288a89e2a829a005" },
   "lualine.nvim": { "branch": "master", "commit": "45e27ca739c7be6c49e5496d14fcf45a303c3a63" },
   "neo-tree.nvim": { "branch": "main", "commit": "7e2a3caf999e2028abb643eb0472f351b2777591" },

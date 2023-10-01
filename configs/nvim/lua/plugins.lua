@@ -18,7 +18,6 @@ return {
     "nvim-lualine/lualine.nvim",
     "nvim-telescope/telescope.nvim",
     "windwp/nvim-autopairs",
-    "lewis6991/gitsigns.nvim",
     "mhartington/formatter.nvim",
     "mfussenegger/nvim-lint",
     "akinsho/toggleterm.nvim",

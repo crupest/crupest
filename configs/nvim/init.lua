@@ -61,7 +61,8 @@ require("neo-tree").setup({
             hide_dotfiles = true,
             hide_gitignored = true,
             hide_hidden = true, -- only works on Windows for hidden files/directories
-        }
+        },
+        use_libuv_file_watcher = true
     }
 })
 
@@ -71,9 +72,6 @@ require('lualine').setup({
         theme = "auto", -- Can also be "auto" to detect automatically.
     }
 })
-
--- setup gitsigns
-require('gitsigns').setup()
 
 -- setup toggleterm
 require("toggleterm").setup {
@@ -129,31 +127,8 @@ require("formatter").setup {
 }
 
 -- setup lint
-local lint = require("lint")
-
-local linter_eslint = require("lint.linters.eslint")
-linter_eslint.cmd = function()
-    local current_buffer = vim.api.nvim_buf_get_name(0)
-    return require("crupest.system").find_npm_exe(current_buffer, "eslint") or "eslint"
-end
--- lint library use 'cmd /C' to run exe, but we don't need this, so explicitly
--- set args to empty.
-linter_eslint.args = {}
-linter_eslint.append_fname = true
-
-lint.linters_by_ft = {
-    javascript = { "eslint", "cspell" },
-    javascriptreact = { "eslint", "cspell" },
-    typescript = { "eslint", "cspell" },
-    typescriptreact = { "eslint", "cspell" },
-    cs = { "cspell" }
-}
-
-vim.api.nvim_create_autocmd({ "BufWritePost" }, {
-    callback = function()
-        lint.try_lint()
-    end,
-})
+local lint = require("crupest.nvim.plugins.lint")
+lint.setup_lint()
 
 -- setup nvim-cmp
 local cmp = require("cmp")
@@ -339,7 +314,7 @@ vim.keymap.set('n', '<leader>le', vim.diagnostic.open_float)
 vim.keymap.set('n', '<leader>l[', vim.diagnostic.goto_prev)
 vim.keymap.set('n', '<leader>l]', vim.diagnostic.goto_next)
 vim.keymap.set('n', '<leader>lt', vim.diagnostic.setloclist)
-vim.keymap.set('n', '<leader>ll', lint.try_lint)
+vim.keymap.set('n', '<leader>ll', lint.run_lint)
 
 
 vim.keymap.set("n", "<c-tab>", "<cmd>bnext<cr>")
@@ -348,5 +323,5 @@ vim.keymap.set("n", "<s-tab>", "<c-o>")
 vim.keymap.set("n", "<c-q>", require("crupest.nvim").win_close_buf)
 vim.keymap.set("n", "<esc>", require("crupest.nvim").close_float)
 
-require("crupest.filesystem-cmd").setup_filesystem_user_commands()
+require("crupest.nvim.fs").setup_filesystem_user_commands()
 
