@@ -42,14 +42,9 @@ local function find_npm_exe(path, exe)
     return nil
 end
 
-local function escape_space(str)
-    return (string.gsub(str, " ", "\\ " ))
-end
-
 return {
     get_exe = get_exe,
     find_node_modules = find_node_modules,
     find_npm_exe = find_npm_exe,
-    escape_space = escape_space
 }
 

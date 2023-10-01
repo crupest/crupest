@@ -1,7 +1,7 @@
 local lspconfig = require("lspconfig");
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-local is_win = vim.fn.has("win32") ~= 0
+local is_win = require("crupest.system").is_win
 
 local function setup_lsp_csharp()
     local omnisharp_cmd = nil
@@ -61,4 +61,3 @@ end
 return {
     setup_lsp_csharp = setup_lsp_csharp
 }
-
