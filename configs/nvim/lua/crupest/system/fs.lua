@@ -3,11 +3,19 @@ local function clean_path(path)
 end
 
 local function full_path(name)
-    return vim.fn.fnamemodify(name, ":p:gs?\\?/?")
+    local path = vim.fn.fnamemodify(name, ":p:gs?\\?/?")
+    if string.sub(path, string.len(path)) == '/' then
+        path = string.sub(path, 1, string.len(path) - 1)
+    end
+    return path
+end
+
+local function escape_space(str)
+    return (string.gsub(str, " ", "\\ "))
 end
 
 local function path_get_dir(path)
-    return vim.fn.fnamemodify(path, ":p:h:gs?\\?/?")
+    return vim.fn.fnamemodify(full_path(path), ":h")
 end
 
 local function walk_up(path, func)
@@ -78,6 +86,7 @@ end
 return {
     clean_path = clean_path,
     full_path = full_path,
+    escape_space = escape_space,
     path_get_dir = path_get_dir,
     walk_up = walk_up,
     exist = exist,

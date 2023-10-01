@@ -89,48 +89,7 @@ require("toggleterm").setup {
 require("nvim-autopairs").setup {}
 
 -- setup formatter
-local prettier_formatter = function()
-    local current_buffer = vim.api.nvim_buf_get_name(0)
-    local prettier_exe = require("crupest.system").find_npm_exe(current_buffer, "prettier") or "prettier"
-
-    if vim.fn.has("win32") ~= 0 then
-        local escape = require("crupest.system").escape_space
-        current_buffer = escape(current_buffer)
-        prettier_exe = escape(prettier_exe)
-    end
-
-    return {
-        exe = prettier_exe,
-        args = {
-            "--stdin-filepath",
-            current_buffer
-        },
-        stdin = true,
-    }
-end
-
-require("formatter").setup {
-    filetype = {
-        html = {
-            prettier_formatter
-        },
-        css = {
-            prettier_formatter
-        },
-        javascript = {
-            prettier_formatter
-        },
-        javascriptreact = {
-            prettier_formatter
-        },
-        typescript = {
-            prettier_formatter
-        },
-        typescriptreact = {
-            prettier_formatter
-        }
-    }
-}
+require("crupest.nvim.plugins.formatter").setup_formatter()
 
 -- setup lint
 local lint = require("crupest.nvim.plugins.lint")

@@ -13,7 +13,7 @@ local function setup_lsp_frontend()
     lspconfig.tsserver.setup {
         capabilities = capabilities,
         on_new_config = function(new_config, new_root_dir)
-            local local_tsserver = require("crupest-util").find_npm_exe(new_root_dir, "typescript-language-server");
+            local local_tsserver = require("crupest.system.find").find_npm_exe(new_root_dir, "typescript-language-server");
             if local_tsserver then
                 new_config.cmd = { local_tsserver, "--stdio" }
             end
