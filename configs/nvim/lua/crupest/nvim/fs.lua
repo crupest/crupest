@@ -1,9 +1,9 @@
-local list_listed_bufs = require("crupest.nvim").list_listed_bufs;
+local crupest_nvim = require("crupest.nvim");
 local fs = require("crupest.system.fs");
+local full_path = require("crupest.system").full_path;
 
-local function full_path(name)
-    return vim.fn.fnamemodify(name, ":p:gs?\\?/?")
-end
+local list_listed_bufs = crupest_nvim.list_listed_bufs;
+local buf_is_normal = crupest_nvim.buf_is_normal;
 
 -- There are two situations.
 -- 1. the new path is not a dir, then it is used
@@ -165,4 +165,3 @@ return {
     rename_buf_file = rename_buf_file,
     setup_filesystem_user_commands = setup_filesystem_user_commands
 }
-
