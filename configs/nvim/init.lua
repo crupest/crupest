@@ -32,7 +32,7 @@ vim.opt.wrap = false;
 vim.opt.number = true;
 
 if is_win then
-    vim.opt.shellslash = true
+    vim.opt.completeslash = 'slash'
 end
 
 -- Init lazy.nvim
@@ -349,3 +349,4 @@ vim.keymap.set("n", "<c-q>", require("crupest.nvim").win_close_buf)
 vim.keymap.set("n", "<esc>", require("crupest.nvim").close_float)
 
 require("crupest.filesystem-cmd").setup_filesystem_user_commands()
+
