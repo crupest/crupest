@@ -1,8 +1,58 @@
+local fs = require("crupest.system.fs")
 local lint = require("lint")
 
-local function run_lint()
+local cspell_config_filenames = {
+    ".cspell.json",
+    "cspell.json",
+    ".cSpell.json",
+    "cSpell.json",
+    "cspell.config.js",
+    "cspell.config.cjs",
+    "cspell.config.json",
+    "cspell.config.yaml",
+    "cspell.config.yml",
+    "cspell.yaml",
+    "cspell.yml",
+}
+
+local cspell_enable_dirs = {}
+
+local function detect_cspell(file)
+    for _, dir in ipairs(cspell_enable_dirs) do
+        if string.find(fs.full_path(file), dir, 0, true) == 1 then
+            return true
+        end
+    end
+    return fs.walk_up(file, function(current_path)
+        for _, name in ipairs(cspell_config_filenames) do
+            local cspell_config_file = current_path .. "/" .. name
+            if fs.isfile(cspell_config_file) then
+                table.insert(cspell_enable_dirs, current_path)
+                return true
+            end
+        end
+        return nil
+    end) or false
+end
+
+local function run_lint(opt)
+    if not opt then
+        opt = {}
+    end
+
+    if not opt.file then
+        opt.file = vim.api.nvim_buf_get_name(0)
+    end
+
+    if opt.run_cspell == nil then
+        opt.run_cspell = detect_cspell(opt.file)
+    end
+
     lint.try_lint()
-    lint.try_lint("cspell")
+
+    if opt.run_cspell then
+        lint.try_lint("cspell")
+    end
 end
 
 local function setup_lint()
@@ -26,7 +76,11 @@ local function setup_lint()
     }
 
     vim.api.nvim_create_autocmd({ "BufWritePost" }, {
-        callback = run_lint,
+        callback = function(opt)
+            run_lint({
+                file = opt.file
+            })
+        end,
     })
 end
 
@@ -34,4 +88,3 @@ return {
     setup_lint = setup_lint,
     run_lint = run_lint
 }
-

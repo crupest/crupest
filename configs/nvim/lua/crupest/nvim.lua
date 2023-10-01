@@ -105,6 +105,7 @@ end
 
 return {
     list_listed_bufs = list_listed_bufs,
+    buf_is_normal = buf_is_normal,
     get_previous_buffer = get_previous_buffer,
     list_wins_editing_buf = list_wins_editing_buf,
     win_close_buf = win_close_buf,
