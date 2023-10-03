@@ -4,7 +4,12 @@ local capabilities = require("cmp_nvim_lsp").default_capabilities()
 local function setup_lsp_c()
     -- setup lsp clangd
     lspconfig.clangd.setup {
-        capabilities = capabilities
+        capabilities = capabilities,
+        on_attach = function (_, bufnr)
+        vim.keymap.set('n', '<space>s', "<cmd>ClangdSwitchSourceHeader<cr>", {
+            buffer = bufnr
+        })
+        end
     }
 end
 
