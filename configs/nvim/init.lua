@@ -20,7 +20,11 @@ if is_win then
     let &shellredir = '2>&1 | %%{ "$_" } | Out-File %s; exit $LastExitCode'
     let &shellpipe  = '2>&1 | %%{ "$_" } | tee %s; exit $LastExitCode'
     set shellquote= shellxquote=
-]])
+    ]])
+else
+    vim.cmd([[
+    let &shell='bash --login'
+    ]])
 end
 -- spellchecker: enable
 
