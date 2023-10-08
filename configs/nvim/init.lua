@@ -101,12 +101,16 @@ local lint = require("crupest.nvim.plugins.lint")
 lint.setup_lint()
 
 -- setup nvim-cmp
+local snip = require("crupest.nvim.plugins.snip")
+local luasnip = snip.luasnip
+snip.setup_snip()
+
 local cmp = require("cmp")
 
 cmp.setup({
     snippet = {
         expand = function(args)
-            require("luasnip").lsp_expand(args.body)
+            luasnip.lsp_expand(args.body)
         end,
     },
     window = {
@@ -119,7 +123,7 @@ cmp.setup({
         ['<C-Space>'] = cmp.mapping.complete(),
         ['<C-e>'] = cmp.mapping.abort(),
         ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
-        ['<tab>'] = cmp.mapping.confirm({ select = true })
+        ['<C-y>'] = cmp.mapping.confirm({ select = true })
     }),
     sources = cmp.config.sources({
         { name = 'nvim_lsp' },
@@ -151,7 +155,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
         vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
         vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
         vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
-        vim.keymap.set('i', '<C-k>', vim.lsp.buf.signature_help, opts)
         vim.keymap.set('n', '<space>wa', vim.lsp.buf.add_workspace_folder, opts)
         vim.keymap.set('n', '<space>wr', vim.lsp.buf.remove_workspace_folder, opts)
         vim.keymap.set('n', '<space>wl', function()
