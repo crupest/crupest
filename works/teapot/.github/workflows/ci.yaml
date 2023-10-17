@@ -10,18 +10,15 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
 
     steps:
       - uses: actions/checkout@v3
 
       - name: Install Build Dependencies
-        run: ./script/install-deps.bash  
+        run: bash ./script/install-deps.bash  
 
       - name: Build Deb Package
-        run: ./script/build-deb.bash
+        run: bash ./script/build-deb.bash
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
