@@ -5,6 +5,7 @@ end
 if vim.g.neovide then
     -- spellchecker: disable-next-line
     vim.opt.guifont = "CaskaydiaCove Nerd Font";
+    vim.g.neovide_refresh_rate = 60;
     vim.g.neovide_transparency = 0.98;
     vim.g.neovide_input_ime = false;
     vim.g.neovide_cursor_vfx_mode = "ripple";
@@ -68,9 +69,9 @@ vim.cmd("colorscheme everforest")
 require("neo-tree").setup({
     filesystem = {
         filtered_items = {
-            hide_dotfiles = true,
-            hide_gitignored = true,
-            hide_hidden = true, -- only works on Windows for hidden files/directories
+            hide_dotfiles = false,
+            hide_gitignored = false,
+            hide_hidden = false, -- only works on Windows for hidden files/directories
         },
         use_libuv_file_watcher = true
     }
@@ -91,6 +92,9 @@ require("toggleterm").setup {
 
 -- setup autopairs
 require("nvim-autopairs").setup {}
+
+-- setup gitsigns
+require('gitsigns').setup()
 
 -- setup formatter
 local formatter = require("crupest.nvim.plugins.formatter")
@@ -138,6 +142,8 @@ require("crupest.nvim.lsp.c").setup_lsp_c()
 require("crupest.nvim.lsp.lua").setup_lsp_lua()
 require("crupest.nvim.lsp.frontend").setup_lsp_frontend()
 require("crupest.nvim.lsp.csharp").setup_lsp_csharp()
+-- There is some problem of rust analyzer.
+-- require("crupest.nvim.lsp.rust").setup_lsp_rust()
 
 -- Use LspAttach autocommand to only map the following keys
 -- after the language server attaches to the current buffer
