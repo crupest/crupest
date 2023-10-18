@@ -22,6 +22,7 @@ return {
     "mhartington/formatter.nvim",
     "mfussenegger/nvim-lint",
     "akinsho/toggleterm.nvim",
+    "lewis6991/gitsigns.nvim",
     {
         "nvim-neo-tree/neo-tree.nvim",
         dependencies = {
