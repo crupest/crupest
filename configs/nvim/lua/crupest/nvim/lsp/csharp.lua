@@ -2,15 +2,24 @@ local lspconfig = require("lspconfig");
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 local is_win = require("crupest.system").is_win
+local is_mac = require("crupest.system").is_mac
+local first_exe = require("crupest.system.find").first_exe
+
+local win_paths = { "C:/Users/crupest/Programs/omnisharp-win-x64/OmniSharp.exe" }
+local mac_paths = { "/usr/local/opt/omnisharp/OmniSharp" }
 
 local function setup_lsp_csharp()
-    local omnisharp_cmd = nil
+    local paths = {}
 
     if is_win then
-        omnisharp_cmd = { "C:/Users/crupest/Programs/omnisharp-win-x64/OmniSharp.exe" }
+        paths = win_paths
+    elseif is_mac then
+        paths = mac_paths
     end
 
-    if omnisharp_cmd then
+    local omnisharp_path = first_exe(paths)
+
+    if omnisharp_path then
         lspconfig.omnisharp.setup {
             capabilities = capabilities,
 
@@ -18,7 +27,7 @@ local function setup_lsp_csharp()
                 ["textDocument/definition"] = require('omnisharp_extended').handler,
             },
 
-            cmd = omnisharp_cmd,
+            cmd = { omnisharp_path },
 
             -- Enables support for reading code style, naming convention and analyzer
             -- settings from .editorconfig.
