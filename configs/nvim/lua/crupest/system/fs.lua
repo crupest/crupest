@@ -1,4 +1,5 @@
 local function clean_path(path)
+    if path == "/" then return path end
     path = string.gsub(path, "[/\\]+", "/")
     if string.sub(path, string.len(path)) == '/' then
         path = string.sub(path, 1, string.len(path) - 1)
