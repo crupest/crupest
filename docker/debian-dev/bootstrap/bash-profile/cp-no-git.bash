@@ -1,2 +1,2 @@
-alias cp-no-git="rsync --exclude='.git'"
+alias cp-no-git="rsync -a --exclude='.git'"
 
