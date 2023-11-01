@@ -11,5 +11,8 @@ if [[ -z "${SBUILD_ARCH}" ]]; then
 fi
 
 apt-get install -y sbuild schroot debootstrap
+
+cp /bootstrap/sbuildrc /root/.sbuildrc
+
 sbuild-createchroot --arch=${SBUILD_ARCH} bullseye /srv/chroot/bullseye-${SBUILD_ARCH}-sbuild ${CRUPEST_DEB_MIRROR}
 
