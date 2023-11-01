@@ -6,6 +6,10 @@ if [[ -f /etc/crupest-apt-source ]]; then
     CRUPEST_DEB_MIRROR=$(cat /etc/crupest-apt-source)
 fi
 
+if [[ -z "${SBUILD_ARCH}" ]]; then
+    SBUILD_ARCH="amd64"
+fi
+
 apt-get install -y sbuild schroot debootstrap
-sbuild-createchroot bullseye /srv/chroot/bullseye-amd64-sbuild ${CRUPEST_DEB_MIRROR}
+sbuild-createchroot --arch=${SBUILD_ARCH} bullseye /srv/chroot/bullseye-${SBUILD_ARCH}-sbuild ${CRUPEST_DEB_MIRROR}
 
