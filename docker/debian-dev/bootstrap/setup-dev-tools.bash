@@ -2,5 +2,5 @@
 
 set -e
 
-apt-get install build-essential
+apt-get install -y build-essential git bc python bison flex rsync libelf-dev libssl-dev libncurses-dev dwarves
 
