@@ -4,6 +4,6 @@ set -e
 
 apt-get install -y build-essential debhelper quilt cpio kmod git bc python bison flex rsync libelf-dev libssl-dev libncurses-dev dwarves
 
-cp /boostrap/quiltrc-dpkg /root/.quiltrc-dpkg
+cp /bootstrap/quiltrc-dpkg /root/.quiltrc-dpkg
 cat /bootstrap/bash-profile/dquilt.bash >> /root/.bash_profile
 
