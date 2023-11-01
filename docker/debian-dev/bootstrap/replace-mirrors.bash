@@ -11,3 +11,5 @@ apt-get install -y apt-transport-https ca-certificates
 cp /bootstrap/tuna-source-https.txt /etc/apt/sources.list
 apt-get update
 
+cp /bootstrap/tuna-source-link.txt /etc/crupest-apt-source
+
