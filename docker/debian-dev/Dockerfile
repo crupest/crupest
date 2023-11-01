@@ -10,5 +10,5 @@ RUN /bootstrap/setup-sbuild.bash
 RUN /bootstrap/setup-sbuild-arm64.bash
 
 VOLUME [ "/data" ]
-CMD [ "bash" ]
+CMD [ "bash", "-l" ]
 
