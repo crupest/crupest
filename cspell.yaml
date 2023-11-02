@@ -12,11 +12,9 @@ dictionaries:
   - fonts
   - filetypes
   - npm
-words:
-  - ASPNETCORE
-  - autoincrement
-  - crupest
-  - Fxxk
-  - outbounds
-  - todos
-  - vmess
+  - crupest-words
+
+dictionaryDefinitions:
+  - name: crupest-words
+    path: './crupest-words.txt'
+    addWords: true
