@@ -1,26 +1,25 @@
 ##############################################################################
 # PACKAGE BUILD RELATED (additionally produce _source.changes)
 ##############################################################################
-# -d
 $distribution = 'bullseye';
-# -A
+
 $build_arch_all = 1;
-# -s
-# $build_source = 1;
-# --source-only-changes (applicable for dput. irrelevant for dgit push-source).
-# $source_only_changes = 1;
-# -v
-# $verbose = 1;
-# parallel build
-# $ENV{'DEB_BUILD_OPTIONS'} = 'parallel=5';
+$build_arch_any = 1;
+$build_source = 0;
+
+$dpkg_source_opts = [ '--format=1.0' ];
+
+#$source_only_changes = 1;
+#$verbose = 1;
+#$ENV{'DEB_BUILD_OPTIONS'} = 'parallel=5';
 ##############################################################################
 # POST-BUILD RELATED (turn off functionality by setting variables to 0)
 ##############################################################################
-# $run_lintian = 1;
+$run_lintian = 0;
 # $lintian_opts = ['-i', '-I'];
-# $run_piuparts = 1;
+$run_piuparts = 0;
 # $piuparts_opts = ['--schroot', '%r-%a-sbuild', '--no-eatmydata'];
-# $run_autopkgtest = 1;
+$run_autopkgtest = 0;
 # $autopkgtest_root_args = '';
 # $autopkgtest_opts = [ '--', 'schroot', '%r-%a-sbuild' ];
 
