@@ -4,12 +4,12 @@ set -e
 
 cp /etc/apt/sources.list /etc/apt/sources.list.bak
 
-cp /bootstrap/tuna-source-http.txt /etc/apt/sources.list
+cp /bootstrap/source-http.txt /etc/apt/sources.list
 apt-get update
 apt-get install -y apt-transport-https ca-certificates
 
-cp /bootstrap/tuna-source-https.txt /etc/apt/sources.list
+cp /bootstrap/source-https.txt /etc/apt/sources.list
 apt-get update
 
-cp /bootstrap/tuna-source-link.txt /etc/crupest-apt-source
+cp /bootstrap/source-link.txt /etc/crupest-apt-source
 
