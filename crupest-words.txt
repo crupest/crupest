@@ -1,6 +1,24 @@
 crupest
 
-# debian
-sbuild
-dquilt
+# university
+ustc
 
+# debian
+aarch64
+nproc
+chroot
+cpio
+kmod
+
+buildpackage
+nocheck
+indep
+devscripts
+debhelper
+sbuild
+sbuildrc
+schroot
+createchroot
+debootstrap
+quiltrc
+dquilt
