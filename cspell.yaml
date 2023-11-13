@@ -18,3 +18,10 @@ dictionaryDefinitions:
   - name: crupest-words
     path: './crupest-words.txt'
     addWords: true
+
+patterns:
+  - name: libs
+    pattern: /lib.+/g
+
+ignoreRegExpList:
+  - libs

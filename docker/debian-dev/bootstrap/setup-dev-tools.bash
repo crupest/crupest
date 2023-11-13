@@ -2,7 +2,8 @@
 
 set -e
 
-apt-get install -y build-essential devscripts debhelper quilt cpio kmod git bc python bison flex rsync libelf-dev libssl-dev libncurses-dev dwarves
+apt-get install -y build-essential git devscripts debhelper quilt \
+    cpio kmod bc python bison flex rsync libelf-dev libssl-dev libncurses-dev dwarves
 
 cat /bootstrap/bash-profile/dev.bash >> /root/.bash_profile
 
