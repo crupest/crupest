@@ -7,8 +7,6 @@ $build_arch_all = 1;
 $build_arch_any = 1;
 $build_source = 0;
 
-$dpkg_source_opts = [ '--format=1.0', '-i\.git' ];
-
 #$source_only_changes = 1;
 #$verbose = 1;
 #$ENV{'DEB_BUILD_OPTIONS'} = 'parallel=5';
