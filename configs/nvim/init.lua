@@ -5,7 +5,6 @@ end
 if vim.g.neovide then
     -- spellchecker: disable-next-line
     vim.opt.guifont = "CaskaydiaCove Nerd Font";
-    vim.g.neovide_refresh_rate = 60;
     vim.g.neovide_transparency = 0.98;
     vim.g.neovide_input_ime = false;
     vim.g.neovide_cursor_vfx_mode = "ripple";
@@ -28,8 +27,6 @@ else
     ]])
 end
 -- spellchecker: enable
-
-vim.cmd.cd("~")
 
 -- spellchecker: disable
 vim.opt.termguicolors = true;
@@ -140,6 +137,7 @@ cmp.setup({
 
 require("crupest.nvim.lsp.c").setup_lsp_c()
 require("crupest.nvim.lsp.lua").setup_lsp_lua()
+require("crupest.nvim.lsp.deno").setup_lsp_deno()
 require("crupest.nvim.lsp.frontend").setup_lsp_frontend()
 require("crupest.nvim.lsp.csharp").setup_lsp_csharp()
 -- There is some problem of rust analyzer.

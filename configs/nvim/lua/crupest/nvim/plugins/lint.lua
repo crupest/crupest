@@ -60,7 +60,7 @@ local function setup_lint()
 
     linter_eslint.cmd = function()
         local current_buffer = vim.api.nvim_buf_get_name(0)
-        return require("crupest.system").find_npm_exe(current_buffer, "eslint") or "eslint"
+        return require("crupest.system.find").find_npm_exe(current_buffer, "eslint")
     end
 
     -- lint library use 'cmd /C' to run exe, but we don't need this, so explicitly

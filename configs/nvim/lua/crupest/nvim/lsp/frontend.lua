@@ -18,6 +18,8 @@ local function setup_lsp_frontend()
                 new_config.cmd = { local_tsserver, "--stdio" }
             end
         end,
+        root_dir = lspconfig.util.root_pattern("package.json"),
+        single_file_support = false,
     }
 end
 
