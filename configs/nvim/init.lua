@@ -95,7 +95,7 @@ require('gitsigns').setup()
 
 -- setup format
 local format = require("crupest.nvim.plugins.format")
-format.setup_formatter()
+format.setup_format()
 
 -- setup lint
 local lint = require("crupest.nvim.plugins.lint")
@@ -169,7 +169,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
         vim.keymap.set({ 'n', 'v' }, '<space>ca', vim.lsp.buf.code_action, opts)
         vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
 
-        vim.keymap.set('n', '<space>f', format.run_formatter, opts)
+        vim.keymap.set('n', '<space>f', format.do_format, opts)
     end,
 })
 

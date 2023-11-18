@@ -1,78 +1,45 @@
-local fs = require("crupest.system.fs")
-local find_npm_exe = require("crupest.system.find").find_npm_exe;
+local find = require("crupest.system.find")
+local constants = require("crupest.constants")
 
-local prettier_formatter = function()
-    local current_buffer = vim.api.nvim_buf_get_name(0)
-    local prettier_exe = find_npm_exe(current_buffer, "prettier") or "prettier"
-
-    if vim.fn.has("win32") ~= 0 then
-        local escape = fs.escape_space
-        current_buffer = escape(current_buffer)
-        prettier_exe = escape(prettier_exe)
-    end
-
-    return {
-        exe = prettier_exe,
-        args = {
-            "--stdin-filepath",
-            current_buffer
-        },
-        stdin = true,
-    }
+local function wrap_formatter_with_exe(name, exe)
+    local formatter = require('formatter.defaults.' .. name)
+    formatter = formatter()
+    formatter.try_node_modules = false
+    formatter.exe = exe
+    return formatter
 end
 
-local formatters_for_filetype = {
-    html = {
-        prettier_formatter
+local function set_formatters_for_filetype(filetype, formatters)
+    require('formatter.config').values.filetype[filetype] = formatters
+end
+
+local my_formatters = {
+    {
+        name = "prettier",
+        exe_places = { "npm" },
+        filetypes = constants.filetype_collections.frontend,
+        config_files = constants.config_patterns.nodejs,
     },
-    css = {
-        prettier_formatter
-    },
-    javascript = {
-        prettier_formatter
-    },
-    javascriptreact = {
-        prettier_formatter
-    },
-    typescript = {
-        prettier_formatter
-    },
-    typescriptreact = {
-        prettier_formatter
-    }
 }
 
-local function get_formatter_name(formatter)
-    if formatter == prettier_formatter then return "prettier" end
+local function find_custom_formatter(opts)
+    if opts == nil then opts = {} end
+    if opts.buf == nil then opts.buf = 0 end
+
+    for _, f in ipairs(my_formatters) do
+        local r = find.find_exe_for_buf(opts.buf, f)
+        if r ~= nil then
+            local formatter = wrap_formatter_with_exe(r.name, r.exe_path)
+            set_formatters_for_filetype(r.filetype, { formatter })
+            return r.name
+        end
+    end
+
     return nil
 end
 
-local function get_formatter_name_list(formatters)
-    local result = {}
-    for _, formatter in ipairs(formatters) do
-        table.insert(result, get_formatter_name(formatter))
-    end
-    return result
-end
 
-local function setup_formatter()
-    require("formatter").setup {
-        filetype = formatters_for_filetype
-    }
-end
-
-
-local function get_custom_formatters(bufnr)
-    local filetype = vim.api.nvim_buf_get_option(bufnr, "filetype")
-    for ft, formatters in pairs(formatters_for_filetype) do
-        if filetype == ft then
-            return true, get_formatter_name_list(formatters)
-        end
-    end
-    return false, {}
-end
-
-local function run_formatter(opt)
+local function do_format(opt)
     if not opt then
         opt = {}
     end
@@ -81,19 +48,10 @@ local function run_formatter(opt)
         opt.buf = 0
     end
 
-    local has_custom_formatter, formatter_names = get_custom_formatters(opt.buf)
+    local custom_formatter = find_custom_formatter(opt)
 
-    local formatter_name_str = ""
-    for i, name in ipairs(formatter_names) do
-        if i == 1 then
-            formatter_name_str = name
-        else
-            formatter_name_str = formatter_name_str .. " " .. name
-        end
-    end
-
-    if has_custom_formatter then
-        print("Use custom formatters: " .. formatter_name_str .. ".")
+    if custom_formatter then
+        print("Use custom formatters: " .. custom_formatter .. ".")
         vim.cmd("Format")
         return
     end
@@ -108,7 +66,11 @@ local function run_formatter(opt)
     vim.notify("No formatters found.", vim.log.levels.ERROR);
 end
 
+local function setup_format()
+    require("formatter").setup {}
+end
+
 return {
-    setup_formatter = setup_formatter,
-    run_formatter = run_formatter
+    setup_format = setup_format,
+    do_format = do_format,
 }
