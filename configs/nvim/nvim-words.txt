@@ -33,6 +33,7 @@ toggleterm
 everforest
 autopairs
 neotree
+gitsigns
 
 # languages
 clangd
