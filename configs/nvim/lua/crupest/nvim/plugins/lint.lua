@@ -12,15 +12,9 @@ local my_linters = {
     {
         name = "eslint",
         exe_places = { "npm" },
-        filetypes = constants.filetypes.js_ts,
-        config_files = { "package.json" }
+        filetypes = constants.filetype_collections.js_ts,
+        config_files = constants.config_patterns.nodejs,
     },
-    {
-        name = "deno",
-        exe_places = { "global" },
-        filetypes = constants.filetypes.js_ts,
-        config_files = { "deno.json", "deno.jsonc" }
-    }
 }
 
 local function run_lint(opt)

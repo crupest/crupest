@@ -20,12 +20,13 @@ local config_patterns = {
     }
 }
 
-local filetypes = {
-    js_ts = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' }
-
+local filetype_collections = {
+    js_ts = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' },
+    html_css = { 'html', 'css' },
+    frontend = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'html', 'css' },
 }
 
 return {
     config_patterns = config_patterns,
-    filetypes = filetypes,
+    filetype_collections = filetype_collections,
 }
