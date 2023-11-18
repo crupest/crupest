@@ -59,7 +59,7 @@ local function setup_snip()
             f(copy, 1),
             t("("),
             i(0),
-            t({") { }", "", ""}),
+            t({ ") { }", "", "" }),
             f(copy, 1),
             t("::~"),
             f(copy, 1),

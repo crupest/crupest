@@ -1,5 +1,5 @@
-local fs = require("crupest.system.fs")
 local lint = require("lint")
+local find = require('crupest.system.find')
 
 local cspell_config_filenames = {
     ".cspell.json",
@@ -15,70 +15,72 @@ local cspell_config_filenames = {
     "cspell.yml",
 }
 
-local cspell_enable_dirs = {}
+local frontend_file_type = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' }
 
-local function detect_cspell(file)
-    for _, dir in ipairs(cspell_enable_dirs) do
-        if string.find(fs.full_path(file), dir, 0, true) == 1 then
-            return true
-        end
-    end
-    return fs.walk_up(file, function(current_path)
-        for _, name in ipairs(cspell_config_filenames) do
-            local cspell_config_file = current_path .. "/" .. name
-            if fs.isfile(cspell_config_file) then
-                table.insert(cspell_enable_dirs, current_path)
-                return true
-            end
-        end
-        return nil
-    end) or false
-end
+local my_linters = {
+    {
+        name = "cspell",
+        exe_places = { "npm", "global" },
+        config_files = cspell_config_filenames,
+    },
+    {
+        name = "eslint",
+        exe_places = { "npm" },
+        filetypes = frontend_file_type,
+        config_files = { "package.json" }
+    },
+    {
+        name = "deno",
+        exe_places = { "global" },
+        filetypes = frontend_file_type,
+        config_files = { "deno.json", "deno.jsonc" }
+    }
+}
 
 local function run_lint(opt)
     if not opt then
         opt = {}
     end
 
-    if not opt.file then
-        opt.file = vim.api.nvim_buf_get_name(0)
+    if not opt.buf then
+        opt.buf = 0
     end
 
-    if opt.run_cspell == nil then
-        opt.run_cspell = detect_cspell(opt.file)
+    local linters = {}
+
+    for _, l in ipairs(my_linters) do
+        local linter = find.find_exe_for_buf(opt.buf, l)
+        if linter then table.insert(linters, linter) end
     end
 
-    lint.try_lint()
 
-    if opt.run_cspell then
-        lint.try_lint("cspell")
+    local linter_names = {}
+
+    for _, linter in ipairs(linters) do
+        table.insert(linter_names, linter.name)
+        require('lint.linters.' .. linter.name).cmd = linter.exe_path
     end
+
+    lint.try_lint(linter_names)
 end
 
 local function setup_lint()
-    local linter_eslint = require("lint.linters.eslint")
-
-    linter_eslint.cmd = function()
-        local current_buffer = vim.api.nvim_buf_get_name(0)
-        return require("crupest.system.find").find_npm_exe(current_buffer, "eslint")
+    if require('crupest.system').is_win then
+        for _, l in ipairs(my_linters) do
+            local name = l.name
+            local linter = require('lint.linters.' .. name)
+            if linter.cmd == 'cmd.exe' then
+                linter.cmd = linter.args[2]
+            end
+            table.remove(linter.args, 1)
+            table.remove(linter.args, 1)
+        end
     end
-
-    -- lint library use 'cmd /C' to run exe, but we don't need this, so explicitly
-    -- set args to empty.
-    linter_eslint.args = {}
-    linter_eslint.append_fname = true
-
-    lint.linters_by_ft = {
-        javascript = { "eslint" },
-        javascriptreact = { "eslint" },
-        typescript = { "eslint" },
-        typescriptreact = { "eslint" },
-    }
 
     vim.api.nvim_create_autocmd({ "BufWritePost" }, {
         callback = function(opt)
             run_lint({
-                file = opt.file
+                buf = opt.buffer
             })
         end,
     })
