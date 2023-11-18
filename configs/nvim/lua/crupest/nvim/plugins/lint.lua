@@ -1,38 +1,24 @@
 local lint = require("lint")
 local find = require('crupest.system.find')
+local constants = require("crupest.constants")
 
-local cspell_config_filenames = {
-    ".cspell.json",
-    "cspell.json",
-    ".cSpell.json",
-    "cSpell.json",
-    "cspell.config.js",
-    "cspell.config.cjs",
-    "cspell.config.json",
-    "cspell.config.yaml",
-    "cspell.config.yml",
-    "cspell.yaml",
-    "cspell.yml",
-}
-
-local frontend_file_type = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' }
 
 local my_linters = {
     {
         name = "cspell",
         exe_places = { "npm", "global" },
-        config_files = cspell_config_filenames,
+        config_files = constants.config_patterns.cspell,
     },
     {
         name = "eslint",
         exe_places = { "npm" },
-        filetypes = frontend_file_type,
+        filetypes = constants.filetypes.js_ts,
         config_files = { "package.json" }
     },
     {
         name = "deno",
         exe_places = { "global" },
-        filetypes = frontend_file_type,
+        filetypes = constants.filetypes.js_ts,
         config_files = { "deno.json", "deno.jsonc" }
     }
 }
