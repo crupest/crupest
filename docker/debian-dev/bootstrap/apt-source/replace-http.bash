@@ -2,9 +2,6 @@
 
 set -e
 
-apt-get update
-apt-get install -y apt-transport-https ca-certificates
-
-sed -i.bak 's/https?/https/' /etc/apt/sources.list
-apt-get update
-
+echo "Backup /etc/apt/sources.list to /etc/apt/sources.list.bak."
+echo "Replace http to https in /etc/apt/sources.list."
+sed -i.bak 's/https\?/https/' /etc/apt/sources.list
