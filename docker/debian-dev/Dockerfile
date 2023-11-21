@@ -1,12 +1,11 @@
 FROM debian:11
 
 ARG IN_CHINA=
-ARG BUILD_FOR_ARCH=amd64
 ENV IN_CHINA=${IN_CHINA}
-ARG BUILD_FOR_ARCH=${BUILD_FOR_ARCH}
 
 ADD bootstrap /bootstrap
 
+ENV DEBIAN_FRONTEND=noninteractive
 RUN /bootstrap/setup.bash
 
 VOLUME [ "/source", "/data" ]
