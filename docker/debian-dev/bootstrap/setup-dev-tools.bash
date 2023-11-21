@@ -12,3 +12,7 @@ for f in /bootstrap/home-dot/*; do
     filename=$(basename "$f")
     cp "$f" "/root/.$filename"
 done
+
+if [[ "$BUILD_FOR_ARCH" == "arm64" ]]; then
+    /bootstrap/setup-dev-tools-arm64.bash
+fi
