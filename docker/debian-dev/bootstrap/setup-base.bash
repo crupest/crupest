@@ -2,7 +2,9 @@
 
 set -e
 
+. /bootstrap/func.bash
+
 apt-get update
 apt-get install -y vim less man curl bash-completion rsync
 
-cat /bootstrap/bash-profile/bash-completion.bash >> /root/.bash_profile
+append-bash-profile bash-completion.bash
