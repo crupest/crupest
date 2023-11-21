@@ -1,17 +1,13 @@
 FROM debian:11
 
 ARG IN_CHINA=
+ARG BUILD_FOR_ARCH=amd64
 ENV IN_CHINA=${IN_CHINA}
+ARG BUILD_FOR_ARCH=${BUILD_FOR_ARCH}
 
 ADD bootstrap /bootstrap
 
-RUN /bootstrap/apt-source/setup.bash
-RUN /bootstrap/setup-base.bash
-RUN /bootstrap/setup-dev-tools.bash
-RUN /bootstrap/setup-dev-tools-arm64.bash
-RUN /bootstrap/setup-sbuild-base.bash
-RUN /bootstrap/setup-sbuild-amd64.bash
-RUN /bootstrap/setup-sbuild-arm64.bash
+RUN /bootstrap/setup.bash
 
 VOLUME [ "/source", "/data" ]
 CMD [ "bash", "-l" ]
