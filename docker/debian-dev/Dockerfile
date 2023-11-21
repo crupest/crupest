@@ -5,7 +5,6 @@ ENV IN_CHINA=${IN_CHINA}
 
 ADD bootstrap /bootstrap
 
-ENV DEBIAN_FRONTEND=noninteractive
 RUN /bootstrap/setup.bash
 
 VOLUME [ "/source", "/data" ]
