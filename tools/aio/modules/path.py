@@ -2,7 +2,7 @@ import os
 import os.path
 
 script_dir = os.path.relpath(os.path.dirname(__file__))
-project_dir = os.path.normpath(os.path.join(script_dir, "../../"))
+project_dir = os.path.normpath(os.path.join(script_dir, "../../../"))
 project_abs_path = os.path.abspath(project_dir)
 template_dir = os.path.join(project_dir, "template")
 nginx_template_dir = os.path.join(template_dir, "nginx")
