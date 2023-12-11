@@ -5,7 +5,7 @@ end
 if vim.g.neovide then
     -- spellchecker: disable-next-line
     vim.opt.guifont = "FiraCode Nerd Font";
-    vim.g.neovide_transparency = 0.98;
+    vim.g.neovide_transparency = 0.95;
     vim.g.neovide_input_ime = false;
     vim.g.neovide_cursor_vfx_mode = "ripple";
 end
@@ -42,6 +42,9 @@ if is_win then
     -- spellchecker: disable-next-line
     vim.opt.completeslash = 'slash'
 end
+
+vim.g.load_doxygen_syntax = true;
+vim.g.doxygen_javadoc_autobrief = false;
 
 -- Init lazy.nvim
 local lazy_path = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
