@@ -23,10 +23,9 @@ case "$1" in
     ;;
 esac
 
-tools_dir=$(realpath "$(dirname "$0")")
-secret_dir="$tools_dir/Crupest.V2ray"
+secret_dir=$(realpath "$(dirname "$0")")
 
-echo "Tools dir: ${tools_dir}"
+echo "Secret dir: ${secret_dir}"
 
 echo "Check dotnet..."
 dotnet --version
