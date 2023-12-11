@@ -4,7 +4,7 @@ end
 
 if vim.g.neovide then
     -- spellchecker: disable-next-line
-    vim.opt.guifont = "CaskaydiaCove Nerd Font";
+    vim.opt.guifont = "FiraCode Nerd Font";
     vim.g.neovide_transparency = 0.98;
     vim.g.neovide_input_ime = false;
     vim.g.neovide_cursor_vfx_mode = "ripple";
