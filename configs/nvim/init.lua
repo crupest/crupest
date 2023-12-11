@@ -93,6 +93,9 @@ require("nvim-autopairs").setup {}
 -- setup gitsigns
 require('gitsigns').setup()
 
+-- setup comment
+require('Comment').setup()
+
 -- setup format
 local format = require("crupest.nvim.plugins.format")
 format.setup_format()
