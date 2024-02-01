@@ -3,3 +3,5 @@ bin
 obj
 *.pubxml.user
 *.csproj.user
+
+publish

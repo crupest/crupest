@@ -1,6 +1,6 @@
 namespace Crupest.V2ray;
 
-public class V2rayVmessProxy
+public class V2rayVmessProxy : IV2rayProxy
 {
     public record VmessOutboundJsonObject(string Protocol, SettingsJsonObject Settings, string Tag, StreamSettingsJsonObject StreamSettings)
     {
@@ -18,6 +18,8 @@ public class V2rayVmessProxy
 
     public record VnextUserJsonObject(string Id, int AlterId = 0, string Security = "auto", int Level = 0);
 
+    public record WsSettingsJsonObject(string Path, Dictionary<string, string> Headers);
+
     public record StreamSettingsJsonObject(string Network, string Security, WsSettingsJsonObject WsSettings)
     {
         public static StreamSettingsJsonObject Ws(string path)
@@ -25,8 +27,6 @@ public class V2rayVmessProxy
             return new StreamSettingsJsonObject("ws", "tls", new WsSettingsJsonObject(path, new()));
         }
     }
-
-    public record WsSettingsJsonObject(string Path, Dictionary<string, string> Headers);
 
     public string Host { get; set; }
     public int Port { get; set; }
@@ -45,6 +45,16 @@ public class V2rayVmessProxy
     public VmessOutboundJsonObject ToOutboundJsonObject(string tag = "proxy")
     {
         return VmessOutboundJsonObject.ByWs(Host, Port, UserId, tag, Path);
+    }
+
+    public V2rayV5ConfigObjects.OutboundObject ToOutboundJsonObjectV5(string tag = "proxy")
+    {
+        return V2rayV5ConfigObjects.OutboundObject.VmessViaWs(tag, Host, Port, UserId, Path);
+    }
+
+    object IV2rayProxy.ToOutboundJsonObject()
+    {
+        return ToOutboundJsonObject();
     }
 
     public static V2rayVmessProxy FromDictionary(Dictionary<string, string> dict)

@@ -8,6 +8,14 @@ public record V2rayRoutingRuleMatcher(V2rayRoutingRuleMatcher.MatchKind Kind, st
         Ip
     }
 
+    public enum V5MatchByKind
+    {
+        Domain,
+        // Ip,
+        GeoIp,
+        GeoSite,
+    }
+
     public enum MatchKind
     {
         GeoIp,
@@ -26,6 +34,19 @@ public record V2rayRoutingRuleMatcher(V2rayRoutingRuleMatcher.MatchKind Kind, st
             {
                 MatchKind.GeoIp => MatchByKind.Ip,
                 _ => MatchByKind.Domain
+            };
+        }
+    }
+
+    public V5MatchByKind V5MatchBy
+    {
+        get
+        {
+            return Kind switch
+            {
+                MatchKind.GeoIp => V5MatchByKind.GeoIp,
+                MatchKind.GeoSite => V5MatchByKind.GeoSite,
+                _ => V5MatchByKind.Domain,
             };
         }
     }
@@ -71,4 +92,51 @@ public record V2rayRoutingRuleMatcher(V2rayRoutingRuleMatcher.MatchKind Kind, st
             _ => throw new Exception("Unknown matcher kind."),
         };
     }
+
+    public enum V5DomainObjectType
+    {
+        Plain,
+        Regex,
+        RootDomain,
+        Full,
+    }
+
+    public record V5DomainObject(V5DomainObjectType Type, string Value);
+
+    public V5DomainObject ToDomainObject()
+    {
+        return new V5DomainObject(Kind switch
+        {
+            MatchKind.DomainFull => V5DomainObjectType.Full,
+            MatchKind.DomainPlain => V5DomainObjectType.Plain,
+            MatchKind.DomainRegex => V5DomainObjectType.Regex,
+            MatchKind.DomainSuffix => V5DomainObjectType.RootDomain,
+            _ => throw new Exception("Not a domain matcher."),
+        }, Value);
+    }
+
+    public record V5GeoDomainObject(string Code);
+
+    public V5GeoDomainObject ToGeoDomainObject()
+    {
+        if (Kind != MatchKind.GeoSite)
+        {
+            throw new Exception("Not a geo-domain matcher.");
+        }
+
+        return new V5GeoDomainObject(Value);
+    }
+
+    public record V5GeoIpObject(string Code);
+
+    public V5GeoIpObject ToGeoIpObject()
+    {
+        if (Kind != MatchKind.GeoIp)
+        {
+            throw new Exception("Not a geo-ip matcher.");
+        }
+
+        return new V5GeoIpObject(Value);
+    }
 }
+
