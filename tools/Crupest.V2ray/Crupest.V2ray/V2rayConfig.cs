@@ -4,20 +4,21 @@ namespace Crupest.V2ray;
 
 public class V2rayConfig
 {
+    private const string ProxyAnchor = "PROXY_ANCHOR";
     private const string VmessAnchor = "VMESS_PROXY_ANCHOR";
     private const string RoutingAnchor = "ROUTING_ANCHOR";
     private const string HostsAnchor = "HOSTS_ANCHOR";
 
-    public V2rayConfig(string template, V2rayVmessProxy vmess, V2rayRouting router, V2rayHosts hosts)
+    public V2rayConfig(string template, IV2rayProxy proxy, V2rayRouting router, V2rayHosts hosts)
     {
         Template = template;
-        Vmess = vmess;
+        Proxy = proxy;
         Routing = router;
         Hosts = hosts;
     }
 
     public string Template { get; set; }
-    public V2rayVmessProxy Vmess { get; set; }
+    public IV2rayProxy Proxy { get; set; }
     public V2rayRouting Routing { get; set; }
     public V2rayHosts Hosts { get; set; }
 
@@ -31,7 +32,7 @@ public class V2rayConfig
 
         var templateValues = new Dictionary<string, string>
         {
-            [VmessAnchor] = JsonSerializer.Serialize(Vmess.ToOutboundJsonObject(), jsonOptions),
+            [VmessAnchor] = JsonSerializer.Serialize(Proxy.ToOutboundJsonObject(), jsonOptions),
             [RoutingAnchor] = JsonSerializer.Serialize(Routing.ToJsonObject(), jsonOptions),
             [HostsAnchor] = JsonSerializer.Serialize(Hosts.ToJsonObject(), jsonOptions),
         };

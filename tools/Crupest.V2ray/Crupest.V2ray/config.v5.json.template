@@ -1,0 +1,55 @@
+{
+    "log": {
+        "access": {
+            "type": "Console",
+            "level": "Info"
+        }
+    },
+    "dns": {
+        "nameServer": [{
+            "address": "https://doh.pub/dns-query"
+        }, {
+            "address": "1.1.1.1"
+        }, {
+            "address": "8.8.8.8"
+        }, {
+            "address": "localhost"
+        }],
+        "staticHosts": ${STATIC_HOSTS_ANCHOR}
+    },
+    "inbounds": [{
+        {
+          "protocol": "socks",
+          "port": 2081,
+          "listen": "127.0.0.1",
+          "tag": "socks-inbound",
+          "settings": {
+            "auth": "noauth"
+          }
+        },
+        {
+          "protocol": "http",
+          "port": 2080,
+          "listen": "127.0.0.1",
+          "tag": "http-inbound",
+          "settings": {
+            "auth": "noauth"
+          }
+        }
+    }],
+    "outbounds": [
+        {
+          "protocol": "freedom",
+          "settings": {},
+          "tag": "direct"
+        },
+        {
+          "protocol": "blackhole",
+          "settings": {},
+          "tag": "blocked"
+        },
+        ${PROXY_OUTBOUND_ANCHOR}
+    ],
+    "router": ${ROUTER_ANCHOR}
+}
+

@@ -24,8 +24,8 @@ public static class Program
             var verb = args[0].ToLower();
             if (verb == "download-geodata" || verb == "dg")
             {
-                var geoDataDonwloader = new GeoDataDownloader();
-                geoDataDonwloader.Download(ExeDir);
+                var geoDataDownloader = new GeoDataDownloader();
+                geoDataDownloader.Download(ExeDir);
                 return;
             }
             throw new Exception("Invalid command line arguments.");

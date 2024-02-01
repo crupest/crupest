@@ -21,5 +21,15 @@ public record V2rayRoutingRule(V2rayRoutingRuleMatcher Matcher, string OutboundT
         }
         return result;
     }
+
+    public static Dictionary<V2rayRoutingRuleMatcher.V5MatchByKind, List<V2rayRoutingRule>> V5GroupByMatchByKind(List<V2rayRoutingRule> rules)
+    {
+        var result = new Dictionary<V2rayRoutingRuleMatcher.V5MatchByKind, List<V2rayRoutingRule>>();
+        foreach (var group in rules.GroupBy(r => r.Matcher.V5MatchBy))
+        {
+            result[group.Key] = group.ToList();
+        }
+        return result;
+    }
 }
 

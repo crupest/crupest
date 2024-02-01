@@ -6,7 +6,15 @@ public record V2rayRouting(List<V2rayRoutingRule> Rules, string DomainStrategy =
 
     public record IpRuleJsonObject(List<string> Ip, string OutboundTag, string Type = "field");
 
+    public record V5DomainRuleJsonObject(List<V2rayRoutingRuleMatcher.V5DomainObject> Domain, string OutboundTag);
+
+    public record V5GeoDomainRuleJsonObject(List<V2rayRoutingRuleMatcher.V5GeoDomainObject> GeoDomain, string OutboundTag);
+
+    public record V5GeoIpRuleJsonObject(List<V2rayRoutingRuleMatcher.V5GeoIpObject> Geoip, string OutboundTag);
+
     public record RoutingJsonObject(string DomainStrategy, List<object> Rules);
+
+    public record V5RouterJsonObject(string DomainStrategy, List<object> Rule);
 
     public V2rayRouting() : this(new List<V2rayRoutingRule>())
     {
@@ -33,6 +41,11 @@ public record V2rayRouting(List<V2rayRoutingRule> Rules, string DomainStrategy =
         }
 
         return new RoutingJsonObject(DomainStrategy, ruleJsonObjects);
+    }
+
+    public V5RouterJsonObject V5ToJsonObject()
+    {
+        throw new NotImplementedException();
     }
 
     public static V2rayRouting FromStringList(List<string> list, string outboundTag = "proxy")
