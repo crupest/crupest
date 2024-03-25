@@ -2,7 +2,7 @@ if vim.g.neovide then
     -- spellchecker: disable-next-line
     vim.opt.guifont = "FiraCode Nerd Font";
     vim.g.neovide_window_blurred = true;
-    vim.g.neovide_transparency = 0.75;
+    vim.g.neovide_transparency = 0.85;
     vim.g.neovide_input_ime = false;
     vim.g.neovide_cursor_vfx_mode = "ripple";
 end
@@ -60,7 +60,7 @@ vim.opt.rtp:prepend(lazy_path)
 -- Use lazy.nvim
 require("lazy").setup("plugins")
 
-vim.cmd("colorscheme everforest")
+vim.cmd("colorscheme catppuccin-macchiato")
 
 -- setup neo-tree
 require("neo-tree").setup({

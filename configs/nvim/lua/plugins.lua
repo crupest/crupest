@@ -1,5 +1,6 @@
 -- spellchecker: disable
 return {
+    { "catppuccin/nvim", name = "catppuccin", priority = 1000 },
     "neovim/nvim-lspconfig",
     "Hoffs/omnisharp-extended-lsp.nvim",
     "hrsh7th/nvim-cmp",
@@ -9,11 +10,6 @@ return {
     "hrsh7th/cmp-cmdline",
     "L3MON4D3/LuaSnip",
     "saadparwaiz1/cmp_luasnip",
-    {
-        "sainnhe/everforest",
-        lazy = false,
-        priority = 1000, -- make sure to load this before all the other start plugins
-    },
     "nvim-tree/nvim-web-devicons",
     "nvim-lua/plenary.nvim",
     "nvim-lualine/lualine.nvim",
