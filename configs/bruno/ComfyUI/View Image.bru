@@ -1,0 +1,19 @@
+meta {
+  name: View Image
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{BASE_URL}}/view?filename=crupest-transparent.png&type=input&subfolder=crupest-test&preview=jpeg;90&channel=rgb
+  body: none
+  auth: none
+}
+
+query {
+  filename: crupest-transparent.png
+  type: input
+  subfolder: crupest-test
+  preview: jpeg;90
+  channel: rgb
+}

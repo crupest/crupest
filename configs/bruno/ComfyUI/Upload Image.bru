@@ -1,0 +1,18 @@
+meta {
+  name: Upload Image
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/upload/image
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  overwrite: true
+  type: input
+  subfolder: crupest-test
+  image: @file(/Users/crupest/codes/crupest/assets/crupest-transparent.png)
+}
