@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "ComfyUI",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
