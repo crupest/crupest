@@ -1,0 +1,15 @@
+meta {
+  name: Get Prompt History
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{BASE_URL}}/history/{{prompt_id}}
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  prompt_id: 7e345a55-21c4-4bdc-9b34-add561775144
+}
