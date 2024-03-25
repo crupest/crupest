@@ -4,7 +4,8 @@ if vim.g.neovide then
     vim.g.neovide_window_blurred = true;
     vim.g.neovide_transparency = 0.85;
     vim.g.neovide_input_ime = false;
-    vim.g.neovide_cursor_vfx_mode = "ripple";
+    vim.g.neovide_cursor_animate_in_insert_mode = false
+    vim.g.neovide_cursor_vfx_mode = "pixiedust";
 end
 
 local is_win = vim.fn.has("win32") ~= 0
