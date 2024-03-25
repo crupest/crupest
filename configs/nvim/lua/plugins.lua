@@ -23,7 +23,6 @@ return {
     "mfussenegger/nvim-lint",
     "akinsho/toggleterm.nvim",
     "lewis6991/gitsigns.nvim",
-    "numToStr/Comment.nvim",
     {
         "nvim-neo-tree/neo-tree.nvim",
         dependencies = {
