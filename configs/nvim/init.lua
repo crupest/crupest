@@ -1,7 +1,3 @@
-if not vim.uv then
-    vim.uv = vim.loop
-end
-
 if vim.g.neovide then
     -- spellchecker: disable-next-line
     vim.opt.guifont = "FiraCode Nerd Font";
@@ -96,9 +92,6 @@ require("nvim-autopairs").setup {}
 
 -- setup gitsigns
 require('gitsigns').setup()
-
--- setup comment
-require('Comment').setup()
 
 -- setup format
 local format = require("crupest.nvim.plugins.format")
