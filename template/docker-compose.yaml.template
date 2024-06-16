@@ -148,7 +148,7 @@ services:
   debian-dev:
     pull_policy: build
     build:
-      context: ./docker/code-server
+      context: ./docker/crupest-debian-dev
       dockerfile: Dockerfile
       pull: true
       tags:
