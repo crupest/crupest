@@ -155,6 +155,8 @@ services:
         - "crupest/debian-dev:latest"
     container_name: debian-dev
     restart: on-failure:3
+    tty: true
+    stdin_open: true
     volumes:
       - ./data/debian-dev:/data
       - debian-dev-state:/state
