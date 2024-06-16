@@ -154,9 +154,9 @@ services:
       tags:
         - "crupest/debian-dev:latest"
     container_name: debian-dev
+    init: true
+    command: [ "/bootstrap/start/code-server.bash" ]
     restart: on-failure:3
-    tty: true
-    stdin_open: true
     volumes:
       - ./data/debian-dev:/data
       - debian-dev-state:/state
