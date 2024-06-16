@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+
+set -e
+
+if [[ -e /proc ]]; then
+    # I don't believe your system is Linux but there is no /proc.
+    exec journalctl --user -u crupest-v2ray "$@"
+else
+    echo "Not supported on systems other than Linux now." >&2
+fi
