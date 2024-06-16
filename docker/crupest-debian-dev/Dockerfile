@@ -18,4 +18,4 @@ WORKDIR /home/${USER}
 
 EXPOSE 8080
 VOLUME [ "/data", "/state" ]
-CMD [ "bash", "-l" ]
+CMD [ "/bootstrap/start/start.bash" ]
