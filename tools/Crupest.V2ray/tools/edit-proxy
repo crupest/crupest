@@ -1,0 +1,12 @@
+#! /usr/bin/env bash
+
+set -e
+
+p="$HOME/codes/crupest/tools/Crupest.V2ray/publish/proxy.txt"
+
+if [[ ! -f "$p" ]]; then
+    echo "File $p does not exist!"
+    exit 1
+fi
+
+exec vim "$p"

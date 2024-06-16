@@ -1,0 +1,8 @@
+[Unit]
+Description=crupest v2ray service
+
+[Service]
+ExecStart=%h/.local/bin/Crupest.V2ray
+
+[Install]
+WantedBy=default.target
