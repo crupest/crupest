@@ -7,7 +7,11 @@ is_true() {
 }
 
 append-bash-profile() {
-    cat "/bootstrap/bash-profile/$1" >> /home/$CRUPEST_DEBIAN_DEV_USER/.bash_profile
+    cat "/bootstrap/bash/$1" >> /home/$CRUPEST_DEBIAN_DEV_USER/.bash_profile
+}
+
+append-bashrc() {
+    cat "/bootstrap/bash/$1" >> /home/$CRUPEST_DEBIAN_DEV_USER/.bashrc
 }
 
 copy-home-dot-file() {

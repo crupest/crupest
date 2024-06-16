@@ -20,6 +20,6 @@ mkdir -p /data /state
 chown $CRUPEST_DEBIAN_DEV_USER:$CRUPEST_DEBIAN_DEV_USER /data /state
 echo "Creating data dir done."
 
-append-bash-profile bash-completion.bash
+append-bashrc bash-completion.bash
 
 echo "Setting up basic system function done."
