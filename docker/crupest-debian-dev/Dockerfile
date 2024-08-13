@@ -1,6 +1,6 @@
 FROM debian:latest
 
-ARG USERNAME=
+ARG USERNAME=crupest
 ARG IN_CHINA=
 ARG SETUP_CODE_SERVER=true
 
