@@ -5,7 +5,7 @@ set -e
 dir=/bootstrap/apt-source
 
 echo "Getting debian version..."
-debian_version=$(bash "$dir/../get-debian-version.bash")
+debian_version=$("$dir/../get-debian-version.bash")
 
 if [[ -z $debian_version ]]; then
     echo "Debian version not found."
