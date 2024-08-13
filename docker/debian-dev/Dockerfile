@@ -1,18 +1,20 @@
-FROM debian:11
+FROM debian:latest
 
 ARG USERNAME=
 ARG IN_CHINA=
-ARG SETUP_SBUILD=
+ARG SETUP_CODE_SERVER=true
 
 ENV USERNAME=${USERNAME}
 ENV IN_CHINA=${IN_CHINA}
-ENV SETUP_SBUILD=${SETUP_SBUILD}
+ENV SETUP_CODE_SERVER=${SETUP_CODE_SERVER}
 
 ADD bootstrap /bootstrap
 
+ENV LANG=en_US.utf8
 RUN /bootstrap/setup.bash
 
 USER ${USERNAME}
 
-VOLUME [ "/source", "/data", "/share" ]
+EXPOSE 8080
+VOLUME [ "/data" ]
 CMD [ "bash", "-l" ]
