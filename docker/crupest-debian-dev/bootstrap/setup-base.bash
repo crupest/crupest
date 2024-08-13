@@ -8,7 +8,7 @@ echo "Setting up basic system function..."
 
 echo "Installing basic packages..."
 apt-get install -y apt-utils
-apt-get install -y locales procps vim less man bash-completion rsync curl wget
+apt-get install -y locales procps vim less man bash-completion software-properties-common rsync curl wget
 echo "Installing basic packages done."
 
 echo "Setting up locale..."
