@@ -14,6 +14,7 @@ RUN /bootstrap/setup.bash
 ENV LANG=en_US.utf8
 
 USER ${USER}
+WORKDIR /home/${USER}
 
 EXPOSE 8080
 VOLUME [ "/data" ]
