@@ -17,5 +17,5 @@ USER ${USER}
 WORKDIR /home/${USER}
 
 EXPOSE 8080
-VOLUME [ "/data" ]
+VOLUME [ "/data", "/state" ]
 CMD [ "bash", "-l" ]

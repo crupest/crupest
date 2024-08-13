@@ -6,6 +6,6 @@ if [ -f /etc/os-release ]; then
         echo "$VERSION_ID"
         exit 0
     fi
-else
+fi
 
 exit 1
