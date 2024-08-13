@@ -3,10 +3,20 @@
 set -e
 
 LLVM_VERSION=18
-wget https://apt.llvm.org/llvm.sh
+
+. /bootstrap/func.bash
+
+if is_true "$CRUPEST_DEBIAN_DEV_IN_CHINA"; then
+    base_url=https://mirrors.tuna.tsinghua.edu.cn/llvm-apt
+else
+    base_url=https://apt.llvm.org
+fi
+
+wget "$base_url/llvm.sh"
 chmod +x llvm.sh
-./llvm.sh $LLVM_VERSION all
+./llvm.sh $LLVM_VERSION all -m "$base_url"
 rm llvm.sh
+
 update-alternatives --install /usr/bin/clang clang /usr/bin/clang-$LLVM_VERSION 100 \
     --slave /usr/bin/clang++ clang++ /usr/bin/clang++-$LLVM_VERSION \
     --slave /usr/bin/clangd clangd /usr/bin/clangd-$LLVM_VERSION \

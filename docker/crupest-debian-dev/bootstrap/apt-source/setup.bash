@@ -29,5 +29,6 @@ fi
 
 "$dir/install-apt-https.bash"
 "$setup_dir/replace-http.bash"
+"$setup_dir/add-deb-src.bash"
 
 echo "Setting up apt source done."
