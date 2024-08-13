@@ -16,7 +16,7 @@ curl -sSfOL "$url"
 echo "Downloading code-server done."
 
 echo "Installing code-server..."
-apt install "./code-server_${VERSION}_amd64.deb"
+apt-get install -y "./code-server_${VERSION}_amd64.deb"
 echo "Installing code-server done."
 
 echo "Cleaning up deb..."
