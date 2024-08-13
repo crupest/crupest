@@ -4,6 +4,8 @@ set -e
 
 export DEBIAN_FRONTEND=noninteractive
 
+. /bootstrap/func.bash
+
 /bootstrap/apt-source/setup.bash
 
 apt-get update
