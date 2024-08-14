@@ -145,7 +145,20 @@ services:
       timeout: 3s
       retries: 0
 
+  debian-dev:
+    pull_policy: build
+    build:
+      context: ./docker/code-server
+      dockerfile: Dockerfile
+      pull: true
+      tags:
+        - "crupest/debian-dev:latest"
+    container_name: debian-dev
+    restart: on-failure:3
+    volumes:
+      - ./data/debian-dev:/data
+      - debian-dev-state:/state
 
 volumes:
   blog-public:
-
+  debian-dev-state:

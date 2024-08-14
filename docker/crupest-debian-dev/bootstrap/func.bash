@@ -7,9 +7,9 @@ is_true() {
 }
 
 append-bash-profile() {
-    cat "/bootstrap/bash-profile/$1" >> /root/.bash_profile
+    cat "/bootstrap/bash-profile/$1" >> /home/$CRUPEST_DEBIAN_DEV_USER/.bash_profile
 }
 
 copy-home-dot-file() {
-    cp "/bootstrap/home-dot/$1" "/root/.$1"
+    cp "/bootstrap/home-dot/$1" "/home/$CRUPEST_DEBIAN_DEV_USER/.$1"
 }

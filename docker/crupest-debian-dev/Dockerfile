@@ -1,0 +1,21 @@
+FROM debian:latest
+
+ARG USER=crupest
+ARG IN_CHINA=
+ARG CODE_SERVER=true
+
+ENV CRUPEST_DEBIAN_DEV_USER=${USER}
+ENV CRUPEST_DEBIAN_DEV_IN_CHINA=${IN_CHINA}
+ENV CRUPEST_DEBIAN_DEV_SETUP_CODE_SERVER=${CODE_SERVER}
+
+ADD bootstrap /bootstrap
+
+RUN /bootstrap/setup.bash
+ENV LANG=en_US.utf8
+
+USER ${USER}
+WORKDIR /home/${USER}
+
+EXPOSE 8080
+VOLUME [ "/data", "/state" ]
+CMD [ "bash", "-l" ]
