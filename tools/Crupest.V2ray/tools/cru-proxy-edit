@@ -5,7 +5,7 @@ set -e
 p="$HOME/codes/crupest/tools/Crupest.V2ray/publish/proxy.txt"
 
 if [[ ! -f "$p" ]]; then
-    echo "File $p does not exist!"
+    echo "File $p does not exist!" >&2
     exit 1
 fi
 
