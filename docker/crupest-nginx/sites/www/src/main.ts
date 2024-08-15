@@ -41,7 +41,7 @@ setTimeout(() => {
 });
 
 const sloganContainer = document.querySelector(
-  ".slogan-container"
+  ".slogan-container",
 ) as HTMLDivElement;
 
 setTimeout(() => {
