@@ -6,6 +6,7 @@ nginx-config
 log
 tmp
 backup
-__pycache__
 v2ray-config.json
 v2ray-client-config.json
+
+tools/docker-mailserver-setup.sh
