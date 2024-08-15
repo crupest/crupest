@@ -18,10 +18,10 @@ export async function fetchTodos(): Promise<Todo[]> {
 
     if (res.status !== 200) {
       console.error(
-        `Failed to get TODOs. Status: ${res.status}. Body: ${body}`
+        `Failed to get TODOs. Status: ${res.status}. Body: ${body}`,
       );
       throw new Error(
-        "Failed to fetch TODOs. (Maybe due to rate limit. Please try later.)"
+        "Failed to fetch TODOs. (Maybe due to rate limit. Please try later.)",
       );
     }
     return body;
