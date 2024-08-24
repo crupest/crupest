@@ -151,6 +151,8 @@ services:
       context: ./docker/crupest-debian-dev
       dockerfile: Dockerfile
       pull: true
+      args:
+        - USER=crupest
       tags:
         - "crupest/debian-dev:latest"
     container_name: debian-dev
@@ -159,8 +161,8 @@ services:
     restart: on-failure:3
     volumes:
       - ./data/debian-dev:/data
-      - debian-dev-state:/state
+      - debian-dev-home:/home/crupest
 
 volumes:
   blog-public:
-  debian-dev-state:
+  debian-dev-home:
