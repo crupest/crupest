@@ -1,11 +1,10 @@
-local system = require("crupest.system")
-local fs = require("crupest.system.fs");
+local fs = require("crupest.utils.fs");
+local is_win = vim.fn.has("win32") ~= 0
 
 local win_exe_exts = { "exe", "CMD", "cmd", "ps1" }
 
-
 local function get_exe(path)
-    if system.is_win then
+    if is_win then
         for _, ext in ipairs(win_exe_exts) do
             if string.find(path, "%." .. ext .. "$") and fs.isfile(path) then
                 return path

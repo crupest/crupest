@@ -1,10 +1,11 @@
 local lspconfig = require("lspconfig")
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
-local get_exe = require("crupest.system.find").get_exe
+
+local get_exe = require("crupest.utils.find").get_exe
 
 local brew_clangd_path = "/usr/local/opt/llvm/bin/clangd"
 
-local function setup_lsp_c()
+local function setup()
     local clangd = "clangd"
 
     if get_exe(brew_clangd_path) then
@@ -24,5 +25,5 @@ local function setup_lsp_c()
 end
 
 return {
-    setup_lsp_c = setup_lsp_c
+    setup = setup
 }

@@ -1,23 +1,30 @@
 local lint = require("lint")
-local find = require('crupest.system.find')
-local constants = require("crupest.constants")
+local find = require('crupest.utils.find')
+local is_win = vim.fn.has("win32") ~= 0
 
+local cspell_config_patterns = {
+    ".cspell.json",
+    "cspell.json",
+    ".cSpell.json",
+    "cSpell.json",
+    "cspell.config.js",
+    "cspell.config.cjs",
+    "cspell.config.json",
+    "cspell.config.yaml",
+    "cspell.config.yml",
+    "cspell.yaml",
+    "cspell.yml",
+}
 
 local my_linters = {
     {
         name = "cspell",
         exe_places = { "npm", "global" },
-        config_files = constants.config_patterns.cspell,
-    },
-    {
-        name = "eslint",
-        exe_places = { "npm" },
-        filetypes = constants.filetype_collections.js_ts,
-        config_files = constants.config_patterns.nodejs,
+        config_files = cspell_config_patterns,
     },
 }
 
-local function run_lint(opt)
+local function run(opt)
     if not opt then
         opt = {}
     end
@@ -44,8 +51,8 @@ local function run_lint(opt)
     lint.try_lint(linter_names)
 end
 
-local function setup_lint()
-    if require('crupest.system').is_win then
+local function setup()
+    if is_win then
         for _, l in ipairs(my_linters) do
             local name = l.name
             local linter = require('lint.linters.' .. name)
@@ -59,14 +66,16 @@ local function setup_lint()
 
     vim.api.nvim_create_autocmd({ "BufWritePost" }, {
         callback = function(opt)
-            run_lint({
+            run({
                 buf = opt.buffer
             })
         end,
     })
+
+    vim.keymap.set('n', '<leader>lr', run)
 end
 
 return {
-    setup_lint = setup_lint,
-    run_lint = run_lint
+    setup = setup,
+    run = run
 }
