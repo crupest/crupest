@@ -26,7 +26,7 @@ local function copy(args)
     return args[1]
 end
 
-local function setup_snip()
+local function setup()
     vim.keymap.set({ "i", "s" }, "<C-L>", function() luasnip.jump(1) end, { silent = true })
     vim.keymap.set({ "i", "s" }, "<C-J>", function() luasnip.jump(-1) end, { silent = true })
 
@@ -69,6 +69,5 @@ local function setup_snip()
 end
 
 return {
-    setup_snip = setup_snip,
-    luasnip = luasnip
+    setup = setup,
 }
