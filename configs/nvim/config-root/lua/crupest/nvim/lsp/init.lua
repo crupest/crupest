@@ -1,5 +1,7 @@
 local function setup()
+    require("crupest.nvim.lsp.bash").setup()
     require("crupest.nvim.lsp.c").setup()
+    require("crupest.nvim.lsp.cmake").setup()
     require("crupest.nvim.lsp.lua").setup()
 
     -- Use LspAttach autocommand to only map the following keys

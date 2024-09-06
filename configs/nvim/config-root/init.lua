@@ -6,6 +6,7 @@ if vim.g.neovide then
     vim.g.neovide_input_ime = false;
     vim.g.neovide_cursor_animate_in_insert_mode = false
     vim.g.neovide_cursor_vfx_mode = "pixiedust";
+    vim.g.neovide_input_macos_option_key_is_meta = 'only_left'
 end
 
 local is_win = vim.fn.has("win32") ~= 0

@@ -1,0 +1,6 @@
+llvm
+cmake-language-server
+bash-language-server
+shellcheck
+shfmt
+lua-language-server
