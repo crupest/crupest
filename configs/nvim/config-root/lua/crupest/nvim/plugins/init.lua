@@ -4,6 +4,7 @@ local function setup()
     require("crupest.nvim.plugins.cmp").setup()
     require("crupest.nvim.plugins.telescope").setup()
     require("crupest.nvim.plugins.gitsign").setup()
+    require("crupest.nvim.plugins.others").setup()
 end
 
 return {
