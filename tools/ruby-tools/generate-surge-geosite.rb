@@ -16,18 +16,43 @@ START_FILES =
       facebook
       discord
       reddit
-      wikimedia
+      twitch
+      onedrive
+      quora
+      telegram
+      imgur
       stackexchange
-      libgen
+
+      duckduckgo
+      wikimedia
+      gitbook
+      gitlab
+      sourceforge
+      creativecommons
+      archive
+      matrix
+      tor
+
       python
       ruby
-      creativecommons
-      sci-hub
-      v2ray
-      imgur
+      rust
+      nodejs
       npmjs
-      onedrive
-      matrix
+      qt
+      docker
+      v2ray
+      homebrew
+
+      jsdelivr
+      fastly
+      heroku
+      bootstrap
+      vercel
+
+      ieee
+      sci-hub
+      libgen
+      z-library
     ],
     T::Array[String]
   )
