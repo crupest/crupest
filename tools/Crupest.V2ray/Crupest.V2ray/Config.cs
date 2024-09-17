@@ -69,13 +69,17 @@ public class ListConfig(string configString)
 
         foreach (var line in lines)
         {
-            var trimmedLine = line.Trim();
-            if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith('#'))
+            var l = line;
+            var beginOfComment = l.IndexOf('#');
+            if (beginOfComment >= 0)
             {
-                lineNumber++;
-                continue;
+                l = line[..beginOfComment];
             }
-            config.Add(new ConfigItem(trimmedLine, lineNumber));
+            l = l.Trim();
+            if (!string.IsNullOrEmpty(l))
+            {
+                config.Add(new ConfigItem(l, lineNumber));
+            }
             lineNumber++;
         }
 

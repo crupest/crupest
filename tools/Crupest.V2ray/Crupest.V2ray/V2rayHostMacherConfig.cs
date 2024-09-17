@@ -48,7 +48,7 @@ public class V2rayHostMatcherConfig(string configString, List<V2rayHostMatcherKi
                     }
                     if (allowedMatchers.Contains(matcher))
                     {
-                        if (IsDomainMatcher(matcher) && Uri.CheckHostName(matcherName) != UriHostNameType.Dns)
+                        if (IsDomainMatcher(matcher) && matcher == V2rayHostMatcherKind.DomainRegex && Uri.CheckHostName(matcherName) != UriHostNameType.Dns)
                         {
                             throw new FormatException($"Invalid domain format in line {lineNumber}.");
                         }
@@ -92,4 +92,18 @@ public class V2rayHostMatcherConfig(string configString, List<V2rayHostMatcherKi
     public int MinComponentCount { get; } = minComponentCount;
     public int MaxComponentCount { get; } = maxComponentCount;
     public List<V2rayHostMatcherItem> Items { get; } = Parse(configString, allowedMatchers, minComponentCount, maxComponentCount);
+}
+
+public class HostMatcherConfigFile
+{
+    public HostMatcherConfigFile(string path, List<V2rayHostMatcherKind> allowedMatchers, int minComponentCount = -1, int maxComponentCount = -1)
+    {
+        Path = path;
+        FileContent = File.ReadAllText(path);
+        MatcherConfig = new V2rayHostMatcherConfig(FileContent, allowedMatchers, minComponentCount, maxComponentCount); ;
+    }
+
+    public string Path { get; }
+    public string FileContent { get; }
+    public V2rayHostMatcherConfig MatcherConfig { get; }
 }

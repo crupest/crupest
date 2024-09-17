@@ -99,7 +99,8 @@ public class V2rayConfig(Template template, List<V2rayProxy> proxies, V2rayRouti
             }
         }
 
-        string templateString, vmessString, routingString;
+        ProxyFile proxyFile = new(proxyPath);
+        string templateString, vmessString;
         string? hostsString;
 
         string file = "";
@@ -109,9 +110,6 @@ public class V2rayConfig(Template template, List<V2rayProxy> proxies, V2rayRouti
             templateString = File.ReadAllText(templatePath);
             file = vmessPath;
             vmessString = File.ReadAllText(vmessPath);
-            file = proxyPath;
-            routingString = File.ReadAllText(proxyPath);
-            file = proxyPath;
             hostsString = hostsPath is not null ? File.ReadAllText(hostsPath) : null;
         }
         catch (Exception e)
@@ -126,9 +124,9 @@ public class V2rayConfig(Template template, List<V2rayProxy> proxies, V2rayRouti
             file = vmessPath;
             var vmess = V2rayVmessProxy.CreateFromConfigString(vmessString, "proxy");
             file = proxyPath;
-            var routing = V2rayRouting.CreateFromConfigString(routingString, "proxy", UseCnGeoSite);
+            var routing = proxyFile.ToV2rayRouting("proxy", UseCnGeoSite);
             file = hostsPath ?? "";
-            var hosts = hostsString is not null ? V2rayHosts.CreateFromConfigString(hostsString) : null;
+            var hosts = hostsString is not null ? V2rayHosts.CreateFromHostMatcherConfigString(hostsString) : null;
             return new V2rayConfig(template, [vmess], routing, hosts);
         }
         catch (Exception e)
