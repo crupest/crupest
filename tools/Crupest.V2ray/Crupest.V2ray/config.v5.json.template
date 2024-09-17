@@ -15,7 +15,7 @@
         }, {
             "address": "localhost"
         }],
-        "staticHosts": ${STATIC_HOSTS_ANCHOR}
+        "staticHosts": ${HOSTS_ANCHOR}
     },
     "inbounds": [{
         {
@@ -48,7 +48,7 @@
           "settings": {},
           "tag": "blocked"
         },
-        ${PROXY_OUTBOUND_ANCHOR}
+        ${PROXY_ANCHOR}
     ],
     "router": ${ROUTER_ANCHOR}
 }

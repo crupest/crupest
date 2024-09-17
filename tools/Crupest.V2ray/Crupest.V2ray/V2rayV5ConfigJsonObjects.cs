@@ -1,6 +1,6 @@
 namespace Crupest.V2ray;
 
-public static class V2rayV5ConfigObjects
+public static class V2rayV5ConfigJsonObjects
 {
     public record OutboundObject(string Protocol, object Settings, string Tag, object? StreamSettings)
     {
