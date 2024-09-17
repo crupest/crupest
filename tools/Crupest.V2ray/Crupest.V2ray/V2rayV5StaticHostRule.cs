@@ -2,7 +2,50 @@ using System.Net;
 
 namespace Crupest.V2ray;
 
-public class V2rayV5StaticHostRule
+public interface IV2rayStaticHostResolveResult
+{
+    IDictionary<string, object> GetJsonProperties();
+}
+
+public class V2rayStaticHostDomainResolveResult : IV2rayStaticHostResolveResult
+{
+    public V2rayStaticHostDomainResolveResult(string domain)
+    {
+        Domain = domain;
+    }
+
+    public string Domain { get; }
+
+    public IDictionary<string, object> GetJsonProperties()
+    {
+        return new Dictionary<string, object>
+        {
+
+            ["proxiedDomain"] = Domain
+        };
+    }
+}
+
+public class V2rayStaticHostIpResolveResult : IV2rayStaticHostResolveResult
+{
+    public V2rayStaticHostIpResolveResult(IEnumerable<string> ips)
+    {
+        Ips = ips.ToList();
+    }
+
+    public IReadOnlyList<string> Ips { get; }
+
+    public IDictionary<string, object> GetJsonProperties()
+    {
+        return new Dictionary<string, object>
+        {
+            ["ip"] = Ips
+        };
+    }
+}
+
+
+public class V2rayV5StaticHostRule(V2rayV5StaticHostRule.MatcherKind matcher, string domain, IV2rayStaticHostResolveResult resolveResult)
 {
     public enum MatcherKind
     {
@@ -12,16 +55,9 @@ public class V2rayV5StaticHostRule
         Regex
     }
 
-    public V2rayV5StaticHostRule(MatcherKind matcher, string domain, IV2rayStaticHostResolveResult resolveResult)
-    {
-        Matcher = matcher;
-        Domain = domain;
-        ResolveResult = resolveResult;
-    }
-
-    public MatcherKind Matcher { get; }
-    public string Domain { get; }
-    public IV2rayStaticHostResolveResult ResolveResult { get; }
+    public MatcherKind Matcher { get; } = matcher;
+    public string Domain { get; } = domain;
+    public IV2rayStaticHostResolveResult ResolveResult { get; } = resolveResult;
 
     public Dictionary<string, object> ToJsonObject()
     {

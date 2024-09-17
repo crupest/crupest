@@ -33,7 +33,7 @@
       "settings": {},
       "tag": "blocked"
     },
-    ${VMESS_PROXY_ANCHOR}
+    ${PROXY_ANCHOR}
   ],
   "routing": ${ROUTING_ANCHOR},
   "dns": {

@@ -1,9 +1,13 @@
 crupest
 
 # secret
+vnext
 vmess
 confdir
 geodata
+geosite
+geoip
+userid
 
 # university
 ustc

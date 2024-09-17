@@ -1,65 +1,72 @@
 namespace Crupest.V2ray;
 
-public record V2rayRouting(List<V2rayRoutingRule> Rules, string DomainStrategy = "IpOnDemand")
+public record V2rayRoutingRule(V2rayHostMatcherKind MatcherKind, string MatcherString, string OutboundTag) : IV2rayV4ConfigObject
 {
-    public record DomainRuleJsonObject(List<string> Domains, string OutboundTag, string Type = "field");
-
-    public record IpRuleJsonObject(List<string> Ip, string OutboundTag, string Type = "field");
-
-    public record V5DomainRuleJsonObject(List<V2rayRoutingRuleMatcher.V5DomainObject> Domain, string OutboundTag);
-
-    public record V5GeoDomainRuleJsonObject(List<V2rayRoutingRuleMatcher.V5GeoDomainObject> GeoDomain, string OutboundTag);
-
-    public record V5GeoIpRuleJsonObject(List<V2rayRoutingRuleMatcher.V5GeoIpObject> Geoip, string OutboundTag);
-
-    public record RoutingJsonObject(string DomainStrategy, List<object> Rules);
-
-    public record V5RouterJsonObject(string DomainStrategy, List<object> Rule);
-
-    public V2rayRouting() : this(new List<V2rayRoutingRule>())
+    public string ComposedMatcherString => MatcherKind switch
     {
+        V2rayHostMatcherKind.DomainFull => $"full:{MatcherString}",
+        V2rayHostMatcherKind.DomainSuffix => $"domain:{MatcherString}",
+        V2rayHostMatcherKind.DomainKeyword => MatcherString,
+        V2rayHostMatcherKind.DomainRegex => $"regexp:{MatcherString}",
+        V2rayHostMatcherKind.Ip => MatcherString,
+        V2rayHostMatcherKind.GeoSite => $"geosite:{MatcherString}",
+        V2rayHostMatcherKind.GeoIp => $"geoip:{MatcherString}",
+        _ => throw new ArgumentException("Invalid matcher kind.")
+    };
 
+    public static Dictionary<string, List<V2rayRoutingRule>> GroupByOutboundTag(List<V2rayRoutingRule> rules)
+        => rules.GroupBy(r => r.OutboundTag).Select(g => (g.Key, g.ToList())).ToDictionary();
+
+    public static Dictionary<V2rayHostMatcherKind, List<V2rayRoutingRule>> GroupByMatcherByKind(List<V2rayRoutingRule> rules)
+        => rules.GroupBy(r => r.MatcherKind).Select(g => (g.Key, g.ToList())).ToDictionary();
+
+    public static V2rayV4ConfigJsonObjects.RoutingRule ListToJsonObject(List<V2rayRoutingRule> rules)
+    {
+        if (rules.Count == 0)
+        {
+            throw new ArgumentException("Rule list is empty.");
+        }
+
+        var matcherKind = rules[0].MatcherKind;
+        var outboundTag = rules[0].OutboundTag;
+
+        if (rules.Any(r => r.OutboundTag != outboundTag) || rules.Any(r => r.MatcherKind != matcherKind))
+        {
+            throw new ArgumentException("Rules must have the same matcher kind and outbound tag.");
+        }
+
+        List<string> composedMatcherStringList = rules.Select(r => r.ComposedMatcherString).ToList();
+
+        return new V2rayV4ConfigJsonObjects.RoutingRule(OutboundTag: outboundTag,
+            Ip: (matcherKind is V2rayHostMatcherKind.Ip or V2rayHostMatcherKind.GeoIp) ? composedMatcherStringList : null,
+            Domains: (matcherKind is V2rayHostMatcherKind.DomainFull or V2rayHostMatcherKind.DomainSuffix or V2rayHostMatcherKind.DomainKeyword or V2rayHostMatcherKind.DomainRegex or V2rayHostMatcherKind.GeoSite) ? composedMatcherStringList : null
+        );
     }
 
-    public RoutingJsonObject ToJsonObject()
+    public V2rayV4ConfigJsonObjects.RoutingRule ToJsonObjectV4() => ListToJsonObject([this]);
+
+    object IV2rayV4ConfigObject.ToJsonObjectV4() => ToJsonObjectV4();
+}
+
+public record V2rayRouting(List<V2rayRoutingRule> Rules, string DomainStrategy = "IpOnDemand") : IV2rayV4ConfigObject
+{
+    public V2rayV4ConfigJsonObjects.Routing ToJsonObjectV4()
     {
         var ruleJsonObjects = new List<object>();
 
-        foreach (var (outBoundTag, proxyRules) in V2rayRoutingRule.GroupByOutboundTag(Rules))
-        {
-            foreach (var (matchByKind, rules) in V2rayRoutingRule.GroupByMatchByKind(proxyRules))
-            {
-                ruleJsonObjects.Add(
-                    matchByKind switch
-                    {
-                        V2rayRoutingRuleMatcher.MatchByKind.Ip => new IpRuleJsonObject(rules.Select(r => r.Matcher.ToString()).ToList(), outBoundTag),
-                        V2rayRoutingRuleMatcher.MatchByKind.Domain => new DomainRuleJsonObject(rules.Select(r => r.Matcher.ToString()).ToList(), outBoundTag),
-                        _ => throw new Exception("Unknown match by kind."),
-                    }
-                );
-            }
-        }
+        var rules = V2rayRoutingRule.GroupByOutboundTag(Rules).ToList().SelectMany((groupByTag) =>
+            V2rayRoutingRule.GroupByMatcherByKind(groupByTag.Value).ToList().Select((groupByMatcher) =>
+                V2rayRoutingRule.ListToJsonObject(groupByMatcher.Value))
+        ).ToList();
 
-        return new RoutingJsonObject(DomainStrategy, ruleJsonObjects);
+        return new V2rayV4ConfigJsonObjects.Routing(rules);
     }
 
-    public V5RouterJsonObject V5ToJsonObject()
+    object IV2rayV4ConfigObject.ToJsonObjectV4() => ToJsonObjectV4();
+
+    public static V2rayRouting CreateFromConfigString(string configString, string outboundTag)
     {
-        throw new NotImplementedException();
-    }
-
-    public static V2rayRouting FromStringList(List<string> list, string outboundTag = "proxy")
-    {
-        var router = new V2rayRouting();
-
-        foreach (var line in list)
-        {
-            var matcher = V2rayRoutingRuleMatcher.Parse(line);
-            if (matcher != null)
-                router.Rules.Add(new V2rayRoutingRule(matcher, outboundTag));
-        }
-
-        return router;
+        var matcherConfig = new V2rayHostMatcherConfig(configString, [.. Enum.GetValues<V2rayHostMatcherKind>()], maxComponentCount: 0);
+        return new V2rayRouting(matcherConfig.Items.Select(i => new V2rayRoutingRule(i.Kind, i.Matcher, outboundTag)).ToList());
     }
 }
-

@@ -1,26 +1,42 @@
 namespace Crupest.V2ray;
 
-public record V2rayHosts(List<V2rayHostRule> Rules)
+public record V2rayHostRule(V2rayHostMatcherKind MatcherKind, string MatcherString, List<string> ResolveResult)
 {
-    public V2rayHosts() : this(new List<V2rayHostRule>()) { }
-
-    public Dictionary<string, List<string>> ToJsonObject()
+    public string AddressString()
     {
-        var result = new Dictionary<string, List<string>>();
-        foreach (var rule in Rules)
+        return MatcherKind switch
         {
-            result.Add(rule.Origin, rule.Resolved);
-        }
-        return result;
+            V2rayHostMatcherKind.DomainFull => MatcherString,
+            V2rayHostMatcherKind.DomainSuffix => $"domain:{MatcherString}",
+            V2rayHostMatcherKind.DomainKeyword => $"keyword:{MatcherString}",
+            V2rayHostMatcherKind.DomainRegex => $"regexp:{MatcherString}",
+            _ => throw new ArgumentOutOfRangeException($"Matcher {MatcherKind} is not allowed in host rule."),
+        };
     }
 
-    public static V2rayHosts FromStringList(List<string> list)
+    public object ResolveResultToJsonObject()
     {
-        var hosts = new V2rayHosts();
-        foreach (var str in list)
-        {
-            hosts.Rules.Add(V2rayHostRule.Parse(str));
-        }
-        return hosts;
+        return ResolveResult.Count == 1 ? ResolveResult[0] : ResolveResult;
+    }
+}
+
+public class V2rayHosts(List<V2rayHostRule> rules) : IV2rayV4ConfigObject
+{
+    public List<V2rayHostRule> Rules { get; } = rules;
+
+    public Dictionary<string, object> ToJsonObjectV4() =>
+        Rules.ToDictionary(rule => rule.AddressString(), rule => rule.ResolveResultToJsonObject());
+
+    object IV2rayV4ConfigObject.ToJsonObjectV4()
+    {
+        return ToJsonObjectV4();
+    }
+
+    public static V2rayHosts CreateFromConfigString(string configString)
+    {
+        var matcherConfig = new V2rayHostMatcherConfig(configString,
+            [V2rayHostMatcherKind.DomainFull, V2rayHostMatcherKind.DomainKeyword, V2rayHostMatcherKind.DomainRegex, V2rayHostMatcherKind.DomainSuffix], minComponentCount: 1);
+
+        return new V2rayHosts(matcherConfig.Items.Select(i => new V2rayHostRule(i.Kind, i.Matcher, [.. i.Values])).ToList());
     }
 }
