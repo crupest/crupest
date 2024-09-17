@@ -33,7 +33,7 @@ public record GeoSite(string Name, List<IGeoSiteEntry> Entries)
                 var include = value["include:".Length..].Trim();
                 if (include.Length == 0 || include.Contains(' '))
                 {
-                    throw new FormatException($"Invalid geo site rule in line {line}. Invalid include value.");
+                    throw new FormatException($"Invalid geo site rule '{name}' in line {line}. Invalid include value.");
                 }
                 entries.Add(new GeoSiteIncludeEntry(include, name));
                 continue;
@@ -42,7 +42,7 @@ public record GeoSite(string Name, List<IGeoSiteEntry> Entries)
             var segments = value.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             if (segments.Length > 2)
             {
-                throw new FormatException($"Invalid geo site rule in line {line}. More than one ':'.");
+                throw new FormatException($"Invalid geo site rule '{name}' in line {line}. More than one ':'.");
             }
 
             V2rayHostMatcherKind kind;
@@ -54,7 +54,7 @@ public record GeoSite(string Name, List<IGeoSiteEntry> Entries)
                     "full" => kind = V2rayHostMatcherKind.DomainFull,
                     "keyword" => kind = V2rayHostMatcherKind.DomainKeyword,
                     "regexp" => kind = V2rayHostMatcherKind.DomainRegex,
-                    _ => throw new FormatException($"Invalid geo site rule in line {line}. Unknown matcher.")
+                    _ => throw new FormatException($"Invalid geo site rule '{name}' in line {line}. Unknown matcher.")
                 };
             }
             else
@@ -64,17 +64,17 @@ public record GeoSite(string Name, List<IGeoSiteEntry> Entries)
 
             var domainSegments = segments[^1].Split('@', StringSplitOptions.TrimEntries);
             var domain = domainSegments[0];
-            if (Uri.CheckHostName(domain) != UriHostNameType.Dns)
+            if (kind != V2rayHostMatcherKind.DomainRegex && Uri.CheckHostName(domain) != UriHostNameType.Dns)
             {
-                throw new FormatException($"Invalid geo site rule in line {line}. Invalid domain.");
+                throw new FormatException($"Invalid geo site rule '{name}' in line {line}. Invalid domain.");
             }
 
             List<string> attributes = [];
-            foreach (var s in domainSegments)
+            foreach (var s in domainSegments[1..])
             {
                 if (s.Length == 0)
                 {
-                    throw new FormatException($"Invalid geo site rule in line {line}. Empty attribute value.");
+                    throw new FormatException($"Invalid geo site rule '{name}' in line {line}. Empty attribute value.");
                 }
                 attributes.Add(s);
             }
@@ -85,16 +85,15 @@ public record GeoSite(string Name, List<IGeoSiteEntry> Entries)
     }
 }
 
-public class GeoSiteDataParser(string directory)
+public class GeoSiteData(string directory)
 {
     private static List<GeoSite> Parse(string directory)
     {
         var sites = new List<GeoSite>();
-        foreach (var file in Directory.GetFileSystemEntries(directory))
+        foreach (var path in Directory.GetFileSystemEntries(directory))
         {
-            var path = Path.Combine(directory, file);
             var content = File.ReadAllText(path);
-            sites.Add(GeoSite.Parse(file, content));
+            sites.Add(GeoSite.Parse(Path.GetFileName(path), content));
         }
         return sites;
     }
@@ -102,6 +101,62 @@ public class GeoSiteDataParser(string directory)
     public string DataDirectory { get; } = directory;
 
     public List<GeoSite> Sites { get; } = Parse(directory);
+
+    public GeoSite? GetSite(string name)
+    {
+        return Sites.Where(s => s.Name == name).FirstOrDefault();
+    }
+
+    public List<GeoSiteRuleEntry> GetEntriesRecursive(List<string> sites,
+        List<V2rayHostMatcherKind>? onlyMatcherKinds = null, List<string>? onlyAttributes = null)
+    {
+        List<GeoSiteRuleEntry> entries = [];
+        HashSet<string> visited = [];
+        HashSet<V2rayHostMatcherKind>? kinds = onlyMatcherKinds?.ToHashSet();
+
+        void Visit(string site)
+        {
+            if (visited.Contains(site))
+            {
+                return;
+            }
+
+            visited.Add(site);
+            var siteData = GetSite(site);
+            if (siteData == null)
+            {
+                return;
+            }
+            foreach (var entry in siteData.Entries)
+            {
+                if (entry is GeoSiteIncludeEntry includeEntry)
+                {
+                    Visit(includeEntry.Value);
+                }
+                else if (entry is GeoSiteRuleEntry geoSiteRuleEntry)
+                {
+                    if (kinds != null && !kinds.Contains(geoSiteRuleEntry.Kind))
+                    {
+                        continue;
+                    }
+
+                    if (onlyAttributes != null && !geoSiteRuleEntry.Attributes.Intersect(onlyAttributes).Any())
+                    {
+                        continue;
+                    }
+
+                    entries.Add(geoSiteRuleEntry);
+                }
+            }
+        }
+
+        foreach (var s in sites)
+        {
+            Visit(s);
+        }
+
+        return entries;
+    }
 }
 
 public class GeoDataManager
@@ -131,6 +186,15 @@ public class GeoDataManager
     }
 
     public List<GeoDataAsset> Assets { get; set; }
+
+    public GeoSiteData? GeoSiteData { get; set; }
+
+    public GeoSiteData GetOrCreateGeoSiteData(bool clean, bool silent)
+    {
+        if (GeoSiteData is not null) { return GeoSiteData; }
+        GeoSiteData = DownloadAndGenerateGeoSiteData(clean, silent);
+        return GeoSiteData;
+    }
 
     private static string GetReleaseFileUrl(string user, string repo, string fileName)
     {
@@ -181,11 +245,14 @@ public class GeoDataManager
         return $"https://github.com/{user}/{repo}/archive/refs/heads/master.zip";
     }
 
-    private static void GithubDownloadRepository(HttpClient httpClient, string user, string repo, string outputPath)
+    private static void GithubDownloadRepository(HttpClient httpClient, string user, string repo, string outputPath, bool silent)
     {
-        using var responseStream = httpClient.GetStreamAsync(GetGithubRepositoryArchiveUrl(user, repo)).Result;
+        var url = GetGithubRepositoryArchiveUrl(user, repo);
+        if (!silent) { Console.WriteLine($"Begin to download data from {url} to {outputPath}."); }
+        using var responseStream = httpClient.GetStreamAsync(url).Result;
         using var outputFileStream = File.OpenWrite(outputPath);
         responseStream.CopyTo(outputFileStream);
+        if (!silent) { Console.WriteLine("Succeeded to download."); }
     }
 
     private static void Unzip(string zipPath, string outputPath)
@@ -194,16 +261,47 @@ public class GeoDataManager
         zip.ExtractToDirectory(outputPath);
     }
 
-    private string DownloadAndExtractGeoSiteRepository(bool silent)
+    private static string DownloadAndExtractGeoDataRepository(bool cleanTempDirIfFailed, bool silent, out string tempDirectoryPath)
     {
+        tempDirectoryPath = "";
         const string zipFileName = "v2ray-geosite-master.zip";
         using var httpClient = new HttpClient();
         var tempDirectory = Directory.CreateTempSubdirectory(Program.Name);
-        var archivePath = Path.Combine(tempDirectory.FullName, zipFileName);
-        var extractPath = Path.Combine(tempDirectory.FullName, "repo");
-        GithubDownloadRepository(httpClient, V2rayGithubOrganization, V2rayGeoSiteGithubRepository, archivePath);
-        Directory.CreateDirectory(extractPath);
-        Unzip(archivePath, extractPath);
-        return Path.Join(extractPath, "domain-list-community-master");
+        tempDirectoryPath = tempDirectory.FullName;
+        try
+        {
+            var archivePath = Path.Combine(tempDirectoryPath, zipFileName);
+            var extractPath = Path.Combine(tempDirectoryPath, "repo");
+            GithubDownloadRepository(httpClient, V2rayGithubOrganization, V2rayGeoSiteGithubRepository, archivePath, silent);
+            if (!silent) { Console.WriteLine($"Extract geo data to {extractPath}."); }
+            Directory.CreateDirectory(extractPath);
+            Unzip(archivePath, extractPath);
+            if (!silent) { Console.WriteLine($"Extraction done."); }
+            return Path.Join(extractPath, "domain-list-community-master");
+        }
+        catch (Exception)
+        {
+            if (cleanTempDirIfFailed)
+            {
+                Directory.Delete(tempDirectoryPath, true);
+            }
+            throw;
+        }
+    }
+
+    private static GeoSiteData DownloadAndGenerateGeoSiteData(bool clean, bool silent)
+    {
+        var repoDirectory = DownloadAndExtractGeoDataRepository(clean, silent, out var tempDirectoryPath);
+        try
+        {
+            return new GeoSiteData(Path.Join(repoDirectory, "data"));
+        }
+        finally
+        {
+            if (clean)
+            {
+                Directory.Delete(tempDirectoryPath, true);
+            }
+        }
     }
 }

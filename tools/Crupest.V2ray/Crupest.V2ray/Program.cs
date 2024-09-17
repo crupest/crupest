@@ -12,6 +12,8 @@ public static class Program
             Assembly.GetExecutingAssembly().Location) ?? throw new Exception("Can't get the path of Crupest.V2ray."));
 
     private const string ConfigOutputFileName = "config.json";
+    private const string SurgeRuleSetChinaOutputFileName = "ChinaRuleSet.txt";
+    private const string SurgeRuleSetGlobalOutputFileName = "GlobalRuleSet.txt";
 
     public static void RunV2rayAndWatchConfigChange()
     {
@@ -66,6 +68,16 @@ public static class Program
             if (verb == "download-geodata" || verb == "dg")
             {
                 GeoDataManager.Instance.Download(CrupestV2rayDirectory, false);
+                return;
+            }
+            else if (verb == "generate-surge-rule-set" || verb == "gs")
+            {
+                SurgeConfigGenerator.GenerateTo(
+                    Path.Join(CrupestV2rayDirectory, "proxy.txt"),
+                    Path.Join(CrupestV2rayDirectory, SurgeRuleSetChinaOutputFileName),
+                    Path.Join(CrupestV2rayDirectory, SurgeRuleSetGlobalOutputFileName),
+                    true, false
+                );
                 return;
             }
             else if (verb == "generate" || verb == "g")

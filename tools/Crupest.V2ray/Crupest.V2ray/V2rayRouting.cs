@@ -84,10 +84,4 @@ public record V2rayRouting(List<V2rayRoutingRule> Rules, bool DirectGeositeCn = 
     }
 
     object IV2rayV4ConfigObject.ToJsonObjectV4() => ToJsonObjectV4();
-
-    public static V2rayRouting CreateFromConfigString(string configString, string outboundTag, bool directGeositeCn = true)
-    {
-        var matcherConfig = new V2rayHostMatcherConfig(configString, [.. Enum.GetValues<V2rayHostMatcherKind>()], maxComponentCount: 0);
-        return new V2rayRouting(matcherConfig.Items.Select(i => new V2rayRoutingRule(i.Kind, i.Matcher, outboundTag)).ToList(), directGeositeCn);
-    }
 }

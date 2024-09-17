@@ -32,6 +32,7 @@ GeoSite docker
 GeoSite v2ray
 GeoSite homebrew
 
+GeoSite azure
 GeoSite jsdelivr
 GeoSite fastly
 GeoSite heroku

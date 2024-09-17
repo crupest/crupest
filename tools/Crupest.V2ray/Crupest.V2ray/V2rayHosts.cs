@@ -32,7 +32,7 @@ public class V2rayHosts(List<V2rayHostRule> rules) : IV2rayV4ConfigObject
         return ToJsonObjectV4();
     }
 
-    public static V2rayHosts CreateFromConfigString(string configString)
+    public static V2rayHosts CreateFromHostMatcherConfigString(string configString)
     {
         var matcherConfig = new V2rayHostMatcherConfig(configString,
             [V2rayHostMatcherKind.DomainFull, V2rayHostMatcherKind.DomainKeyword, V2rayHostMatcherKind.DomainRegex, V2rayHostMatcherKind.DomainSuffix], minComponentCount: 1);
