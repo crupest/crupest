@@ -4,6 +4,8 @@ namespace Crupest.V2ray;
 
 public static class Program
 {
+    public static string Name { get; } = typeof(Program).Namespace ?? throw new Exception("Can't get the name of Crupest.V2ray.");
+
     public static string CrupestV2rayDirectory { get; } =
         Environment.GetEnvironmentVariable("CRUPEST_V2RAY_DIR") ??
         Path.GetFullPath(Path.GetDirectoryName(
@@ -13,10 +15,31 @@ public static class Program
 
     public static void RunV2rayAndWatchConfigChange()
     {
-        var v2rayPath = V2rayController.FindExecutable(CrupestV2rayDirectory) ??
+        var v2rayPath = V2rayController.FindExecutable(CrupestV2rayDirectory, out var isLocal) ??
             throw new Exception("Can't find v2ray executable either in Crupest.V2ray directory or in PATH.");
 
-        var v2rayController = new V2rayController(v2rayPath, Path.Combine(CrupestV2rayDirectory, ConfigOutputFileName), CrupestV2rayDirectory);
+        string? assetsPath;
+        if (isLocal)
+        {
+            assetsPath = CrupestV2rayDirectory;
+            var assetsComplete = GeoDataManager.Instance.HasAllAssets(CrupestV2rayDirectory, out var missing);
+            if (!assetsComplete)
+            {
+                throw new Exception($"Missing assets: {string.Join(", ", missing)} in {CrupestV2rayDirectory}. This v2ray is local. So only use assets in Crupest.V2ray directory.");
+            }
+        }
+        else
+        {
+            assetsPath = CrupestV2rayDirectory;
+            var assetsComplete = GeoDataManager.Instance.HasAllAssets(CrupestV2rayDirectory, out var missing);
+            if (!assetsComplete)
+            {
+                Console.WriteLine($"Missing assets: {string.Join(", ", missing)} in {CrupestV2rayDirectory}. This v2ray is global. So fallback to its own assets.");
+                assetsPath = null;
+            }
+        }
+
+        var v2rayController = new V2rayController(v2rayPath, Path.Combine(CrupestV2rayDirectory, ConfigOutputFileName), assetsPath);
         var configFileWatcher = new FileWatcher(CrupestV2rayDirectory, V2rayConfig.ConfigFileNames);
 
         V2rayConfig.FromDirectoryAndWriteToFile(CrupestV2rayDirectory, Path.Join(CrupestV2rayDirectory, ConfigOutputFileName));
@@ -42,8 +65,7 @@ public static class Program
             var verb = args[0].ToLower();
             if (verb == "download-geodata" || verb == "dg")
             {
-                var geoDataDownloader = new GeoDataDownloader();
-                geoDataDownloader.Download(CrupestV2rayDirectory);
+                GeoDataManager.Instance.Download(CrupestV2rayDirectory, false);
                 return;
             }
             else if (verb == "generate" || verb == "g")

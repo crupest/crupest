@@ -2,12 +2,13 @@ using System.Diagnostics;
 
 namespace Crupest.V2ray;
 
-public class V2rayController(string executablePath, string configPath, string assetPath)
+public class V2rayController(string executablePath, string configPath, string? assetPath)
 {
     public const string V2rayAssetEnvironmentVariableName = "v2ray.location.asset";
 
-    public static string? FindExecutable(string contentDir, string? executableName = null)
+    public static string? FindExecutable(string contentDir, out bool isLocal, string? executableName = null)
     {
+        isLocal = false;
         executableName ??= "v2ray";
 
         if (OperatingSystem.IsWindows())
@@ -18,6 +19,7 @@ public class V2rayController(string executablePath, string configPath, string as
         var localV2rayPath = Path.Combine(contentDir, executableName);
         if (File.Exists(localV2rayPath))
         {
+            isLocal = true;
             return localV2rayPath;
         }
 
@@ -39,7 +41,7 @@ public class V2rayController(string executablePath, string configPath, string as
 
     public string ExecutablePath { get; } = executablePath;
     public string ConfigPath { get; } = configPath;
-    public string AssetPath { get; } = assetPath;
+    public string? AssetPath { get; } = assetPath;
     public Process? CurrentProcess { get; private set; }
 
     private Process CreateProcess()
@@ -53,7 +55,10 @@ public class V2rayController(string executablePath, string configPath, string as
         startInfo.ArgumentList.Add("run");
         startInfo.ArgumentList.Add("-c");
         startInfo.ArgumentList.Add(ConfigPath);
-        startInfo.EnvironmentVariables[V2rayAssetEnvironmentVariableName] = AssetPath;
+        if (AssetPath is not null)
+        {
+            startInfo.EnvironmentVariables[V2rayAssetEnvironmentVariableName] = AssetPath;
+        }
 
         process.StartInfo = startInfo;
         process.OutputDataReceived += (_, args) =>
