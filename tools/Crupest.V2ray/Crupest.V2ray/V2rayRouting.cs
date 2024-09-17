@@ -17,8 +17,11 @@ public record V2rayRoutingRule(V2rayHostMatcherKind MatcherKind, string MatcherS
     public static Dictionary<string, List<V2rayRoutingRule>> GroupByOutboundTag(List<V2rayRoutingRule> rules)
         => rules.GroupBy(r => r.OutboundTag).Select(g => (g.Key, g.ToList())).ToDictionary();
 
-    public static Dictionary<V2rayHostMatcherKind, List<V2rayRoutingRule>> GroupByMatcherByKind(List<V2rayRoutingRule> rules)
+    public static Dictionary<V2rayHostMatcherKind, List<V2rayRoutingRule>> GroupByMatcherKind(List<V2rayRoutingRule> rules)
         => rules.GroupBy(r => r.MatcherKind).Select(g => (g.Key, g.ToList())).ToDictionary();
+
+    public static List<List<V2rayRoutingRule>> GroupByOutboundTagAndMatcherKind(List<V2rayRoutingRule> rules)
+        => GroupByOutboundTag(rules).Values.SelectMany((groupByTag) => GroupByMatcherKind(groupByTag).Values).ToList();
 
     public static V2rayV4ConfigJsonObjects.RoutingRule ListToJsonObject(List<V2rayRoutingRule> rules)
     {
@@ -43,30 +46,48 @@ public record V2rayRoutingRule(V2rayHostMatcherKind MatcherKind, string MatcherS
         );
     }
 
+    public V2rayRoutingRule CloneGeositeWithCnAttribute(string outboundTag)
+    {
+        if (MatcherKind is not V2rayHostMatcherKind.GeoSite)
+        {
+            throw new ArgumentException("Matcher kind must be GeoSite.");
+        }
+
+        return new V2rayRoutingRule(V2rayHostMatcherKind.GeoSite, $"{MatcherString}@cn", outboundTag);
+    }
+
     public V2rayV4ConfigJsonObjects.RoutingRule ToJsonObjectV4() => ListToJsonObject([this]);
 
     object IV2rayV4ConfigObject.ToJsonObjectV4() => ToJsonObjectV4();
 }
 
-public record V2rayRouting(List<V2rayRoutingRule> Rules, string DomainStrategy = "IpOnDemand") : IV2rayV4ConfigObject
+public record V2rayRouting(List<V2rayRoutingRule> Rules, bool DirectGeositeCn = true, string DomainStrategy = "IpOnDemand") : IV2rayV4ConfigObject
 {
-    public V2rayV4ConfigJsonObjects.Routing ToJsonObjectV4()
+    public List<V2rayRoutingRule> CreateGeositeCnDirectRules()
     {
-        var ruleJsonObjects = new List<object>();
+        return Rules.Where(r => r.MatcherKind is V2rayHostMatcherKind.GeoSite)
+            .Select(r => r.CloneGeositeWithCnAttribute("direct")).ToList();
+    }
 
-        var rules = V2rayRoutingRule.GroupByOutboundTag(Rules).ToList().SelectMany((groupByTag) =>
-            V2rayRoutingRule.GroupByMatcherByKind(groupByTag.Value).ToList().Select((groupByMatcher) =>
-                V2rayRoutingRule.ListToJsonObject(groupByMatcher.Value))
-        ).ToList();
+    public V2rayV4ConfigJsonObjects.Routing ToJsonObjectV4(bool directGeositeCn = true)
+    {
+        List<V2rayV4ConfigJsonObjects.RoutingRule> ruleJsonObjects = [];
 
-        return new V2rayV4ConfigJsonObjects.Routing(rules);
+        if (directGeositeCn)
+        {
+            ruleJsonObjects.Add(V2rayRoutingRule.ListToJsonObject(CreateGeositeCnDirectRules()));
+        }
+
+        ruleJsonObjects.AddRange(V2rayRoutingRule.GroupByOutboundTagAndMatcherKind(Rules).Select(V2rayRoutingRule.ListToJsonObject));
+
+        return new V2rayV4ConfigJsonObjects.Routing(ruleJsonObjects);
     }
 
     object IV2rayV4ConfigObject.ToJsonObjectV4() => ToJsonObjectV4();
 
-    public static V2rayRouting CreateFromConfigString(string configString, string outboundTag)
+    public static V2rayRouting CreateFromConfigString(string configString, string outboundTag, bool directGeositeCn = true)
     {
         var matcherConfig = new V2rayHostMatcherConfig(configString, [.. Enum.GetValues<V2rayHostMatcherKind>()], maxComponentCount: 0);
-        return new V2rayRouting(matcherConfig.Items.Select(i => new V2rayRoutingRule(i.Kind, i.Matcher, outboundTag)).ToList());
+        return new V2rayRouting(matcherConfig.Items.Select(i => new V2rayRoutingRule(i.Kind, i.Matcher, outboundTag)).ToList(), directGeositeCn);
     }
 }

@@ -4,7 +4,7 @@
   },
   "inbounds": [
     {
-      "port": 2081,
+      "port": 3081,
       "listen": "127.0.0.1",
       "tag": "socks-inbound",
       "protocol": "socks",
@@ -13,7 +13,7 @@
       }
     },
     {
-      "port": 2080,
+      "port": 3080,
       "listen": "127.0.0.1",
       "tag": "http-inbound",
       "protocol": "http",

@@ -42,6 +42,14 @@ public class V2rayConfig(Template template, List<V2rayProxy> proxies, V2rayRouti
     private const string RoutingAnchor = "ROUTING_ANCHOR";
     private const string HostsAnchor = "HOSTS_ANCHOR";
 
+    public const string AddCnAttributeToGeositeEnvironmentVariable = "CRUPEST_V@RAY_GEOSITE_USE_CN";
+
+    private static bool UseCnGeoSite => Environment.GetEnvironmentVariable(AddCnAttributeToGeositeEnvironmentVariable) switch
+    {
+        "0" or "false" or "off" or "disable" => false,
+        _ => true
+    };
+
     public Template Template { get; set; } = template;
     public List<V2rayProxy> Proxies { get; set; } = proxies;
     public V2rayRouting Routing { get; set; } = router;
@@ -118,7 +126,7 @@ public class V2rayConfig(Template template, List<V2rayProxy> proxies, V2rayRouti
             file = vmessPath;
             var vmess = V2rayVmessProxy.CreateFromConfigString(vmessString, "proxy");
             file = proxyPath;
-            var routing = V2rayRouting.CreateFromConfigString(routingString, "proxy");
+            var routing = V2rayRouting.CreateFromConfigString(routingString, "proxy", UseCnGeoSite);
             file = hostsPath ?? "";
             var hosts = hostsString is not null ? V2rayHosts.CreateFromConfigString(hostsString) : null;
             return new V2rayConfig(template, [vmess], routing, hosts);
