@@ -1,6 +1,6 @@
 using System.IO.Compression;
 
-namespace Crupest.V2ray;
+namespace Crupest.SecretTool;
 
 public interface IGeoSiteEntry
 {
@@ -13,7 +13,7 @@ public record GeoSiteIncludeEntry(string Value, string ContainingSite) : IGeoSit
     public bool IsInclude => true;
 }
 
-public record GeoSiteRuleEntry(V2rayHostMatcherKind Kind, string Value, List<string> Attributes, string ContainingSite) : IGeoSiteEntry
+public record GeoSiteRuleEntry(HostMatchKind Kind, string Value, List<string> Attributes, string ContainingSite) : IGeoSiteEntry
 {
     public bool IsInclude => false;
 }
@@ -45,26 +45,26 @@ public record GeoSite(string Name, List<IGeoSiteEntry> Entries)
                 throw new FormatException($"Invalid geo site rule '{name}' in line {line}. More than one ':'.");
             }
 
-            V2rayHostMatcherKind kind;
+            HostMatchKind kind;
             if (segments.Length == 2)
             {
                 kind = segments[0] switch
                 {
-                    "domain" => kind = V2rayHostMatcherKind.DomainSuffix,
-                    "full" => kind = V2rayHostMatcherKind.DomainFull,
-                    "keyword" => kind = V2rayHostMatcherKind.DomainKeyword,
-                    "regexp" => kind = V2rayHostMatcherKind.DomainRegex,
+                    "domain" => kind = HostMatchKind.DomainSuffix,
+                    "full" => kind = HostMatchKind.DomainFull,
+                    "keyword" => kind = HostMatchKind.DomainKeyword,
+                    "regexp" => kind = HostMatchKind.DomainRegex,
                     _ => throw new FormatException($"Invalid geo site rule '{name}' in line {line}. Unknown matcher.")
                 };
             }
             else
             {
-                kind = V2rayHostMatcherKind.DomainSuffix;
+                kind = HostMatchKind.DomainSuffix;
             }
 
             var domainSegments = segments[^1].Split('@', StringSplitOptions.TrimEntries);
             var domain = domainSegments[0];
-            if (kind != V2rayHostMatcherKind.DomainRegex && Uri.CheckHostName(domain) != UriHostNameType.Dns)
+            if (kind != HostMatchKind.DomainRegex && Uri.CheckHostName(domain) != UriHostNameType.Dns)
             {
                 throw new FormatException($"Invalid geo site rule '{name}' in line {line}. Invalid domain.");
             }
@@ -108,11 +108,11 @@ public class GeoSiteData(string directory)
     }
 
     public List<GeoSiteRuleEntry> GetEntriesRecursive(List<string> sites,
-        List<V2rayHostMatcherKind>? onlyMatcherKinds = null, List<string>? onlyAttributes = null)
+        List<HostMatchKind>? onlyMatcherKinds = null, List<string>? onlyAttributes = null)
     {
         List<GeoSiteRuleEntry> entries = [];
         HashSet<string> visited = [];
-        HashSet<V2rayHostMatcherKind>? kinds = onlyMatcherKinds?.ToHashSet();
+        HashSet<HostMatchKind>? kinds = onlyMatcherKinds?.ToHashSet();
 
         void Visit(string site)
         {
@@ -164,12 +164,16 @@ public class GeoDataManager
     public const string GeoSiteFileName = "geosite.dat";
     public const string GeoIpFileName = "geoip.dat";
     public const string GeoIpCnFileName = "geoip-only-cn-private.dat";
-    public const string V2rayGithubOrganization = "v2fly";
-    public const string V2rayGeoSiteGithubRepository = "domain-list-community";
-    public const string V2rayGeoIpGithubRepository = "geoip";
-    public const string V2rayGeoSiteCnGithubReleaseFilename = "dlc.dat";
-    public const string V2rayGeoIpGithubReleaseFilename = "geoip.dat";
-    public const string V2rayGeoIpCnGithubReleaseFilename = "geoip-only-cn-private.dat";
+
+    public static class ToolGithub
+    {
+        public const string Organization = "v2fly";
+        public const string GeoSiteRepository = "domain-list-community";
+        public const string GeoIpRepository = "geoip";
+        public const string GeoSiteReleaseFilename = "dlc.dat";
+        public const string GeoIpReleaseFilename = "geoip.dat";
+        public const string GeoIpCnReleaseFilename = "geoip-only-cn-private.dat";
+    }
 
     public static GeoDataManager Instance { get; } = new GeoDataManager();
 
@@ -179,9 +183,9 @@ public class GeoDataManager
     {
         Assets =
         [
-            new("geosite", GeoSiteFileName, V2rayGithubOrganization, V2rayGeoSiteGithubRepository, V2rayGeoSiteGithubRepository),
-            new("geoip", GeoIpFileName, V2rayGithubOrganization, V2rayGeoIpGithubRepository, V2rayGeoIpGithubReleaseFilename),
-            new("geoip-cn", GeoIpCnFileName, V2rayGithubOrganization, V2rayGeoIpGithubRepository, V2rayGeoIpCnGithubReleaseFilename),
+            new("geosite", GeoSiteFileName, ToolGithub.Organization, ToolGithub.GeoSiteRepository, ToolGithub.GeoSiteRepository),
+            new("geoip", GeoIpFileName, ToolGithub.Organization, ToolGithub.GeoIpRepository, ToolGithub.GeoIpReleaseFilename),
+            new("geoip-cn", GeoIpCnFileName, ToolGithub.Organization, ToolGithub.GeoIpRepository, ToolGithub.GeoIpCnReleaseFilename),
         ];
     }
 
@@ -272,7 +276,7 @@ public class GeoDataManager
         {
             var archivePath = Path.Combine(tempDirectoryPath, zipFileName);
             var extractPath = Path.Combine(tempDirectoryPath, "repo");
-            GithubDownloadRepository(httpClient, V2rayGithubOrganization, V2rayGeoSiteGithubRepository, archivePath, silent);
+            GithubDownloadRepository(httpClient, ToolGithub.Organization, ToolGithub.GeoSiteRepository, archivePath, silent);
             if (!silent) { Console.WriteLine($"Extract geo data to {extractPath}."); }
             Directory.CreateDirectory(extractPath);
             Unzip(archivePath, extractPath);

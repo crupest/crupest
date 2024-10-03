@@ -1,4 +1,4 @@
-namespace Crupest.V2ray;
+namespace Crupest.SecretTool;
 
 public record ConfigItem(string Value, int LineNumber);
 
@@ -12,20 +12,24 @@ public class DictionaryConfig(string configString, List<string>? requiredKeys = 
 
         foreach (var line in lines)
         {
-            var trimmedLine = line.Trim();
-            if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith('#'))
+            var l = line;
+            var beginOfComment = l.IndexOf('#');
+            if (beginOfComment >= 0)
             {
-                lineNumber++;
-                continue;
+                l = line[..beginOfComment];
+            }
+            l = l.Trim();
+            if (!string.IsNullOrEmpty(l))
+            {
+                var equalIndex = l.IndexOf('=');
+                if (equalIndex == -1)
+                {
+                    throw new FormatException($"No '=' found in line {lineNumber}.");
+                }
+
+                config.Add(l[..equalIndex].Trim(), new ConfigItem(l[(equalIndex + 1)..].Trim(), lineNumber));
             }
 
-            var equalIndex = trimmedLine.IndexOf('=');
-            if (equalIndex == -1)
-            {
-                throw new FormatException($"No '=' found in line {lineNumber}.");
-            }
-
-            config.Add(trimmedLine[..equalIndex].Trim(), new ConfigItem(trimmedLine[(equalIndex + 1)..].Trim(), lineNumber));
             lineNumber++;
         }
 

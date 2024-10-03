@@ -1,4 +1,4 @@
-namespace Crupest.V2ray;
+namespace Crupest.SecretTool;
 
 public class FileWatcher(string directory, List<string> fileNames)
 {

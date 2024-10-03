@@ -1,10 +1,10 @@
 using System.Diagnostics;
 
-namespace Crupest.V2ray;
+namespace Crupest.SecretTool;
 
-public class V2rayController(string executablePath, string configPath, string? assetPath)
+public class Controller(string executablePath, string configPath, string? assetPath)
 {
-    public const string V2rayAssetEnvironmentVariableName = "v2ray.location.asset";
+    public const string ToolAssetEnvironmentVariableName = "v2ray.location.asset";
 
     public static string? FindExecutable(string contentDir, out bool isLocal, string? executableName = null)
     {
@@ -16,11 +16,11 @@ public class V2rayController(string executablePath, string configPath, string? a
             executableName += ".exe";
         }
 
-        var localV2rayPath = Path.Combine(contentDir, executableName);
-        if (File.Exists(localV2rayPath))
+        var localToolPath = Path.Combine(contentDir, executableName);
+        if (File.Exists(localToolPath))
         {
             isLocal = true;
-            return localV2rayPath;
+            return localToolPath;
         }
 
         var paths = Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator);
@@ -28,10 +28,10 @@ public class V2rayController(string executablePath, string configPath, string? a
         {
             foreach (var p in paths)
             {
-                var v2rayPath = Path.Combine(p, executableName);
-                if (File.Exists(v2rayPath))
+                var toolPath = Path.Combine(p, executableName);
+                if (File.Exists(toolPath))
                 {
-                    return v2rayPath;
+                    return toolPath;
                 }
             }
         }
@@ -57,7 +57,7 @@ public class V2rayController(string executablePath, string configPath, string? a
         startInfo.ArgumentList.Add(ConfigPath);
         if (AssetPath is not null)
         {
-            startInfo.EnvironmentVariables[V2rayAssetEnvironmentVariableName] = AssetPath;
+            startInfo.EnvironmentVariables[ToolAssetEnvironmentVariableName] = AssetPath;
         }
 
         process.StartInfo = startInfo;

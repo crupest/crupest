@@ -4,9 +4,9 @@ set -e
 
 if [[ -e /proc ]]; then
     # I don't believe your system is Linux but there is no /proc.
-    exec journalctl --user -u crupest-v2ray "$@"
+    exec journalctl --user -u crupest-secret-tool "$@"
 elif [[ "$(uname)" == "Darwin" ]]; then
-    exec less "$HOME/.local/state/Crupest.V2ray/log"
+    exec less "$HOME/.local/state/Crupest.SecretTool/log"
 else
     echo "Not supported on systems other than macOS and Linux now." >&2
     exit 1

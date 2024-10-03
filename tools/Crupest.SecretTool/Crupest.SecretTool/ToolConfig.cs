@@ -1,14 +1,14 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Crupest.V2ray;
+namespace Crupest.SecretTool;
 
-public interface IV2rayV4ConfigObject
+public interface IV4ConfigObject
 {
     object ToJsonObjectV4();
 }
 
-public class V2rayConfig(Template template, List<V2rayProxy> proxies, V2rayRouting router, V2rayHosts? hosts)
+public class ToolConfig(Template template, List<Proxy> proxies, Routing router, StaticHosts? hosts)
 {
     private class JsonInterfaceConverter<Interface> : JsonConverter<Interface>
     {
@@ -42,7 +42,7 @@ public class V2rayConfig(Template template, List<V2rayProxy> proxies, V2rayRouti
     private const string RoutingAnchor = "ROUTING_ANCHOR";
     private const string HostsAnchor = "HOSTS_ANCHOR";
 
-    public const string AddCnAttributeToGeositeEnvironmentVariable = "CRUPEST_V@RAY_GEOSITE_USE_CN";
+    public const string AddCnAttributeToGeositeEnvironmentVariable = "CRUPEST_V2RAY_GEOSITE_USE_CN";
 
     private static bool UseCnGeoSite => Environment.GetEnvironmentVariable(AddCnAttributeToGeositeEnvironmentVariable) switch
     {
@@ -51,9 +51,9 @@ public class V2rayConfig(Template template, List<V2rayProxy> proxies, V2rayRouti
     };
 
     public Template Template { get; set; } = template;
-    public List<V2rayProxy> Proxies { get; set; } = proxies;
-    public V2rayRouting Routing { get; set; } = router;
-    public V2rayHosts Hosts { get; set; } = hosts is null ? new V2rayHosts([]) : hosts;
+    public List<Proxy> Proxies { get; set; } = proxies;
+    public Routing Routing { get; set; } = router;
+    public StaticHosts Hosts { get; set; } = hosts is null ? new StaticHosts([]) : hosts;
 
     public string ToJsonStringV4(bool pretty = true)
     {
@@ -63,8 +63,9 @@ public class V2rayConfig(Template template, List<V2rayProxy> proxies, V2rayRouti
             DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         });
-        jsonOptions.Converters.Add(new JsonInterfaceConverter<V2rayV4ConfigJsonObjects.IOutboundSettings>());
-        jsonOptions.Converters.Add(new JsonInterfaceConverter<V2rayV4ConfigJsonObjects.IOutboundStreamSettings>());
+        // TODO: Make interface converter generic.
+        jsonOptions.Converters.Add(new JsonInterfaceConverter<V4ConfigJsonObjects.IOutboundSettings>());
+        jsonOptions.Converters.Add(new JsonInterfaceConverter<V4ConfigJsonObjects.IOutboundStreamSettings>());
 
         var templateValues = new Dictionary<string, string>
         {
@@ -89,7 +90,7 @@ public class V2rayConfig(Template template, List<V2rayProxy> proxies, V2rayRouti
         }
     }
 
-    public static V2rayConfig FromFiles(string templatePath, string vmessPath, string proxyPath, string? hostsPath)
+    public static ToolConfig FromFiles(string templatePath, string vmessPath, string proxyPath, string? hostsPath)
     {
         foreach (var path in new List<string>([templatePath, vmessPath, proxyPath]))
         {
@@ -122,12 +123,12 @@ public class V2rayConfig(Template template, List<V2rayProxy> proxies, V2rayRouti
             file = templatePath;
             var template = new Template(templateString);
             file = vmessPath;
-            var vmess = V2rayVmessProxy.CreateFromConfigString(vmessString, "proxy");
+            var vmess = VmessProxy.CreateFromConfigString(vmessString, "proxy");
             file = proxyPath;
-            var routing = proxyFile.ToV2rayRouting("proxy", UseCnGeoSite);
+            var routing = Routing.FromProxyFile(proxyFile, "proxy", UseCnGeoSite);
             file = hostsPath ?? "";
-            var hosts = hostsString is not null ? V2rayHosts.CreateFromHostMatcherConfigString(hostsString) : null;
-            return new V2rayConfig(template, [vmess], routing, hosts);
+            var hosts = hostsString is not null ? StaticHosts.CreateFromHostMatchConfigString(hostsString) : null;
+            return new ToolConfig(template, [vmess], routing, hosts);
         }
         catch (Exception e)
         {
@@ -135,7 +136,7 @@ public class V2rayConfig(Template template, List<V2rayProxy> proxies, V2rayRouti
         }
     }
 
-    public static V2rayConfig FromDirectory(string directory)
+    public static ToolConfig FromDirectory(string directory)
     {
         return FromFiles(
             Path.Join(directory, ConfigTemplateFileName),
