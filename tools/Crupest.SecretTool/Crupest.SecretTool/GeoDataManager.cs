@@ -183,7 +183,7 @@ public class GeoDataManager
     {
         Assets =
         [
-            new("geosite", GeoSiteFileName, ToolGithub.Organization, ToolGithub.GeoSiteRepository, ToolGithub.GeoSiteRepository),
+            new("geosite", GeoSiteFileName, ToolGithub.Organization, ToolGithub.GeoSiteRepository, ToolGithub.GeoSiteReleaseFilename),
             new("geoip", GeoIpFileName, ToolGithub.Organization, ToolGithub.GeoIpRepository, ToolGithub.GeoIpReleaseFilename),
             new("geoip-cn", GeoIpCnFileName, ToolGithub.Organization, ToolGithub.GeoIpRepository, ToolGithub.GeoIpCnReleaseFilename),
         ];
@@ -205,9 +205,11 @@ public class GeoDataManager
         return $"https://github.com/{user}/{repo}/releases/latest/download/{fileName}";
     }
 
-    private static void GithubDownloadRelease(HttpClient httpClient, string user, string repo, string fileName, string outputPath)
+    private static void GithubDownloadRelease(HttpClient httpClient, string user, string repo, string fileName, string outputPath, bool silent)
     {
-        using var responseStream = httpClient.GetStreamAsync(GetReleaseFileUrl(user, repo, fileName)).Result;
+        var url = GetReleaseFileUrl(user, repo, fileName);
+        if (!silent) Console.WriteLine($"Downloading {url} to {outputPath}");
+        using var responseStream = httpClient.GetStreamAsync(url).Result;
         using var outputFileStream = File.OpenWrite(outputPath);
         responseStream.CopyTo(outputFileStream);
     }
@@ -236,11 +238,20 @@ public class GeoDataManager
             {
                 Console.WriteLine($"Downloading {asset.Name}...");
             }
-            GithubDownloadRelease(httpClient, asset.GithubUser, asset.GithubRepo, asset.GithubReleaseFileName, Path.Combine(outputDir, asset.FileName));
+            GithubDownloadRelease(httpClient, asset.GithubUser, asset.GithubRepo, asset.GithubReleaseFileName, Path.Combine(outputDir, asset.FileName), silent);
             if (!silent)
             {
                 Console.WriteLine($"Downloaded {asset.Name}!");
             }
+        }
+
+        if (!File.Exists(Program.RestartLabelFilePath))
+        {
+            File.Create(Program.RestartLabelFilePath);
+        }
+        else
+        {
+            File.SetLastWriteTime(Program.RestartLabelFilePath, DateTime.Now);
         }
     }
 

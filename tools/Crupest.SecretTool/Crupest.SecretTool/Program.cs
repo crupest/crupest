@@ -15,6 +15,9 @@ public static class Program
     private const string SurgeRuleSetChinaOutputFileName = "ChinaRuleSet.txt";
     private const string SurgeRuleSetGlobalOutputFileName = "GlobalRuleSet.txt";
 
+    public const string RestartLabelFileName = "restart.label";
+    public static string RestartLabelFilePath { get; } = Path.Combine(CrupestSecretToolDirectory, RestartLabelFileName);
+
     public static void RunToolAndWatchConfigChange()
     {
         var executablePath = Controller.FindExecutable(CrupestSecretToolDirectory, out var isLocal) ??
@@ -42,7 +45,8 @@ public static class Program
         }
 
         var controller = new Controller(executablePath, Path.Combine(CrupestSecretToolDirectory, ConfigOutputFileName), assetsPath);
-        var configFileWatcher = new FileWatcher(CrupestSecretToolDirectory, ToolConfig.ConfigFileNames);
+        var configFileWatcher = new FileWatcher(CrupestSecretToolDirectory,
+            [.. ToolConfig.ConfigFileNames, RestartLabelFileName]);
 
         ToolConfig.FromDirectoryAndWriteToFile(CrupestSecretToolDirectory, Path.Join(CrupestSecretToolDirectory, ConfigOutputFileName));
         controller.Start();

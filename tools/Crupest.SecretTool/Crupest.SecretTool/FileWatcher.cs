@@ -19,7 +19,7 @@ public class FileWatcher(string directory, List<string> fileNames)
 
         while (true)
         {
-            var result = sourceWatcher.WaitForChanged(WatcherChangeTypes.Changed);
+            var result = sourceWatcher.WaitForChanged(WatcherChangeTypes.Changed | WatcherChangeTypes.Created);
             OnChanged?.Invoke();
         }
     }
