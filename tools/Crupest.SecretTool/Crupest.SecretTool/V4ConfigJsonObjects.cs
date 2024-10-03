@@ -1,6 +1,6 @@
-namespace Crupest.V2ray;
+namespace Crupest.SecretTool;
 
-public static class V2rayV4ConfigJsonObjects
+public static class V4ConfigJsonObjects
 {
     public interface IObject;
     public interface IOutboundSettings : IObject;

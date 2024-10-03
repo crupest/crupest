@@ -34,7 +34,7 @@ echo "Enter \"secret\" dir..."
 pushd "$secret_dir"
 
 echo "Begin to build..."
-dotnet publish Crupest.V2ray -c Release -o "$secret_dir/publish" --sc -r "$1"
+dotnet publish Crupest.SecretTool -c Release -o "$secret_dir/publish" --sc -r "$1"
 
 popd
 

@@ -1,6 +1,6 @@
-namespace Crupest.V2ray;
+namespace Crupest.SecretTool;
 
-public static class V2rayV5ConfigJsonObjects
+public static class V5ConfigJsonObjects
 {
     public record OutboundObject(string Protocol, object Settings, string Tag, object? StreamSettings)
     {

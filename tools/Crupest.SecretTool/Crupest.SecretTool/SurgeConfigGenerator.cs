@@ -1,44 +1,44 @@
-namespace Crupest.V2ray;
+namespace Crupest.SecretTool;
 
 public class SurgeConfigGenerator(ProxyFile proxyFile, GeoSiteData geoSiteData)
 {
     public ProxyFile ProxyFile { get; } = proxyFile;
     public GeoSiteData GeoSiteData { get; } = geoSiteData;
 
-    private static string ToSurgeRuleString(V2rayHostMatcherKind kind, string value)
+    private static string ToSurgeRuleString(HostMatchKind kind, string value)
     {
         var ruleType = kind switch
         {
-            V2rayHostMatcherKind.DomainFull => "DOMAIN",
-            V2rayHostMatcherKind.DomainSuffix => "DOMAIN-SUFFIX",
-            V2rayHostMatcherKind.DomainKeyword => "DOMAIN-KEYWORD",
-            V2rayHostMatcherKind.DomainRegex => "URL-REGEX",
+            HostMatchKind.DomainFull => "DOMAIN",
+            HostMatchKind.DomainSuffix => "DOMAIN-SUFFIX",
+            HostMatchKind.DomainKeyword => "DOMAIN-KEYWORD",
+            HostMatchKind.DomainRegex => "URL-REGEX",
             _ => throw new Exception("Unacceptable matcher kind for Surge rule.")
         };
 
         return $"{ruleType},{value}";
     }
 
-    private static List<V2rayHostMatcherKind> DomainMatcherKinds { get; } = [
-        V2rayHostMatcherKind.DomainFull, V2rayHostMatcherKind.DomainKeyword,
-        V2rayHostMatcherKind.DomainRegex, V2rayHostMatcherKind.DomainSuffix,
+    private static List<HostMatchKind> DomainMatcherKinds { get; } = [
+        HostMatchKind.DomainFull, HostMatchKind.DomainKeyword,
+        HostMatchKind.DomainRegex, HostMatchKind.DomainSuffix,
     ];
 
     public string GenerateChinaRuleSet()
     {
-        var geoSites = ProxyFile.MatcherConfig.Items.Where(i => i.Kind == V2rayHostMatcherKind.GeoSite).Select(i => i.Matcher).ToList();
+        var geoSites = ProxyFile.Config.Items.Where(i => i.Kind == HostMatchKind.GeoSite).Select(i => i.MatchString).ToList();
         var cnRules = GeoSiteData.GetEntriesRecursive(geoSites, DomainMatcherKinds, ["cn"]).ToList();
         return string.Join('\n', cnRules.Select(r => ToSurgeRuleString(r.Kind, r.Value)));
     }
 
     public string GenerateGlobalRuleSet()
     {
-        var geoSites = ProxyFile.MatcherConfig.Items.Where(i => i.Kind == V2rayHostMatcherKind.GeoSite).Select(i => i.Matcher).ToList();
+        var geoSites = ProxyFile.Config.Items.Where(i => i.Kind == HostMatchKind.GeoSite).Select(i => i.MatchString).ToList();
         var nonCnRules = GeoSiteData.GetEntriesRecursive(geoSites, DomainMatcherKinds).Where(e => !e.Attributes.Contains("cn")).ToList();
-        var domainRules = ProxyFile.MatcherConfig.Items.Where(i => DomainMatcherKinds.Contains(i.Kind)).ToList();
+        var domainRules = ProxyFile.Config.Items.Where(i => DomainMatcherKinds.Contains(i.Kind)).ToList();
         return string.Join('\n', [
             ..nonCnRules.Select(r => ToSurgeRuleString(r.Kind, r.Value)),
-            ..domainRules.Select(r => ToSurgeRuleString(r.Kind, r.Matcher))
+            ..domainRules.Select(r => ToSurgeRuleString(r.Kind, r.MatchString))
         ]);
     }
 

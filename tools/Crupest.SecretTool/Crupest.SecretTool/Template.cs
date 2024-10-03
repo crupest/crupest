@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
-namespace Crupest.V2ray;
+namespace Crupest.SecretTool;
 
 public class Template
 {

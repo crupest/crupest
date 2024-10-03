@@ -2,7 +2,7 @@
 
 set -e
 
-p="$HOME/codes/crupest/tools/Crupest.V2ray/publish/proxy.txt"
+p="$HOME/codes/crupest/tools/Crupest.SecretTool/publish/proxy.txt"
 
 if [[ ! -f "$p" ]]; then
     echo "File $p does not exist!" >&2
