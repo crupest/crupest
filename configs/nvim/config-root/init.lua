@@ -59,3 +59,6 @@ vim.cmd("colorscheme catppuccin-macchiato")
 require("crupest.nvim.lsp").setup()
 require("crupest.nvim.plugins").setup()
 require("crupest.nvim.keymap").setup()
+
+vim.cmd("autocmd FileType gitcommit,gitrebase,gitconfig set bufhidden=delete")
+
