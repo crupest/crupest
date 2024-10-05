@@ -9,20 +9,20 @@ MY_NEOVIM_PATH="$HOME/codes/neovim/build/bin/nvim"
 if [[ -e "$MY_NEOVIM_PATH" ]]; then
   echo "Found my neovim at $MY_NEOVIM_PATH"
   export VIMRUNTIME="$HOME/codes/neovim/runtime"
-  args=("${args[@]}" --neovim-bin "$MY_NEOVIM_PATH")
+  args=("${args[@]}" "--neovim-bin" "$MY_NEOVIM_PATH")
 fi
 
 listen_added=0
 for arg in "$@"; do
   args=("${args[@]}" "$arg")
   if [ "$arg" = '--' ]; then
-    args=("${args[@]}" --listen "$NVIM_SOCKET")
+    args=("${args[@]}" "--listen" "$NVIM_SOCKET")
     listen_added=1
   fi
 done
 
 if [[ $listen_added = 0 ]]; then
-  args=("${args[@]}" -- --listen "$NVIM_SOCKET")
+  args=("${args[@]}" "--" "--listen" "$NVIM_SOCKET")
 fi
 
 NEOVIDE_BIN=neovide
@@ -32,7 +32,12 @@ if [ -e "$MY_NEOVIDE_PATH" ]; then
   NEOVIDE_BIN="$MY_NEOVIDE_PATH"
 fi
 
+if which nvr > /dev/null; then
+  echo "Detected nvr, set git editor env"
+  export GIT_EDITOR='nvr -cc split --remote-wait'
+fi
+
 args=("$NEOVIDE_BIN" "${args[@]}")
 echo "Command is ${args[@]}"
-"${args[@]}"
+exec "${args[@]}"
 
