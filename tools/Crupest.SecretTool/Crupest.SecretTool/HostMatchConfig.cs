@@ -48,9 +48,10 @@ public class HostMatchConfig(string configString, List<HostMatchKind> allowedMat
             foreach (var matchKind in Enum.GetValues<HostMatchKind>())
             {
                 var matchKindName = Enum.GetName(matchKind) ?? throw new Exception("No such match kind.");
-                hasExplicitMatchKind = true;
                 if (segments[0] == matchKindName)
                 {
+                    hasExplicitMatchKind = true;
+
                     if (segments.Count < 2)
                     {
                         throw new FormatException($"Explicit match item needs a value in line {lineNumber}.");
