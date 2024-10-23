@@ -48,7 +48,7 @@ public class VmessProxy(string host, int port, string userId, string path, strin
     public override SingConfigJsonObjects.OutboundBase ToJsonObjectSing()
     {
         return new SingConfigJsonObjects.VmessOutbound(Tag, Host, Port, UserId,
-            Transport: new SingConfigJsonObjects.V2rayWebsocketTransport(Path),
+            Transport: new SingConfigJsonObjects.V2rayWebsocketTransport(Path, new Dictionary<string, string> { { "Host", Host } }),
             Tls: new SingConfigJsonObjects.OutboundTls(true));
     }
 

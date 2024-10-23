@@ -23,31 +23,21 @@
         "tag": "google",
         "address": "8.8.8.8"
       }
-
     ]
   },
-  "inbounds": [
-    {
-        "tag": "http-in",
-        "type": "http",
-        "listen": "127.0.0.1",
-        "listen_port": 3080
-    },
-    {
-        "tag": "socks-in",
-        "type": "socks",
-        "listen": "127.0.0.1",
-        "listen_port": 3081
-    }
-  ],
+  "inbounds": ${INBOUNDS_ANCHOR},
   "outbounds": [
     {
       "type": "direct",
-      "tag": "direct"
+      "tag": "direct-out"
     },
     {
       "type": "block",
-      "tag": "block"
+      "tag": "block-out"
+    },
+    {
+      "tag": "dns-out",
+      "type": "dns"
     },
     ${PROXY_ANCHOR}
   ],

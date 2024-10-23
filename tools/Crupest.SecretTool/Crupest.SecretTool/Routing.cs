@@ -108,7 +108,7 @@ public record Routing(List<RoutingRule> Rules) : IV4ConfigObject, ISingConfigObj
 
     public SingConfigJsonObjects.Route ToJsonObjectSing()
     {
-        List<SingConfigJsonObjects.RouteRule> ruleJsonObjects = [];
+        List<SingConfigJsonObjects.RouteRule> ruleJsonObjects = [ new SingConfigJsonObjects.RouteRule(Outbound: "dns-out", Protocol: "dns")];
         ruleJsonObjects.AddRange(RoutingRule.GroupByOutboundTag(Rules).Values.Select(RoutingRule.ListToJsonObjectSing));
         return new SingConfigJsonObjects.Route(ruleJsonObjects);
     }

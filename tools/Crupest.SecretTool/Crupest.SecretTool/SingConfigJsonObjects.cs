@@ -12,7 +12,7 @@ public static class SingConfigJsonObjects
         V2rayTransportBase? Transport = null, OutboundTls? Tls = null): OutboundBase(Tag, "vmess");
 
     public record RouteRule(List<string>? Domain = null, List<string>? DomainSuffix = null, List<string>? DomainKeyword = null,
-        List<string>? DomainRegex = null, List<string>? IpCidr = null, List<string>? SourceIpCidr = null,
+        List<string>? DomainRegex = null, List<string>? IpCidr = null, List<string>? SourceIpCidr = null, string? Protocol = null,
          List<int>? Port = null, List<int>? SourcePort = null, List<string>? PortRange = null, List<string>? SourcePortRange = null,
          string? Network = null, List<string>? Inbound = null, string? Outbound = null) : IObject;
 
