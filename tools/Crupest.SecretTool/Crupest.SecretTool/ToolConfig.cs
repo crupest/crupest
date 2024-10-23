@@ -8,6 +8,11 @@ public interface IV4ConfigObject
     object ToJsonObjectV4();
 }
 
+public interface ISingConfigObject
+{
+    object ToJsonObjectSing();
+}
+
 public class ToolConfig(Template template, List<Proxy> proxies, Routing router, StaticHosts? hosts)
 {
     private class JsonInterfaceConverter<Interface> : JsonConverter<Interface>
@@ -35,11 +40,14 @@ public class ToolConfig(Template template, List<Proxy> proxies, Routing router, 
     public const string ProxyConfigFileName = "proxy.txt";
     public const string HostsConfigFileName = "hosts.txt";
 
+    public const string SingConfigTemplateFileName = "sing-config.json.template";
+
     public static List<string> RequiredConfigFileNames { get; } = [ConfigTemplateFileName, VmessConfigFileName, ProxyConfigFileName];
     public static List<string> ConfigFileNames { get; } = [ConfigTemplateFileName, VmessConfigFileName, ProxyConfigFileName, HostsConfigFileName];
 
     private const string ProxyAnchor = "PROXY_ANCHOR";
     private const string RoutingAnchor = "ROUTING_ANCHOR";
+    private const string SingRouteAnchor = "ROUTE_ANCHOR";
     private const string HostsAnchor = "HOSTS_ANCHOR";
 
     public const string AddCnAttributeToGeositeEnvironmentVariable = "CRUPEST_V2RAY_GEOSITE_USE_CN";
@@ -55,7 +63,41 @@ public class ToolConfig(Template template, List<Proxy> proxies, Routing router, 
     public Routing Routing { get; set; } = router;
     public StaticHosts Hosts { get; set; } = hosts is null ? new StaticHosts([]) : hosts;
 
-    public string ToJsonStringV4(bool pretty = true)
+    public string ToSingConfigString(bool pretty = true)
+    {
+        var jsonOptions = new JsonSerializerOptions(new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            DictionaryKeyPolicy = JsonNamingPolicy.SnakeCaseLower,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        });
+        // TODO: Make interface converter generic.
+        jsonOptions.Converters.Add(new JsonInterfaceConverter<SingConfigJsonObjects.OutboundBase>());
+        jsonOptions.Converters.Add(new JsonInterfaceConverter<SingConfigJsonObjects.V2rayTransportBase>());
+
+        var templateValues = new Dictionary<string, string>
+        {
+            [ProxyAnchor] = string.Join(',', Proxies.Select(p => JsonSerializer.Serialize(p.ToJsonObjectSing(), jsonOptions))),
+            [SingRouteAnchor] = JsonSerializer.Serialize(Routing.ToJsonObjectSing(), jsonOptions),
+        };
+
+        var configString = Template.Generate(templateValues);
+
+        if (pretty)
+        {
+            var jsonOptionsPretty = new JsonSerializerOptions(jsonOptions)
+            {
+                WriteIndented = true,
+            };
+            return JsonSerializer.Serialize(JsonSerializer.Deserialize<object>(configString, jsonOptionsPretty), jsonOptionsPretty);
+        }
+        else
+        {
+            return configString;
+        }
+    }
+
+    public string ToJsonStringV4(string domainStrategy = "IpOnDemand", bool directGeositeCn = true, bool pretty = true)
     {
         var jsonOptions = new JsonSerializerOptions(new JsonSerializerOptions
         {
@@ -70,7 +112,7 @@ public class ToolConfig(Template template, List<Proxy> proxies, Routing router, 
         var templateValues = new Dictionary<string, string>
         {
             [ProxyAnchor] = string.Join(',', Proxies.Select(p => JsonSerializer.Serialize(p.ToJsonObjectV4(), jsonOptions))),
-            [RoutingAnchor] = JsonSerializer.Serialize(Routing.ToJsonObjectV4(), jsonOptions),
+            [RoutingAnchor] = JsonSerializer.Serialize(Routing.ToJsonObjectV4(domainStrategy, directGeositeCn), jsonOptions),
             [HostsAnchor] = JsonSerializer.Serialize(Hosts.ToJsonObjectV4(), jsonOptions),
         };
 
@@ -125,10 +167,54 @@ public class ToolConfig(Template template, List<Proxy> proxies, Routing router, 
             file = vmessPath;
             var vmess = VmessProxy.CreateFromConfigString(vmessString, "proxy");
             file = proxyPath;
-            var routing = Routing.FromProxyFile(proxyFile, "proxy", UseCnGeoSite);
+            var routing = Routing.FromProxyFile(proxyFile, "proxy");
             file = hostsPath ?? "";
             var hosts = hostsString is not null ? StaticHosts.CreateFromHostMatchConfigString(hostsString) : null;
             return new ToolConfig(template, [vmess], routing, hosts);
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Error parsing config file {file}.", e);
+        }
+    }
+
+    public static ToolConfig FromFilesForSing(string templatePath, string vmessPath, string proxyPath, bool clean, bool silent)
+    {
+        foreach (var path in new List<string>([templatePath, vmessPath, proxyPath]))
+        {
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException($"Required config file not found: {path}.");
+            }
+        }
+
+        var geoSiteData = GeoDataManager.Instance.GetOrCreateGeoSiteData(clean, silent);
+
+        ProxyFile proxyFile = new(proxyPath);
+        string templateString, vmessString;
+
+        string file = "";
+        try
+        {
+            file = templatePath;
+            templateString = File.ReadAllText(templatePath);
+            file = vmessPath;
+            vmessString = File.ReadAllText(vmessPath);
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Error reading config file {file}.", e);
+        }
+
+        try
+        {
+            file = templatePath;
+            var template = new Template(templateString);
+            file = vmessPath;
+            var vmess = VmessProxy.CreateFromConfigString(vmessString, "proxy");
+            file = proxyPath;
+            var routing = Routing.FromProxyFileForSing(proxyFile, geoSiteData, "proxy", "direct");
+            return new ToolConfig(template, [vmess], routing, null);
         }
         catch (Exception e)
         {
@@ -143,6 +229,16 @@ public class ToolConfig(Template template, List<Proxy> proxies, Routing router, 
             Path.Join(directory, VmessConfigFileName),
             Path.Join(directory, ProxyConfigFileName),
             Path.Join(directory, HostsConfigFileName)
+        );
+    }
+
+    public static ToolConfig FromDirectoryForSing(string directory, bool clean, bool silent)
+    {
+        return FromFilesForSing(
+            Path.Join(directory, SingConfigTemplateFileName),
+            Path.Join(directory, VmessConfigFileName),
+            Path.Join(directory, ProxyConfigFileName),
+            clean, silent
         );
     }
 

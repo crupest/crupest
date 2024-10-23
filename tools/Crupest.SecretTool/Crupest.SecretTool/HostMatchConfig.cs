@@ -27,6 +27,10 @@ public static class HostMatchKindExtensions
     public static List<HostMatchKind> DomainMatchKinds { get; } = [HostMatchKind.DomainFull, HostMatchKind.DomainSuffix, HostMatchKind.DomainKeyword, HostMatchKind.DomainRegex];
 
     public static List<HostMatchKind> NonRegexDomainMatchKinds { get; } = [HostMatchKind.DomainFull, HostMatchKind.DomainSuffix, HostMatchKind.DomainKeyword];
+
+    public static List<HostMatchKind> SupportedInSingRouteMatchKinds { get; } = [..DomainMatchKinds, HostMatchKind.Ip];
+
+    public static bool IsSupportedInSingRoute(this HostMatchKind kind) => SupportedInSingRouteMatchKinds.Contains(kind);
 }
 
 public record HostMatchConfigItem(HostMatchKind Kind, string MatchString, List<string> Values);
@@ -116,9 +120,4 @@ public class HostMatchConfigFile
     public string Path { get; }
     public string FileContent { get; }
     public HostMatchConfig Config { get; }
-}
-
-public class ProxyFile(string path) :
-    HostMatchConfigFile(path, [.. Enum.GetValues<HostMatchKind>()], maxComponentCount: 0)
-{
 }

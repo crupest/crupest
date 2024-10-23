@@ -16,6 +16,8 @@ public record GeoSiteIncludeEntry(string Value, string ContainingSite) : IGeoSit
 public record GeoSiteRuleEntry(HostMatchKind Kind, string Value, List<string> Attributes, string ContainingSite) : IGeoSiteEntry
 {
     public bool IsInclude => false;
+
+    public RoutingRuleMatcher GetRoutingRuleMatcher() => new(Kind, Value);
 }
 
 public record GeoSite(string Name, List<IGeoSiteEntry> Entries)

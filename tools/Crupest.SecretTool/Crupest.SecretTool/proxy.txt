@@ -1,20 +1,21 @@
-GeoSite github
+GeoSite microsoft
 GeoSite google
 GeoSite youtube
-GeoSite twitter
+GeoSite x
 GeoSite facebook
 GeoSite discord
 GeoSite reddit
 GeoSite twitch
-GeoSite onedrive
 GeoSite quora
 GeoSite telegram
 GeoSite imgur
 GeoSite stackexchange
+GeoSite medium
 
 GeoSite duckduckgo
 GeoSite wikimedia
 GeoSite gitbook
+GeoSite github
 GeoSite gitlab
 GeoSite sourceforge
 GeoSite creativecommons
@@ -33,6 +34,8 @@ GeoSite v2ray
 GeoSite homebrew
 
 GeoSite azure
+GeoSite akamai
+GeoSite aws
 GeoSite jsdelivr
 GeoSite fastly
 GeoSite heroku
@@ -43,3 +46,5 @@ GeoSite ieee
 GeoSite sci-hub
 GeoSite libgen
 GeoSite z-library
+
+sagernet.org

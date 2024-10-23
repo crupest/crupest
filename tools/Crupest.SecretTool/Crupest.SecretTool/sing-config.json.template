@@ -1,0 +1,55 @@
+{
+  "log": {
+    "disabled": false,
+    "level": "info",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "tag": "ali-doh",
+        "address": "https://dns.alidns.com/dns-query",
+        "address_resolver": "ali"
+      },
+      {
+        "tag": "ali",
+        "address": "223.5.5.5"
+      },
+      {
+        "tag": "cloudflare",
+        "address": "1.1.1.1"
+      },
+      {
+        "tag": "google",
+        "address": "8.8.8.8"
+      }
+
+    ]
+  },
+  "inbounds": [
+    {
+        "tag": "http-in",
+        "type": "http",
+        "listen": "127.0.0.1",
+        "listen_port": 3080
+    },
+    {
+        "tag": "socks-in",
+        "type": "socks",
+        "listen": "127.0.0.1",
+        "listen_port": 3081
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    },
+    ${PROXY_ANCHOR}
+  ],
+  "route": ${ROUTE_ANCHOR}
+}

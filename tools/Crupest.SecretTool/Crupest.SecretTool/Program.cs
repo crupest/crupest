@@ -74,14 +74,20 @@ public static class Program
                 GeoDataManager.Instance.Download(CrupestSecretToolDirectory, false);
                 return;
             }
-            else if (verb == "generate-surge-rule-set" || verb == "gs")
+            else if (verb == "generate-surge-rule-set" || verb == "gsr")
             {
                 SurgeConfigGenerator.GenerateTo(
-                    Path.Join(CrupestSecretToolDirectory, "proxy.txt"),
+                    CrupestSecretToolDirectory,
                     Path.Join(CrupestSecretToolDirectory, SurgeRuleSetChinaOutputFileName),
                     Path.Join(CrupestSecretToolDirectory, SurgeRuleSetGlobalOutputFileName),
-                    true, false
+                    true, true
                 );
+                return;
+            }
+            else if (verb == "generate-sing-config" || verb == "gs")
+            {
+                var config = ToolConfig.FromDirectoryForSing(CrupestSecretToolDirectory, true, true);
+                Console.Out.WriteLine(config.ToSingConfigString());
                 return;
             }
             else if (verb == "generate" || verb == "g")
