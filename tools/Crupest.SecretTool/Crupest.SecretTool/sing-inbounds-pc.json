@@ -1,0 +1,14 @@
+[
+  {
+    "tag": "http-in",
+    "type": "http",
+    "listen": "127.0.0.1",
+    "listen_port": 3080
+  },
+  {
+    "tag": "socks-in",
+    "type": "socks",
+    "listen": "127.0.0.1",
+    "listen_port": 3081
+  }
+]

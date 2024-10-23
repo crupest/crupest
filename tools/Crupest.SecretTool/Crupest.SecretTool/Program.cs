@@ -64,18 +64,22 @@ public static class Program
     {
         if (args.Length != 0)
         {
-            if (args.Length != 1)
-            {
-                throw new Exception("Invalid command line arguments.");
-            }
             var verb = args[0].ToLower();
             if (verb == "download-geodata" || verb == "dg")
             {
+                if (args.Length != 1)
+                {
+                    throw new Exception("Invalid command line arguments. download-geodata requires no arguments.");
+                }
                 GeoDataManager.Instance.Download(CrupestSecretToolDirectory, false);
                 return;
             }
             else if (verb == "generate-surge-rule-set" || verb == "gsr")
             {
+                                if (args.Length != 1)
+                {
+                    throw new Exception("Invalid command line arguments. download-geodata requires no arguments.");
+                }
                 SurgeConfigGenerator.GenerateTo(
                     CrupestSecretToolDirectory,
                     Path.Join(CrupestSecretToolDirectory, SurgeRuleSetChinaOutputFileName),
@@ -86,7 +90,12 @@ public static class Program
             }
             else if (verb == "generate-sing-config" || verb == "gs")
             {
-                var config = ToolConfig.FromDirectoryForSing(CrupestSecretToolDirectory, true, true);
+                if (args.Length != 2 || args[1].ToLower() is not ("pc" or "mobile"))
+                {
+                    throw new Exception("Invalid command line arguments. generate-sing-config requires 1 argument. The argument must be either 'pc' or 'mobile'.");
+                }
+                
+                var config = SingToolConfig.FromDirectory(CrupestSecretToolDirectory, args[1].ToLower() == "mobile", true, true);
                 Console.Out.WriteLine(config.ToSingConfigString());
                 return;
             }
