@@ -1,14 +1,20 @@
 namespace Crupest.SecretTool;
 
-public abstract class Proxy(string tag) : IV4ConfigObject
+public abstract class Proxy(string tag) : IV4ConfigObject, ISingConfigObject
 {
     public string Tag { get; set; } = tag;
 
     public abstract V4ConfigJsonObjects.Outbound ToJsonObjectV4();
+    public abstract SingConfigJsonObjects.OutboundBase ToJsonObjectSing();
 
     object IV4ConfigObject.ToJsonObjectV4()
     {
         return ToJsonObjectV4();
+    }
+
+    object ISingConfigObject.ToJsonObjectSing()
+    {
+        return ToJsonObjectSing();
     }
 }
 
@@ -16,6 +22,11 @@ public class HttpProxy(string host, int port, string tag) : Proxy(tag)
 {
     public string Host { get; set; } = host;
     public int Port { get; set; } = port;
+
+    public override SingConfigJsonObjects.OutboundBase ToJsonObjectSing()
+    {
+        throw new NotImplementedException("Http proxy is not supported in sing now.");
+    }
 
     public override V4ConfigJsonObjects.Outbound ToJsonObjectV4()
     {
@@ -33,6 +44,13 @@ public class VmessProxy(string host, int port, string userId, string path, strin
     public int Port { get; set; } = port;
     public string Path { get; set; } = path;
     public string UserId { get; set; } = userId;
+
+    public override SingConfigJsonObjects.OutboundBase ToJsonObjectSing()
+    {
+        return new SingConfigJsonObjects.VmessOutbound(Tag, Host, Port, UserId,
+            Transport: new SingConfigJsonObjects.V2rayWebsocketTransport(Path),
+            Tls: new SingConfigJsonObjects.OutboundTls(true));
+    }
 
     public override V4ConfigJsonObjects.Outbound ToJsonObjectV4()
     {
