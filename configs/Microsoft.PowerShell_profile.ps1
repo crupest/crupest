@@ -1,6 +1,3 @@
-Import-Module posh-git
-Import-Module "$env:VCPKG_INSTALLATION_ROOT\scripts\posh-vcpkg"
-
 function Use-VC {
     param(
         [Parameter()]
@@ -28,8 +25,8 @@ function Use-VC {
 
 
 function Set-Proxy {
-    $env:http_proxy = "http://localhost:2080"
-    $env:https_proxy = "http://localhost:2080"
+    $env:http_proxy = "http://127.0.0.1:2080"
+    $env:https_proxy = "http://127.0.0.1:2080"
 }
 
 function Reset-Proxy {
