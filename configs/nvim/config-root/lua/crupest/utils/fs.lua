@@ -1,3 +1,5 @@
+local is_win = vim.fn.has("win32") ~= 0
+
 local function clean_path(path)
     if path == "/" then return path end
     path = string.gsub(path, "[/\\]+", "/")
@@ -8,6 +10,7 @@ local function clean_path(path)
 end
 
 local function full_path(name)
+    if is_win and string.match(name, "^[a-zA-Z]:[/\\]?$") then return clean_path(name) end
     local path = vim.fn.fnamemodify(name, ":p")
     return clean_path(path)
 end
