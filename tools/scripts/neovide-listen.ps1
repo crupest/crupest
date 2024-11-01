@@ -2,6 +2,13 @@ $env:NVIM_LISTEN_ADDRESS ??= "\\.\pipe\nvimsocket"
 
 $neovide_args = @()
 
+$MY_NEOVIM_PATH="$HOME/codes/neovim/build/bin/nvim.exe"
+if (Get-Item $MY_NEOVIM_PATH -ErrorAction Ignore) {
+    Write-Output "Found my neovim at $MY_NEOVIM_PATH."
+    $env:VIMRUNTIME="$HOME/codes/neovim/runtime"
+    $neovide_args += "--neovim-bin", "$MY_NEOVIM_PATH"
+}
+
 $listen_added = $false
 foreach ($arg in $args) {
     $neovide_args += $arg
