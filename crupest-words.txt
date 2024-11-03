@@ -2,6 +2,7 @@ crupest
 
 # software
 forgejo
+sypht
 
 # secret
 vnext
