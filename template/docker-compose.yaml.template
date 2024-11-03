@@ -42,6 +42,7 @@ services:
       - "./data/certbot/certs:/etc/letsencrypt:ro"
       - "./data/certbot/webroot:/srv/acme:ro"
       - "blog-public:/srv/blog:ro"
+      - "roundcubemail-www:/srv/roundcubemail:ro"
 
   crupest-api:
     pull_policy: build
@@ -176,6 +177,26 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
 
+  roundcubemail:
+    image: roundcube/roundcubemail:latest
+    container_name: roundcubemail
+    restart: on-failure:3
+    volumes:
+      - roundcubemail-www:/var/www/html
+      - ./data/roundcube/config:/var/roundcube/config
+      - ./data/roundcube/db:/var/roundcube/db
+      - rountcubemail-temp:/tmp/roundcube-temp
+    ports:
+      - 9002:80
+    environment:
+      - ROUNDCUBEMAIL_DEFAULT_HOST=ssl://mail.crupest.life
+      - ROUNDCUBEMAIL_DEFAULT_PORT=993
+      - ROUNDCUBEMAIL_SMTP_SERVER=ssl://mail.crupest.life
+      - ROUNDCUBEMAIL_SMTP_PORT=465
+      - ROUNDCUBEMAIL_DB_TYPE=sqlite
+
 volumes:
   blog-public:
   debian-dev-home:
+  roundcubemail-www:
+  rountcubemail-temp:
