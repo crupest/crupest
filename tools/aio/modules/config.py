@@ -57,14 +57,16 @@ config_var_list: list = [
               "v2ray path, which will be prefixed by _", generate_uuid),
     ConfigVar("CRUPEST_FORGEJO_SECURITY_KEY",
               "Forgejo secret key.", generate_uuid),
+    ConfigVar("CRUPEST_FORGEJO_SECURITY_INTERNAL_TOKEN",
+              "Forgejo secret internal token.", generate_uuid),
+    ConfigVar("CRUPEST_FORGEJO_LFS_JWT_SECRET",
+              "Forgejo LFS JWT secret.", generate_uuid),
+    ConfigVar("CRUPEST_FORGEJO_OAUTH2_JWT_SECRET",
+              "Forgejo OAUTH2 JWT secret..", generate_uuid),
     ConfigVar("CRUPEST_FORGEJO_MAILER_USER",
               "Forgejo SMTP user.", "Please input your Forgejo SMTP user."),
     ConfigVar("CRUPEST_FORGEJO_MAILER_PASSWD",
               "Forgejo SMTP password.", "Please input your Forgejo SMTP password."),
-    ConfigVar("CRUPEST_FORGEJO_EMAIL_INCOMING_USER",
-              "Forgejo IMAP user.", "Please input your Forgejo IMAP user."),
-    ConfigVar("CRUPEST_FORGEJO_EMAIL_INCOMING_PASSWORD",
-              "Forgejo IMAP password.", "Please input your Forgejo IMAP password."),
 ]
 
 config_var_name_set = set([config_var.name for config_var in config_var_list])
