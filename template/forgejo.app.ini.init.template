@@ -1,3 +1,6 @@
+# Copy this file to ./data/forgejo/gitea/conf/app.ini
+# TODO: Copy this to data directory automatically.
+
 APP_NAME = Forgejo, loved by crupest.
 RUN_MODE = prod
 WORK_PATH = /data/gitea
@@ -8,15 +11,12 @@ HTTP_PORT        = 3000
 ROOT_URL         = https://git.${CRUPEST_DOMAIN}
 DISABLE_SSH      = true
 LFS_START_SERVER = true
-LFS_JWT_SECRET_URI = file:/data/forgejo-secret/lfs_jwt_secret
 
 [database]
 DB_TYPE = sqlite3
 
 [security]
 INSTALL_LOCK = false
-SECRET_KEY_URI = file:/data/forgejo-secret/secret_key
-INTERNAL_TOKEN_URI = file:/data/forgejo-secret/internal_token
 REVERSE_PROXY_LIMIT = 1
 REVERSE_PROXY_TRUSTED_PROXIES = *
 
@@ -37,9 +37,6 @@ MODE = console,file
 
 [cron]
 ENABLED = true
-
-[oauth2]
-JWT_SECRET_URI = file:/data/forgejo-secret/oauth2_jwt_secret
 
 [actions]
 ENABLED = false
