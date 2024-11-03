@@ -17,6 +17,11 @@
             "upstream": "forgejo:3000"
         },
         {
+            "type": "reverse-proxy",
+            "subdomain": "mail",
+            "upstream": "roundcubemail:80"
+        },
+        {
             "type": "static-file",
             "subdomain": "blog",
             "root": "/srv/blog"
@@ -25,6 +30,10 @@
             "type": "redirect",
             "subdomain": "github",
             "url": "https://github.com/crupest"
+        },
+        {
+            "type": "cert-only",
+            "subdomain": "mail"
         }
     ]
 }
