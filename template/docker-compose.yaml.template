@@ -163,6 +163,20 @@ services:
       - ./data/debian-dev:/data
       - debian-dev-home:/home/crupest
 
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:9
+    pull_policy: always
+    container_name: forgejo
+    restart: on-failure:3
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+    volumes:
+      - ./forgejo.app.ini:/data/gitea/conf/app.ini
+      - ./data/forgejo:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
 volumes:
   blog-public:
   debian-dev-home:

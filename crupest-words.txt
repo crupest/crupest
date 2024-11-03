@@ -1,5 +1,8 @@
 crupest
 
+# software
+forgejo
+
 # secret
 vnext
 vmess
