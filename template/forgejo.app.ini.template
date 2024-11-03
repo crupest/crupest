@@ -6,7 +6,6 @@ WORK_PATH = /data/gitea
 HTTP_ADDR        = 0.0.0.0
 HTTP_PORT        = 3000
 ROOT_URL         = https://git.${CRUPEST_DOMAIN}
-USE_PROXY_PROTOCOL = true
 DISABLE_SSH      = true
 LFS_START_SERVER = true
 LFS_JWT_SECRET = ${CRUPEST_FORGEJO_LFS_JWT_SECRET}
