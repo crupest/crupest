@@ -172,7 +172,6 @@ services:
       - USER_UID=1000
       - USER_GID=1000
     volumes:
-      - ./forgejo.app.ini:/data/gitea/conf/app.ini
       - ./data/forgejo:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
