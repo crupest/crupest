@@ -12,6 +12,11 @@
             "upstream": "debian-dev:8080"
         },
         {
+            "type": "reverse-proxy",
+            "subdomain": "git",
+            "upstream": "forgejo:3000"
+        },
+        {
             "type": "static-file",
             "subdomain": "blog",
             "root": "/srv/blog"

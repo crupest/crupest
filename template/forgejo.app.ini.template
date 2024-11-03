@@ -1,0 +1,53 @@
+APP_NAME = Forgejo, loved by crupest.
+RUN_MODE = prod
+
+[repository]
+ROOT = /data/git/repositories
+
+[server]
+APP_DATA_PATH = /data/gitea
+HTTP_ADDR        = 0.0.0.0
+HTTP_PORT        = 3000
+USE_PROXY_PROTOCOL = true
+DISABLE_SSH      = true
+LFS_START_SERVER = true
+
+[database]
+DB_TYPE = sqlite3
+
+[security]
+INSTALL_LOCK = false
+SECRET_KEY = ${CRUPEST_FORGEJO_SECURITY_KEY}
+REVERSE_PROXY_LIMIT = 1
+REVERSE_PROXY_TRUSTED_PROXIES = *
+
+[service]
+DISABLE_REGISTRATION = false
+ALLOW_ONLY_INTERNAL_REGISTRATION = true
+
+[mailer]
+ENABLED = true
+PROTOCOL = smtp
+SMTP_ADDR = mail.${CRUPEST_DOMAIN}
+SMTP_PORT = 465
+USER = ${CRUPEST_FORGEJO_MAILER_USER}
+PASSWD = ${CRUPEST_FORGEJO_MAILER_PASSWD}
+
+[email.incoming]
+ENABLED = true
+HOST = mail.${CRUPEST_DOMAIN}
+PORT = 993
+USERNAME = ${CRUPEST_FORGEJO_EMAIL_INCOMING_USER}
+PASSWORD = ${CRUPEST_FORGEJO_EMAIL_INCOMING_PASSWORD}
+USE_TLS = true
+
+[log]
+MODE = console,file
+
+[cron]
+ENABLED = true
+
+[log.file]
+
+[actions]
+ENABLED = false

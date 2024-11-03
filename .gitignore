@@ -8,5 +8,6 @@ tmp
 backup
 v2ray-config.json
 v2ray-client-config.json
+forgejo.app.ini
 
 tools/docker-mailserver-setup.sh
