@@ -203,7 +203,7 @@ services:
       - APP_KEY=${CRUPEST_2FAUTH_APP_KEY}
       - APP_URL=https://2fa.${CRUPEST_DOMAIN}
       - MAIL_MAILER=smtp
-      - MAIL_HOST=smtp.crupest.life
+      - MAIL_HOST=mail.crupest.life
       - MAIL_PORT=465
       - MAIL_USERNAME=${CRUPEST_2FAUTH_MAIL_USERNAME}
       - MAIL_PASSWORD=${CRUPEST_2FAUTH_MAIL_PASSWORD}
