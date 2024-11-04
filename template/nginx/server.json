@@ -22,6 +22,11 @@
             "upstream": "roundcubemail:80"
         },
         {
+            "type": "reverse-proxy",
+            "subdomain": "2fa",
+            "upstream": "2fauth:8000"
+        },
+        {
             "type": "static-file",
             "subdomain": "blog",
             "root": "/srv/blog"
