@@ -195,15 +195,13 @@ services:
     image: 2fauth/2fauth
     container_name: 2fauth
     volumes:
-      - ./data/2fauth/work-dir:/2fauth
-      - ./data/2fauth/database:/srv/database
+      - ./data/2fauth:/2fauth
     environment:
       - APP_NAME=2FAuth-crupest
       - APP_TIMEZONE=UTC
       - SITE_OWNER=crupest@crupest.life
       - APP_KEY=${CRUPEST_2FAUTH_APP_KEY}
       - APP_URL=https://2fa.${CRUPEST_DOMAIN}
-      - DB_DATABASE="/srv/database/database.sqlite"
       - MAIL_MAILER=smtp
       - MAIL_HOST=smtp.crupest.life
       - MAIL_PORT=465
