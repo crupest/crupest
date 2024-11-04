@@ -12,7 +12,7 @@ def generate_uuid():
 # generate random characters of digits and alphabets
 def generate_random_string(length: int):
     characters = string.ascii_letters + string.digits
-    random_string = ''.join(random.choice(characters) for _ in range(n))
+    random_string = ''.join(random.choice(characters) for _ in range(length))
     return random_string
 
 def generate_random_string_32():
