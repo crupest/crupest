@@ -1,11 +1,22 @@
 import os
 import typing
 import uuid
+import random
+import string
 from rich.prompt import Prompt
 from .path import config_file_path
 
 def generate_uuid():
     return str(uuid.uuid4())
+
+# generate random characters of digits and alphabets
+def generate_random_string(length: int):
+    characters = string.ascii_letters + string.digits
+    random_string = ''.join(random.choice(characters) for _ in range(n))
+    return random_string
+
+def generate_random_string_32():
+    return generate_random_string(32)
 
 class ConfigVar:
     def __init__(self, name: str, description: str, default_value_generator: typing.Callable[[], str] | str, /, default_value_for_ask=str | None):
@@ -59,6 +70,12 @@ config_var_list: list = [
               "Forgejo SMTP user.", "Please input your Forgejo SMTP user."),
     ConfigVar("CRUPEST_FORGEJO_MAILER_PASSWD",
               "Forgejo SMTP password.", "Please input your Forgejo SMTP password."),
+    ConfigVar("CRUPEST_2FAUTH_APP_KEY",
+              "2FAuth App Key.", generate_random_string_32),
+    ConfigVar("CRUPEST_2FAUTH_MAIL_USERNAME",
+              "2FAuth SMTP user.", "Please input your 2FAuth SMTP user."),
+    ConfigVar("CRUPEST_2FAUTH_MAIL_PASSWORD",
+              "2FAuth SMTP password.", "Please input your 2FAuth SMTP password."),
 ]
 
 config_var_name_set = set([config_var.name for config_var in config_var_list])
