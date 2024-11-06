@@ -190,7 +190,7 @@ services:
       - ROUNDCUBEMAIL_SMTP_SERVER=ssl://mail.crupest.life
       - ROUNDCUBEMAIL_SMTP_PORT=465
       - ROUNDCUBEMAIL_DB_TYPE=sqlite
-      - ROUNDCUBEMAIL_PLUGINS=archive,enigma,jqueryui,newmail_notifier,show_additional_headers,userinfo,zipdownload
+      - ROUNDCUBEMAIL_PLUGINS=archive,jqueryui,newmail_notifier,show_additional_headers,userinfo,zipdownload
 
   2fauth:
     image: 2fauth/2fauth
