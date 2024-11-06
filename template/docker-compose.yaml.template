@@ -181,9 +181,9 @@ services:
     container_name: roundcubemail
     restart: on-failure:3
     volumes:
-      - ./data/roundcube/config:/var/roundcube/config
+      - ./data/roundcube/www/html:/var/www/html
       - ./data/roundcube/db:/var/roundcube/db
-      - rountcubemail-temp:/tmp/roundcube-temp
+      - roundcubemail-temp:/tmp/roundcube-temp
     environment:
       - ROUNDCUBEMAIL_DEFAULT_HOST=ssl://mail.crupest.life
       - ROUNDCUBEMAIL_DEFAULT_PORT=993
@@ -216,4 +216,4 @@ services:
 volumes:
   blog-public:
   debian-dev-home:
-  rountcubemail-temp:
+  roundcubemail-temp:
