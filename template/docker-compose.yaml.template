@@ -184,6 +184,7 @@ services:
       - ./data/roundcube/gnupg:/gnupg
       - ./data/roundcube/www/html:/var/www/html
       - ./data/roundcube/db:/var/roundcube/db
+      - ./data/roundcube/config:/var/roundcube/config
       - roundcubemail-temp:/tmp/roundcube-temp
     environment:
       - ROUNDCUBEMAIL_DEFAULT_HOST=ssl://mail.crupest.life
