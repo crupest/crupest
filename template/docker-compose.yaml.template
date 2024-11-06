@@ -181,7 +181,7 @@ services:
     container_name: roundcubemail
     restart: on-failure:3
     volumes:
-      - ./data/gnupg:/gnupg
+      - ./data/roundcube/gnupg:/gnupg
       - ./data/roundcube/www/html:/var/www/html
       - ./data/roundcube/db:/var/roundcube/db
       - roundcubemail-temp:/tmp/roundcube-temp
