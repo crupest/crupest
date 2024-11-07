@@ -17,6 +17,10 @@
             "upstream": "forgejo:3000"
         },
         {
+            "type": "cert-only",
+            "subdomain": "mail"
+        },
+        {
             "type": "reverse-proxy",
             "subdomain": "2fa",
             "upstream": "2fauth:8000"

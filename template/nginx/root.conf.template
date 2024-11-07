@@ -81,17 +81,3 @@ server {
 
     client_max_body_size 5G;
 }
-
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ${CRUPEST_NGINX_SUBDOMAIN}.${CRUPEST_DOMAIN};
-
-    location / {
-        return 301 https://$host$request_uri;
-    }
-
-    location /.well-known/acme-challenge {
-        root /srv/acme;
-    }
-}
