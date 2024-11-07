@@ -18,11 +18,6 @@
         },
         {
             "type": "reverse-proxy",
-            "subdomain": "mail",
-            "upstream": "roundcubemail:80"
-        },
-        {
-            "type": "reverse-proxy",
             "subdomain": "2fa",
             "upstream": "2fauth:8000"
         },
