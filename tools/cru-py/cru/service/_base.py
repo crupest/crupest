@@ -3,12 +3,19 @@ from __future__ import annotations
 from argparse import ArgumentParser, Namespace
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from typing import TypeVar, overload
 
 from cru import CruIterator, CruInternalError
 from cru.app import ApplicationPath, CruApplication
 
+_F = TypeVar("_F")
 
-class AppFeatureProvider(ABC):
+
+class InternalAppException(CruInternalError):
+    pass
+
+
+class AppFeatureProvider:
     def __init__(self, name: str, /, app: AppBase | None = None):
         super().__init__()
         self._name = name
@@ -33,6 +40,8 @@ class AppFeatureProvider(ABC):
         self._app_paths.append(p)
         return p
 
+
+class AppCommandFeatureProvider(AppFeatureProvider, ABC):
     @abstractmethod
     def add_arg_parser(self, arg_parser: ArgumentParser) -> None: ...
 
@@ -71,3 +80,25 @@ class AppBase(CruApplication):
 
     def add_app_feature(self, feature: AppFeatureProvider) -> None:
         self._app_features.append(feature)
+
+    @overload
+    def get_feature(self, feature: str) -> AppFeatureProvider: ...
+
+    @overload
+    def get_feature(self, feature: type[_F]) -> _F: ...
+
+    def get_feature(self, feature: str | type[_F]) -> AppFeatureProvider | _F:
+        if isinstance(feature, str):
+            for f in self._app_features:
+                if f.name == feature:
+                    return f
+        elif isinstance(feature, type):
+            for f in self._app_features:
+                if isinstance(f, feature):
+                    return f
+        else:
+            raise InternalAppException(
+                "Argument must be the name of feature or its class."
+            )
+
+        raise InternalAppException(f"Feature {feature} not found.")

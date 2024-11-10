@@ -1,12 +1,12 @@
 from argparse import ArgumentParser, Namespace
 
 
-from ._base import AppFeatureProvider
+from ._base import AppCommandFeatureProvider
 from cru.app import ApplicationPath
 from cru.template import TemplateTree
 
 
-class TemplateManager(AppFeatureProvider):
+class TemplateManager(AppCommandFeatureProvider):
     def __init__(self, prefix: str = "CRUPEST"):
         super().__init__("template-manager")
         self._templates_dir = self.add_app_path("templates", True)
