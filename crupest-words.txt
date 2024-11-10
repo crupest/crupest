@@ -1,6 +1,7 @@
 2fauth
 aarch64
 buildpackage
+certbot
 chroot
 confdir
 cpio
