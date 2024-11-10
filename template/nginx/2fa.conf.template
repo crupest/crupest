@@ -1,0 +1,19 @@
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name 2fa.${CRUPEST_DOMAIN};
+    
+    location / {
+        include common/proxy-common;
+        proxy_pass http://2fauth:8000/;
+    }
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name 2fa.${CRUPEST_DOMAIN};
+
+    include common/https-redirect;
+    include common/acme-challenge;
+}

@@ -1,0 +1,27 @@
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name mail.${CRUPEST_DOMAIN};
+    
+    location / {
+        include common/proxy-common;
+        proxy_pass http://roundcubemail:80/;
+    }
+
+    location /rspamd/ {
+        include common/proxy-common;
+        proxy_pass http://mailserver:11334/;
+    }
+
+    client_max_body_size 5G;
+}
+
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name mail.${CRUPEST_DOMAIN};
+
+    include common/https-redirect;
+    include common/acme-challenge;
+}
