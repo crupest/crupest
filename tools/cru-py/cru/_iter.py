@@ -63,7 +63,7 @@ class _Generic:
 
         @staticmethod
         def aggregate(
-            *results: _Generic.StepAction[_V, _R]
+            *results: _Generic.StepAction[_V, _R],
         ) -> _Generic.StepAction[_V, _R]:
             return _Generic.StepAction(results, _Generic.StepActionKind.AGGREGATE)
 
@@ -255,7 +255,6 @@ class _Helpers:
 
 
 class _Creators:
-
     class Raw:
         @staticmethod
         def empty() -> Iterator[Never]:
@@ -313,7 +312,7 @@ class CruIterator(Generic[_T]):
 
     @staticmethod
     def _wrap(
-        f: Callable[Concatenate[CruIterator[_T], _P], Iterable[_O]]
+        f: Callable[Concatenate[CruIterator[_T], _P], Iterable[_O]],
     ) -> Callable[Concatenate[CruIterator[_T], _P], CruIterator[_O]]:
         def _wrapped(
             self: CruIterator[_T], *args: _P.args, **kwargs: _P.kwargs
@@ -435,11 +434,33 @@ class CruIterator(Generic[_T]):
         value_set = set(old_values)
         return self.transform(lambda v: new_value if v in value_set else v)
 
+    def group_by(self, key_getter: Callable[[_T], _O]) -> dict[_O, list[_T]]:
+        result: dict[_O, list[_T]] = {}
+
+        for item in self:
+            key = key_getter(item)
+            if key not in result:
+                result[key] = []
+            result[key].append(item)
+
+        return result
+
+
+class CruIterMixin(Generic[_T]):
+    def cru_iter(self: Iterable[_T]) -> CruIterator[_T]:
+        return CruIterator(self)
+
+
+class CruIterList(list[_T], CruIterMixin[_T]):
+    pass
+
 
 class CruIterable:
     Generic: TypeAlias = _Generic
-    Iterator: TypeAlias = CruIterator
+    Iterator: TypeAlias = CruIterator[_T]
     Helpers: TypeAlias = _Helpers
+    Mixin: TypeAlias = CruIterMixin[_T]
+    IterList: TypeAlias = CruIterList[_T]
 
 
 CRU.add_objects(CruIterable, CruIterator)

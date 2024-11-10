@@ -82,11 +82,20 @@ class ConfigItem(Generic[_T]):
     def can_generate_default(self) -> bool:
         return self.default is not None
 
-    def set_value(self, v: _T | str, /, allow_convert_from_str=False):
-        if allow_convert_from_str:
-            self._value = self.value_type.check_value(v)
-        else:
+    def set_value(
+        self, v: _T | str, *, empty_is_default=True, allow_convert_from_str=True
+    ):
+        if empty_is_default and v == "":
+            self._value = None
+        elif allow_convert_from_str:
             self._value = self.value_type.check_value_or_try_convert_from_str(v)
+        else:
+            self._value = self.value_type.check_value(v)
+
+    def reset(self, clear_default_cache=False):
+        if clear_default_cache:
+            self._default_value = None
+        self._value = None
 
     def generate_default_value(self) -> _T:
         if self.default is None:
@@ -140,3 +149,7 @@ class Configuration(CruUniqueKeyList[ConfigItem, str]):
         item = ConfigItem(name, description, INTEGER_VALUE_TYPE, value, default)
         self.add(item)
         return item
+
+    def reset_all(self, clear_default_cache=False) -> None:
+        for item in self:
+            item.reset(clear_default_cache)

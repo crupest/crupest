@@ -1,18 +1,32 @@
+from __future__ import annotations
+
 from abc import ABCMeta, abstractmethod
-from typing import TypeVar, Generic, NoReturn, Callable
+from typing import NamedTuple, TypeAlias, TypeVar, Generic, NoReturn, Callable
 
 from ._error import CruException
+from ._iter import  CruIterable
 
 _T = TypeVar("_T")
 
 
-class ParseException(CruException):
+class ParseException(CruException, Generic[_T]):
     def __init__(
-        self, message, text: str, line_number: int | None = None, *args, **kwargs
+        self,
+        message,
+        parser: Parser[_T],
+        text: str,
+        line_number: int | None = None,
+        *args,
+        **kwargs,
     ):
         super().__init__(message, *args, **kwargs)
+        self._parser = parser
         self._text = text
         self._line_number = line_number
+
+    @property
+    def parser(self) -> Parser[_T]:
+        return self._parser
 
     @property
     def text(self) -> str:
@@ -38,16 +52,34 @@ class Parser(Generic[_T], metaclass=ABCMeta):
     def raise_parse_exception(
         self, text: str, line_number: int | None = None
     ) -> NoReturn:
-        a = f" at line {line_number}" if line_number is not None else ""
-        raise ParseException(f"Parser {self.name} failed{a}.", text, line_number)
+        a = line_number and f" at line {line_number}" or ""
+        raise ParseException(f"Parser {self.name} failed{a}.", self, text, line_number)
 
 
-class SimpleLineConfigParser(Parser[list[tuple[str, str]]]):
+class SimpleLineConfigParserItem(NamedTuple):
+    key: str
+    value: str
+    line_number: int | None = None
+
+
+SimpleLineConfigParserResult: TypeAlias = CruIterable.IterList[
+    SimpleLineConfigParserItem
+]
+
+
+class SimpleLineConfigParser(Parser[SimpleLineConfigParserResult]):
+    """
+    The parsing result is a list of tuples (key, value, line number).
+    """
+
+    Item: TypeAlias = SimpleLineConfigParserItem
+    Result: TypeAlias = SimpleLineConfigParserResult
+
     def __init__(self) -> None:
         super().__init__(type(self).__name__)
 
-    def _parse(self, s: str, callback: Callable[[str, str], None]) -> None:
-        for ln, line in enumerate(s.splitlines()):
+    def _parse(self, text: str, callback: Callable[[Item], None]) -> None:
+        for ln, line in enumerate(text.splitlines()):
             line_number = ln + 1
             # check if it's a comment
             if line.strip().startswith("#"):
@@ -59,27 +91,9 @@ class SimpleLineConfigParser(Parser[list[tuple[str, str]]]):
             key, value = line.split("=", 1)
             key = key.strip()
             value = value.strip()
-            callback(key, value)
+            callback(SimpleLineConfigParserItem(key, value, line_number))
 
-    def parse(self, s: str) -> list[tuple[str, str]]:
-        items = []
-        self._parse(s, lambda key, value: items.append((key, value)))
-        return items
-
-    def parse_to_dict(
-        self, s: str, /, allow_override: bool = False
-    ) -> tuple[dict[str, str], list[tuple[str, str]]]:
-        result: dict[str, str] = {}
-        duplicate: list[tuple[str, str]] = []
-
-        def add(key: str, value: str) -> None:
-            if key in result:
-                if allow_override:
-                    duplicate.append((key, result[key]))
-                    result[key] = value
-                else:
-                    self.raise_parse_exception(f"Key '{key}' already exists!", None)
-            result[key] = value
-
-        self._parse(s, add)
-        return result, duplicate
+    def parse(self, text: str) -> Result:
+        result = SimpleLineConfigParserResult()
+        self._parse(text, lambda item: result.append(item))
+        return result
