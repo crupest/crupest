@@ -1,6 +1,6 @@
 from typing import ParamSpec, TypeVar, Callable
 
-from ._list import CruInplaceList, CruList
+from ._iter import CruInplaceList, CruList
 
 P = ParamSpec('P')
 R = TypeVar('R')
