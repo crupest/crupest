@@ -142,6 +142,11 @@ class TemplateTree:
     ) -> None:
         for file, template in self.templates:
             des = CruPath(destination) / file
+            if self.template_file_suffix is not None and des.name.endswith(
+                self.template_file_suffix
+            ):
+                des = des.parent / (des.name[: -len(self.template_file_suffix)])
+
             text = template.generate(variables)
             if not dry_run:
                 des.parent.mkdir(parents=True, exist_ok=True)
