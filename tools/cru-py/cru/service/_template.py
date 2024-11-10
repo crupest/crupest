@@ -64,10 +64,16 @@ class TemplateManager(AppCommandFeatureProvider):
     def setup_arg_parser(self, arg_parser):
         subparsers = arg_parser.add_subparsers(dest="template_command")
         _list_parser = subparsers.add_parser("list", help="List templates.")
+        _variables_parser = subparsers.add_parser(
+            "variables", help="List variables for a specific template."
+        )
         _generate_parser = subparsers.add_parser("generate", help="Generate template.")
 
     def run_command(self, args: Namespace) -> None:
         if args.template_command == "list":
             self.print_file_lists()
+        elif args.template_command == "variables":
+            for var in self.template_tree.variables:
+                print(var)
         elif args.template_command == "generate":
             self.generate_files()
