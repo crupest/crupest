@@ -3,14 +3,13 @@ from __future__ import annotations
 from argparse import ArgumentParser, Namespace
 from abc import ABC, abstractmethod
 import argparse
-from collections.abc import Sequence
 import os
 from pathlib import Path
 from typing import TypeVar, overload
 
-from cru import CruException, CruInternalError, CruPath
+from cru import CruException, CruInternalError, CruPath, CruUserFriendlyException
 
-_F = TypeVar("_F")
+_Feature = TypeVar("_Feature", bound="AppFeatureProvider")
 
 OWNER_NAME = "crupest"
 
@@ -30,26 +29,14 @@ class AppPathError(CruException):
 
 
 class AppPath(ABC):
-    def __init__(
-        self,
-        name: str,
-        is_dir: bool,
-        /,
-        id: str | None = None,
-        description: str = "",
-    ) -> None:
-        self._name = name
+    def __init__(self, id: str, is_dir: bool, description: str) -> None:
         self._is_dir = is_dir
-        self._id = id or name
+        self._id = id
         self._description = description
 
     @property
     @abstractmethod
     def parent(self) -> AppPath | None: ...
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     @property
     @abstractmethod
@@ -68,11 +55,8 @@ class AppPath(ABC):
         return self._is_dir
 
     @property
-    def full_path(self) -> CruPath:
-        if self.parent is None:
-            return CruPath(self.name)
-        else:
-            return CruPath(self.parent.full_path, self.name)
+    @abstractmethod
+    def full_path(self) -> CruPath: ...
 
     @property
     def full_path_str(self) -> str:
@@ -92,12 +76,12 @@ class AppPath(ABC):
             if not self.full_path.is_dir():
                 raise AppPathError("Should be a directory, but not.", self.full_path)
             else:
-                return False
+                return True
         else:
             if not self.full_path.is_file():
                 raise AppPathError("Should be a file, but not.", self.full_path)
             else:
-                return False
+                return True
 
     def ensure(self, create_file: bool = False) -> None:
         e = self.check_self(False)
@@ -130,8 +114,13 @@ class AppFeaturePath(AppPath):
         id: str | None = None,
         description: str = "",
     ) -> None:
-        super().__init__(name, is_dir, id, description)
+        super().__init__(id or name, is_dir, description)
+        self._name = name
         self._parent = parent
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     @property
     def parent(self) -> AppPath:
@@ -141,11 +130,16 @@ class AppFeaturePath(AppPath):
     def app(self) -> AppBase:
         return self.parent.app
 
+    @property
+    def full_path(self) -> CruPath:
+        return CruPath(self.parent.full_path, self.name)
+
 
 class AppRootPath(AppPath):
-    def __init__(self, app: AppBase, path: str):
-        super().__init__(path, True, "root", "Application root path.")
+    def __init__(self, app: AppBase):
+        super().__init__("root", True, "Application root path.")
         self._app = app
+        self._full_path: CruPath | None = None
 
     @property
     def parent(self) -> None:
@@ -155,13 +149,23 @@ class AppRootPath(AppPath):
     def app(self) -> AppBase:
         return self._app
 
+    @property
+    def full_path(self) -> CruPath:
+        if self._full_path is None:
+            raise CruInternalError("App root path is not set yet.")
+        return self._full_path
+
+    def setup(self, path: os.PathLike) -> None:
+        if self._full_path is not None:
+            raise CruInternalError("App root path is already set.")
+        self._full_path = CruPath(path)
+
 
 class AppFeatureProvider(ABC):
     def __init__(self, name: str, /, app: AppBase | None = None):
         super().__init__()
         self._name = name
         self._app = app if app else AppBase.get_instance()
-        self.app.add_feature(self)
 
     @property
     def app(self) -> AppBase:
@@ -192,10 +196,17 @@ DATA_DIR_NAME = "data"
 class CommandDispatcher(AppFeatureProvider):
     def __init__(self) -> None:
         super().__init__("command-dispatcher")
+        self._parsed_args: argparse.Namespace | None = None
 
-    def _setup_arg_parser(self) -> None:
+    def setup_arg_parser(self) -> None:
         self._map: dict[str, AppCommandFeatureProvider] = {}
         arg_parser = argparse.ArgumentParser(description="Service management")
+        arg_parser.add_argument(
+            "--project-dir",
+            help="The path of the project directory.",
+            required=True,
+            type=str,
+        )
         subparsers = arg_parser.add_subparsers(dest="command")
         for feature in self.app.features:
             if isinstance(feature, AppCommandFeatureProvider):
@@ -206,7 +217,7 @@ class CommandDispatcher(AppFeatureProvider):
         self._arg_parser = arg_parser
 
     def setup(self):
-        self._setup_arg_parser()
+        pass
 
     @property
     def arg_parser(self) -> argparse.ArgumentParser:
@@ -216,9 +227,41 @@ class CommandDispatcher(AppFeatureProvider):
     def map(self) -> dict[str, AppCommandFeatureProvider]:
         return self._map
 
-    def run_command(self, _args: Sequence[str] | None = None) -> None:
-        args = self.arg_parser.parse_args(_args)
-        self.map[args.command].run_command(args)
+    def get_program_parsed_args(self) -> argparse.Namespace:
+        if self._parsed_args is None:
+            self._parsed_args = self.arg_parser.parse_args()
+        return self._parsed_args
+
+    def run_command(self, args: argparse.Namespace | None = None) -> None:
+        real_args = args or self.get_program_parsed_args()
+        self.map[real_args.command].run_command(real_args)
+
+
+class AppInitializer(AppCommandFeatureProvider):
+    def __init__(self) -> None:
+        super().__init__("app-initializer")
+
+    def _init_app(self) -> bool:
+        if self.app.app_initialized:
+            return False
+        self.app.data_dir.ensure()
+        return True
+
+    def setup(self):
+        pass
+
+    def get_command_info(self):
+        return ("init", "Initialize the app.")
+
+    def setup_arg_parser(self, arg_parser):
+        pass
+
+    def run_command(self, args):
+        init = self._init_app()
+        if init:
+            print("App initialized successfully.")
+        else:
+            print("App is already initialized. Do nothing.")
 
 
 class AppBase:
@@ -230,12 +273,23 @@ class AppBase:
             raise CruInternalError("App instance not initialized")
         return AppBase._instance
 
-    def __init__(self, name: str, root: str):
+    def __init__(self, name: str):
         AppBase._instance = self
         self._name = name
-        self._root = AppRootPath(self, root)
+        self._root = AppRootPath(self)
         self._paths: list[AppFeaturePath] = []
         self._features: list[AppFeatureProvider] = []
+
+    def setup(self) -> None:
+        command_dispatcher = self.get_feature(CommandDispatcher)
+        command_dispatcher.setup_arg_parser()
+        program_args = command_dispatcher.get_program_parsed_args()
+        self.setup_root(program_args.project_dir)
+        self._data_dir = self.add_path(DATA_DIR_NAME, True, id="data")
+        for feature in self.features:
+            feature.setup()
+        for path in self.paths:
+            path.check_self()
 
     @property
     def name(self) -> str:
@@ -245,6 +299,24 @@ class AppBase:
     def root(self) -> AppRootPath:
         return self._root
 
+    def setup_root(self, path: os.PathLike) -> None:
+        self._root.setup(path)
+
+    @property
+    def data_dir(self) -> AppFeaturePath:
+        return self._data_dir
+
+    @property
+    def app_initialized(self) -> bool:
+        return self.data_dir.check_self()
+
+    def ensure_app_initialized(self) -> AppRootPath:
+        if not self.app_initialized:
+            raise CruUserFriendlyException(
+                "Root directory does not exist. Please run 'init' to create one."
+            )
+        return self.root
+
     @property
     def features(self) -> list[AppFeatureProvider]:
         return self._features
@@ -253,7 +325,10 @@ class AppBase:
     def paths(self) -> list[AppFeaturePath]:
         return self._paths
 
-    def add_feature(self, feature: AppFeatureProvider) -> AppFeatureProvider:
+    def add_feature(self, feature: _Feature) -> _Feature:
+        for f in self.features:
+            if f.name == feature.name:
+                raise CruInternalError(f"Duplicate feature name: {feature.name}.")
         self._features.append(feature)
         return feature
 
@@ -276,9 +351,11 @@ class AppBase:
     def get_feature(self, feature: str) -> AppFeatureProvider: ...
 
     @overload
-    def get_feature(self, feature: type[_F]) -> _F: ...
+    def get_feature(self, feature: type[_Feature]) -> _Feature: ...
 
-    def get_feature(self, feature: str | type[_F]) -> AppFeatureProvider | _F:
+    def get_feature(
+        self, feature: str | type[_Feature]
+    ) -> AppFeatureProvider | _Feature:
         if isinstance(feature, str):
             for f in self._features:
                 if f.name == feature:
