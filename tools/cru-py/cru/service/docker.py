@@ -1,4 +1,7 @@
 import shutil
+import subprocess
+
+from ..util import L
 
 
 class DockerController:
@@ -13,3 +16,9 @@ class DockerController:
             self._docker_bin = shutil.which(self.DOCKER_BIN_NAME)
         return self._docker_bin
 
+    def list_containers(self) -> L[str]:
+        p = subprocess.run([self.docker_bin, "container", "ls", ""], capture_output=True)
+        return p.stdout.decode("utf-8").splitlines()
+
+    def restart_container(self, container_name: str) -> None:
+        subprocess.run([self.docker_bin, "restart", container_name])
