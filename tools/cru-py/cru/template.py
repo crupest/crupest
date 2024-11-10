@@ -137,7 +137,13 @@ class TemplateTree:
             s.update(template.variables)
         return s
 
-    def generate_to(self, destination: str, variables: Mapping[str, str]) -> None:
+    def generate_to(
+        self, destination: str, variables: Mapping[str, str], dry_run: bool
+    ) -> None:
         for file, template in self.templates:
-            with open(os.path.join(destination, file), "w") as f:
-                f.write(template.generate(variables))
+            des = CruPath(destination) / file
+            text = template.generate(variables)
+            if not dry_run:
+                des.parent.mkdir(parents=True, exist_ok=True)
+                with open(des, "w") as f:
+                    f.write(text)

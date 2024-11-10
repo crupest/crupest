@@ -141,45 +141,46 @@ class ConfigManager(AppCommandFeatureProvider):
         super().__init__("config-manager")
         configuration = Configuration()
         self._configuration = configuration
+        self._loaded: bool = False
         self._init_app_defined_items()
 
     def _init_app_defined_items(self) -> None:
         prefix = self.config_name_prefix
 
-        def _add_text(name: str, description: str) -> None:
-            self.configuration.add(
-                ConfigItem(f"{prefix}_{name}", description, TEXT_VALUE_TYPE)
-            )
+        def _add_text(name: str, description: str) -> ConfigItem:
+            item = ConfigItem(f"{prefix}_{name}", description, TEXT_VALUE_TYPE)
+            self.configuration.add(item)
+            return item
 
-        def _add_uuid(name: str, description: str) -> None:
-            self.configuration.add(
-                ConfigItem(
-                    f"{prefix}_{name}",
-                    description,
-                    TEXT_VALUE_TYPE,
-                    default=UuidValueGenerator(),
-                )
+        def _add_uuid(name: str, description: str) -> ConfigItem:
+            item = ConfigItem(
+                f"{prefix}_{name}",
+                description,
+                TEXT_VALUE_TYPE,
+                default=UuidValueGenerator(),
             )
+            self.configuration.add(item)
+            return item
 
         def _add_random_string(
             name: str, description: str, length: int = 32, secure: bool = True
-        ) -> None:
-            self.configuration.add(
-                ConfigItem(
-                    f"{prefix}_{name}",
-                    description,
-                    TEXT_VALUE_TYPE,
-                    default=RandomStringValueGenerator(length, secure),
-                )
+        ) -> ConfigItem:
+            item = ConfigItem(
+                f"{prefix}_{name}",
+                description,
+                TEXT_VALUE_TYPE,
+                default=RandomStringValueGenerator(length, secure),
             )
+            self.configuration.add(item)
+            return item
 
-        def _add_int(name: str, description: str) -> None:
-            self.configuration.add(
-                ConfigItem(f"{prefix}_{name}", description, INTEGER_VALUE_TYPE)
-            )
+        def _add_int(name: str, description: str) -> ConfigItem:
+            item = ConfigItem(f"{prefix}_{name}", description, INTEGER_VALUE_TYPE)
+            self.configuration.add(item)
+            return item
 
-        _add_text("DOMAIN", "domain name")
-        _add_text("EMAIL", "admin email address")
+        self._domain = _add_text("DOMAIN", "domain name")
+        self._email = _add_text("EMAIL", "admin email address")
         _add_text(
             "AUTO_BACKUP_COS_SECRET_ID",
             "access key id for Tencent COS, used for auto backup",
@@ -247,16 +248,18 @@ class ConfigManager(AppCommandFeatureProvider):
     def get_item_value_str(self, name: str, ensure_set: bool = True) -> str | None: ...
 
     def get_item_value_str(self, name: str, ensure_set: bool = True) -> str | None:
-        self.reload_config_file()
+        self.load_config_file()
         item = self.get_item(name)
-        if ensure_set and not item.is_set:
-            raise AppConfigItemNotSetError(
-                f"Config item '{name}' is not set.", self.configuration, [item]
-            )
+        if not item.is_set:
+            if ensure_set:
+                raise AppConfigItemNotSetError(
+                    f"Config item '{name}' is not set.", self.configuration, [item]
+                )
+            return None
         return item.value_str
 
     def get_str_dict(self, ensure_all_set: bool = True) -> dict[str, str]:
-        self.reload_config_file()
+        self.load_config_file()
         if ensure_all_set and not self.configuration.all_set:
             raise AppConfigItemNotSetError(
                 "Some config items are not set.",
@@ -265,8 +268,15 @@ class ConfigManager(AppCommandFeatureProvider):
             )
         return self.configuration.to_str_dict()
 
-    def get_domain_item_name(self) -> str:
-        return f"{self.config_name_prefix}_DOMAIN"
+    @property
+    def domain_item_name(self) -> str:
+        return self._domain.name
+
+    def get_domain_value_str(self) -> str:
+        return self.get_item_value_str(self._domain.name)
+
+    def get_email_value_str_optional(self) -> str | None:
+        return self.get_item_value_str(self._email.name, ensure_set=False)
 
     def _set_with_default(self) -> None:
         if not self.configuration.all_not_set:
@@ -379,13 +389,18 @@ class ConfigManager(AppCommandFeatureProvider):
         value_dict = self._check_type(entry_dict)
         return value_dict
 
-    def reload_config_file(self):
+    def _real_load_config_file(self) -> None:
         self.configuration.reset_all()
         value_dict = self._read_config_file()
         for key, value in value_dict.items():
             if value is None:
                 continue
             self.configuration.set_config_item(key, value)
+
+    def load_config_file(self, force=False) -> None:
+        if force or not self._loaded:
+            self._real_load_config_file()
+            self._loaded = True
 
     def _print_app_config_info(self):
         for item in self.configuration:

@@ -5,9 +5,9 @@ from ._base import (
     PathCommandProvider,
 )
 from ._config import ConfigManager
-from ._data import DataManager
 from ._template import TemplateManager
 from ._nginx import NginxManager
+from ._external import CliToolCommandProvider
 
 APP_ID = "crupest"
 
@@ -17,10 +17,10 @@ class App(AppBase):
         super().__init__(APP_ID, f"{APP_ID}-service")
         self.add_feature(PathCommandProvider())
         self.add_feature(AppInitializer())
-        self.add_feature(DataManager())
         self.add_feature(ConfigManager())
         self.add_feature(TemplateManager())
         self.add_feature(NginxManager())
+        self.add_feature(CliToolCommandProvider())
         self.add_feature(CommandDispatcher())
 
     def run_command(self):
