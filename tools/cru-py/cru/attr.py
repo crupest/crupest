@@ -3,7 +3,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
-from .util import CanBeList, TypeSet, F, L, WF, CruUniqueKeyInplaceList, CRU_NOT_FOUND, CRU_USE_DEFAULT, \
+from ._util import CanBeList, TypeSet, F, L, WF, CruUniqueKeyInplaceList, CRU_NOT_FOUND, CRU_USE_DEFAULT, \
     CRU_DONT_CHANGE, CRU_PLACEHOLDER
 
 

@@ -1,7 +1,7 @@
 from typing import Any
 
 from .attr import CruAttrDefRegistry, CruAttr, CruAttrTable
-from .util import CRU_NOT_FOUND, CruList, CRU_USE_DEFAULT
+from ._util import CRU_NOT_FOUND, CruList, CRU_USE_DEFAULT
 
 CRU_EXCEPTION_ATTR_DEF_REGISTRY = CruAttrDefRegistry()
 
