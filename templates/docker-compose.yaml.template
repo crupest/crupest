@@ -27,7 +27,7 @@ services:
       - "443:443"
       - "443:443/udp"
     volumes:
-      - "./nginx-config:/etc/nginx/conf.d:ro"
+      - "./generated/nginx:/etc/nginx/conf.d:ro"
       - "./data/certbot/certs:/etc/letsencrypt:ro"
       - "./data/certbot/webroot:/srv/acme:ro"
       - "blog-public:/srv/www/blog:ro"
@@ -44,7 +44,7 @@ services:
     container_name: v2ray
     command: [ "run", "-c", "/etc/v2fly/config.json" ]
     volumes:
-      - "./v2ray-config.json:/etc/v2fly/config.json:ro"
+      - "./generated/v2ray-config.json:/etc/v2fly/config.json:ro"
     restart: on-failure:3
 
   auto-certbot:
@@ -97,7 +97,7 @@ services:
     # you can assign this entirely to `hostname` and remove `domainname`.
     hostname: mail
     domainname: $CRUPEST_DOMAIN
-    env_file: mailserver.env
+    env_file: generated/mailserver.env
     # More information about the mail-server ports:
     # https://docker-mailserver.github.io/docker-mailserver/edge/config/security/understanding-the-ports/
     # To avoid conflicts with yaml base-60 float, DO NOT remove the quotation marks.
