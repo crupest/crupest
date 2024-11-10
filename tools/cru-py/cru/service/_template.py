@@ -59,7 +59,7 @@ class TemplateManager(AppCommandFeatureProvider):
         )
 
     def get_command_info(self):
-        return ("template", "Template Management")
+        return ("template", "Manage templates.")
 
     def setup_arg_parser(self, arg_parser):
         subparsers = arg_parser.add_subparsers(dest="template_command")
