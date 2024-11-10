@@ -20,54 +20,47 @@ _P = ParamSpec("_P")
 _T = TypeVar("_T")
 
 
-class CruRawFunctions:
-    @staticmethod
-    def none(*_v, **_kwargs) -> None:
-        return None
-
-    @staticmethod
-    def true(*_v, **_kwargs) -> Literal[True]:
-        return True
-
-    @staticmethod
-    def false(*_v, **_kwargs) -> Literal[False]:
-        return False
-
-    @staticmethod
-    def identity(v: _T) -> _T:
-        return v
-
-    @staticmethod
-    def only_you(v: _T, *_v, **_kwargs) -> _T:
-        return v
-
-    @staticmethod
-    def equal(a: Any, b: Any) -> bool:
-        return a == b
-
-    @staticmethod
-    def not_equal(a: Any, b: Any) -> bool:
-        return a != b
-
-    @staticmethod
-    def not_(v: Any) -> Any:
-        return not v
-
-
-CruArgsChainableCallable: TypeAlias = Callable[..., Iterable[Any]]
-CruKwargsChainableCallable: TypeAlias = Callable[..., Iterable[tuple[str, Any]]]
-CruChainableCallable: TypeAlias = Callable[
+_ArgsChainableCallable: TypeAlias = Callable[..., Iterable[Any]]
+_KwargsChainableCallable: TypeAlias = Callable[..., Iterable[tuple[str, Any]]]
+_ChainableCallable: TypeAlias = Callable[
     ..., tuple[Iterable[Any], Iterable[tuple[str, Any]]]
 ]
 
 
-class CruFunctionChainMode(Flag):
-    ARGS = auto()
-    KWARGS = auto()
-    BOTH = ARGS | KWARGS
-
-
 class CruFunctionMeta:
+    class Base:
+        @staticmethod
+        def none(*_v, **_kwargs) -> None:
+            return None
+
+        @staticmethod
+        def true(*_v, **_kwargs) -> Literal[True]:
+            return True
+
+        @staticmethod
+        def false(*_v, **_kwargs) -> Literal[False]:
+            return False
+
+        @staticmethod
+        def identity(v: _T) -> _T:
+            return v
+
+        @staticmethod
+        def only_you(v: _T, *_v, **_kwargs) -> _T:
+            return v
+
+        @staticmethod
+        def equal(a: Any, b: Any) -> bool:
+            return a == b
+
+        @staticmethod
+        def not_equal(a: Any, b: Any) -> bool:
+            return a != b
+
+        @staticmethod
+        def not_(v: Any) -> Any:
+            return not v
+
     @staticmethod
     def bind(func: Callable[..., _T], *bind_args, **bind_kwargs) -> Callable[..., _T]:
         def bound_func(*args, **kwargs):
@@ -84,10 +77,19 @@ class CruFunctionMeta:
 
         return bound_func
 
+    class ChainMode(Flag):
+        ARGS = auto()
+        KWARGS = auto()
+        BOTH = ARGS | KWARGS
+
+    ArgsChainableCallable = _ArgsChainableCallable
+    KwargsChainableCallable = _KwargsChainableCallable
+    ChainableCallable = _ChainableCallable
+
     @staticmethod
     def chain_with_args(
-        funcs: Iterable[CruArgsChainableCallable], *bind_args, **bind_kwargs
-    ) -> CruArgsChainableCallable:
+        funcs: Iterable[_ArgsChainableCallable], *bind_args, **bind_kwargs
+    ) -> _ArgsChainableCallable:
         def chained_func(*args):
             for func in funcs:
                 args = CruFunctionMeta.bind(func, *bind_args, **bind_kwargs)(*args)
@@ -97,8 +99,8 @@ class CruFunctionMeta:
 
     @staticmethod
     def chain_with_kwargs(
-        funcs: Iterable[CruKwargsChainableCallable], *bind_args, **bind_kwargs
-    ) -> CruKwargsChainableCallable:
+        funcs: Iterable[_KwargsChainableCallable], *bind_args, **bind_kwargs
+    ) -> _KwargsChainableCallable:
         def chained_func(**kwargs):
             for func in funcs:
                 kwargs = CruFunctionMeta.bind(func, *bind_args, **bind_kwargs)(**kwargs)
@@ -108,8 +110,8 @@ class CruFunctionMeta:
 
     @staticmethod
     def chain_with_both(
-        funcs: Iterable[CruChainableCallable], *bind_args, **bind_kwargs
-    ) -> CruChainableCallable:
+        funcs: Iterable[_ChainableCallable], *bind_args, **bind_kwargs
+    ) -> _ChainableCallable:
         def chained_func(*args, **kwargs):
             for func in funcs:
                 args, kwargs = CruFunctionMeta.bind(func, *bind_args, **bind_kwargs)(
@@ -121,48 +123,42 @@ class CruFunctionMeta:
 
     @staticmethod
     def chain(
-        mode: CruFunctionChainMode,
+        mode: ChainMode,
         funcs: Iterable[
-            CruArgsChainableCallable | CruKwargsChainableCallable | CruChainableCallable
+            _ArgsChainableCallable | _KwargsChainableCallable | _ChainableCallable
         ],
         *bind_args,
         **bind_kwargs,
-    ) -> CruArgsChainableCallable | CruKwargsChainableCallable | CruChainableCallable:
-        if mode == CruFunctionChainMode.ARGS:
+    ) -> _ArgsChainableCallable | _KwargsChainableCallable | _ChainableCallable:
+        if mode == CruFunctionMeta.ChainMode.ARGS:
             return CruFunctionMeta.chain_with_args(
-                cast(Iterable[CruArgsChainableCallable], funcs),
+                cast(Iterable[_ArgsChainableCallable], funcs),
                 *bind_args,
                 **bind_kwargs,
             )
-        elif mode == CruFunctionChainMode.KWARGS:
+        elif mode == CruFunctionMeta.ChainMode.KWARGS:
             return CruFunctionMeta.chain_with_kwargs(
-                cast(Iterable[CruKwargsChainableCallable], funcs),
+                cast(Iterable[_KwargsChainableCallable], funcs),
                 *bind_args,
                 **bind_kwargs,
             )
-        elif mode == CruFunctionChainMode.BOTH:
+        elif mode == CruFunctionMeta.ChainMode.BOTH:
             return CruFunctionMeta.chain_with_both(
-                cast(Iterable[CruChainableCallable], funcs), *bind_args, **bind_kwargs
+                cast(Iterable[_ChainableCallable], funcs), *bind_args, **bind_kwargs
             )
 
 
-# Advanced Function Wrapper
 class CruFunction(Generic[_P, _T]):
 
     def __init__(self, f: Callable[_P, _T]):
         self._f = f
 
     @property
-    def f(self) -> Callable[_P, _T]:
+    def me(self) -> Callable[_P, _T]:
         return self._f
 
-    @property
-    def func(self) -> Callable[_P, _T]:
-        return self.f
-
     def bind(self, *bind_args, **bind_kwargs) -> CruFunction[..., _T]:
-        self._f = CruFunctionMeta.bind(self._f, *bind_args, **bind_kwargs)
-        return self
+        return CruFunction(CruFunctionMeta.bind(self._f, *bind_args, **bind_kwargs))
 
     def _iter_with_self(
         self, funcs: Iterable[Callable[..., Any]]
@@ -173,10 +169,10 @@ class CruFunction(Generic[_P, _T]):
     @staticmethod
     def chain_with_args(
         self,
-        funcs: Iterable[CruArgsChainableCallable],
+        funcs: Iterable[_ArgsChainableCallable],
         *bind_args,
         **bind_kwargs,
-    ) -> CruArgsChainableCallable:
+    ) -> _ArgsChainableCallable:
         return CruFunction(
             CruFunctionMeta.chain_with_args(
                 self._iter_with_self(funcs), *bind_args, **bind_kwargs
@@ -184,8 +180,8 @@ class CruFunction(Generic[_P, _T]):
         )
 
     def chain_with_kwargs(
-        self, funcs: Iterable[CruKwargsChainableCallable], *bind_args, **bind_kwargs
-    ) -> CruKwargsChainableCallable:
+        self, funcs: Iterable[_KwargsChainableCallable], *bind_args, **bind_kwargs
+    ) -> _KwargsChainableCallable:
         return CruFunction(
             CruFunctionMeta.chain_with_kwargs(
                 self._iter_with_self(funcs), *bind_args, **bind_kwargs
@@ -193,8 +189,8 @@ class CruFunction(Generic[_P, _T]):
         )
 
     def chain_with_both(
-        self, funcs: Iterable[CruChainableCallable], *bind_args, **bind_kwargs
-    ) -> CruChainableCallable:
+        self, funcs: Iterable[_ChainableCallable], *bind_args, **bind_kwargs
+    ) -> _ChainableCallable:
         return CruFunction(
             CruFunctionMeta.chain_with_both(
                 self._iter_with_self(funcs), *bind_args, **bind_kwargs
@@ -205,11 +201,11 @@ class CruFunction(Generic[_P, _T]):
         self,
         mode: CruFunctionChainMode,
         funcs: Iterable[
-            CruArgsChainableCallable | CruKwargsChainableCallable | CruChainableCallable
+            _ArgsChainableCallable | _KwargsChainableCallable | _ChainableCallable
         ],
         *bind_args,
         **bind_kwargs,
-    ) -> CruArgsChainableCallable | CruKwargsChainableCallable | CruChainableCallable:
+    ) -> _ArgsChainableCallable | _KwargsChainableCallable | _ChainableCallable:
         return CruFunction(
             CruFunctionMeta.chain(
                 mode, self._iter_with_self(funcs), *bind_args, **bind_kwargs
@@ -223,7 +219,7 @@ class CruFunction(Generic[_P, _T]):
     def make_chain(
         mode: CruFunctionChainMode,
         funcs: Iterable[
-            CruArgsChainableCallable | CruKwargsChainableCallable | CruChainableCallable
+            _ArgsChainableCallable | _KwargsChainableCallable | _ChainableCallable
         ],
         *bind_args,
         **bind_kwargs,

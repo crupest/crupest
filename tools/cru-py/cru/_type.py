@@ -1,7 +1,7 @@
 from types import NoneType
 from typing import Any
 
-from ._list import CanBeList, CruList
+from ._iter import CanBeList, CruList
 
 DEFAULT_NONE_ERR = ValueError
 DEFAULT_NONE_ERR_MSG = "None is not allowed here."
