@@ -415,8 +415,8 @@ class CruIterator(Generic[_T]):
         return self.first_n(1).single_or(fallback)
 
     @_wrap
-    def flatten(self) -> Iterable[_T | Iterable[_T]]:
-        return _Generic.iterable_flatten(self)
+    def flatten(self, max_depth: int = -1) -> Iterable[Any]:
+        return _Generic.iterable_flatten(self, max_depth)
 
     def select_by_indices(self, indices: Iterable[int]) -> CruIterator[_T]:
         index_set = set(indices)

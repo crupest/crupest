@@ -79,14 +79,14 @@ class TemplateTree:
         prefix: str,
         source: str,
         destination: str,
-        exclude: Iterable[str],
+        exclude: Iterable[str] | None = None,
         template_file_suffix: str = ".template",
     ):
         self._prefix = prefix
         self._files: list[CruTemplateFile] | None = None
         self._source = source
         self._destination = destination
-        self._exclude = [os.path.normpath(p) for p in exclude]
+        self._exclude = [os.path.normpath(p) for p in exclude or []]
         self._template_file_suffix = template_file_suffix
 
     @property

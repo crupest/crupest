@@ -9,9 +9,6 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-rich = "^13.9.4"
-jsonschema = "^4.23.0"
-cryptography = "^43.0.3"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"
