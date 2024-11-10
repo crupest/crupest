@@ -1,3 +1,4 @@
+from cru import CruException, CruUserFriendlyException
 from cru.config import Configuration, ConfigItem
 from cru.value import (
     INTEGER_VALUE_TYPE,
@@ -7,10 +8,42 @@ from cru.value import (
 )
 from cru.parsing import SimpleLineConfigParser
 
-from ._base import AppFeaturePath, AppFeatureProvider, OWNER_NAME
+from ._base import AppFeaturePath, AppCommandFeatureProvider, OWNER_NAME
 
 
-class ConfigManager(AppFeatureProvider):
+class AppConfigError(CruException):
+    pass
+
+
+class AppConfigDuplicateItemsError(AppConfigError):
+    def __init__(
+        self, message: str, items: list[SimpleLineConfigParser.Item], *args, **kwargs
+    ) -> None:
+        super().__init__(message, *args, **kwargs)
+        self._items = items
+
+    @property
+    def duplicate_items(self) -> list[SimpleLineConfigParser.Item]:
+        return self._items
+
+    @staticmethod
+    def duplicate_items_to_friendly_message(
+        items: list[SimpleLineConfigParser.Item],
+    ) -> str:
+        return "".join(
+            f"line {item.line_number}: {item.key}={item.value}\n" for item in items
+        )
+
+    def to_friendly_error(self) -> CruUserFriendlyException:
+        e = CruUserFriendlyException(
+            f"Duplicate configuration items detected:\n"
+            f"{self.duplicate_items_to_friendly_message(self.duplicate_items)}"
+        )
+        e.__cause__ = self
+        return e
+
+
+class ConfigManager(AppCommandFeatureProvider):
     def __init__(self) -> None:
         super().__init__("config-manager")
         configuration = Configuration()
@@ -99,6 +132,36 @@ class ConfigManager(AppFeatureProvider):
     def config_map(self) -> dict[str, str]:
         raise NotImplementedError()
 
+    def _parse_config_file(self) -> SimpleLineConfigParser.Result | None:
+        if not self.config_file_path.check_self():
+            return None
+        parser = SimpleLineConfigParser()
+        return parser.parse(self.config_file_path.full_path.read_text())
+
+    def _check_duplicate(
+        self,
+        result: SimpleLineConfigParser.Result
+        | dict[str, list[SimpleLineConfigParser.Item]],
+    ) -> dict[str, str]:
+        if isinstance(result, SimpleLineConfigParser.Result):
+            result = result.cru_iter().group_by(lambda i: i.key)
+
+        config = {}
+        error_items = []
+        for key, items in result.items():
+            config[key] = items[0].value
+            for item in items[1:]:
+                error_items.append(item)
+
+        if len(error_items) > 0:
+            raise AppConfigDuplicateItemsError("Duplicate items found.", error_items)
+
+        return config
+
+    def _check_config_file(self) -> dict[str, str]:
+        # TODO: Continue here!
+        raise NotImplementedError()
+
     def reload_config_file(self) -> bool:
         self.configuration.reset_all()
         if not self.config_file_path.check_self():
@@ -107,3 +170,33 @@ class ConfigManager(AppFeatureProvider):
         parse_result = parser.parse(self.config_file_path.full_path.read_text())
         config_dict = parse_result.cru_iter().group_by(lambda i: i.key)
         return True
+
+    def print_app_config_info(self):
+        for item in self.configuration:
+            print(f"{item.name} ({item.value_type.name}): {item.description}")
+
+    def get_command_info(self):
+        return "config", "Manage configuration."
+
+    def setup_arg_parser(self, arg_parser) -> None:
+        subparsers = arg_parser.add_subparsers(dest="config_command")
+        _print_app_parser = subparsers.add_parser(
+            "print-app",
+            help="Print application configuration information "
+            "of the items defined in the application.",
+        )
+        _check_config_parser = subparsers.add_parser(
+            "check",
+            help="Check the validity of the configuration file.",
+        )
+        _check_config_parser.add_argument(
+            "-f",
+            "--format-only",
+            action="store_true",
+            help="Only check content format, not "
+            "for application configuration requirements.",
+        )
+
+    def run_command(self, args) -> None:
+        if args.config_command == "print-app":
+            self.print_app_config_info()

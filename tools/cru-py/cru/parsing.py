@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 from typing import NamedTuple, TypeAlias, TypeVar, Generic, NoReturn, Callable
 
 from ._error import CruException
-from ._iter import  CruIterable
+from ._iter import CruIterable
 
 _T = TypeVar("_T")
 
@@ -62,9 +62,8 @@ class SimpleLineConfigParserItem(NamedTuple):
     line_number: int | None = None
 
 
-SimpleLineConfigParserResult: TypeAlias = CruIterable.IterList[
-    SimpleLineConfigParserItem
-]
+class SimpleLineConfigParserResult(CruIterable.IterList[SimpleLineConfigParserItem]):
+    pass
 
 
 class SimpleLineConfigParser(Parser[SimpleLineConfigParserResult]):
