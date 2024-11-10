@@ -93,6 +93,10 @@ class CruUniqueKeyList(Generic[_T, _K]):
             raise KeyError(f"Key {key} not found!")
         return value  # type: ignore
 
+    @property
+    def keys(self) -> Iterable[_K]:
+        return self._list.as_cru_iterator().map(self._key_getter)
+
     def has_key(self, key: _K) -> bool:
         return self.get_or(key) != CruNotFound.VALUE
 
