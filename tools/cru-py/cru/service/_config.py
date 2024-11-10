@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Literal, overload
 
 from cru import CruException
 from cru.config import Configuration, ConfigItem
@@ -117,41 +117,6 @@ class AppConfigDuplicateEntryError(AppConfigFileEntryError):
         return "Duplicate entries found in config file"
 
 
-class AppConfigEntryKeyError(AppConfigFileEntryError):
-    def __init__(
-        self,
-        message: str,
-        configuration: Configuration,
-        undefined_entries: Iterable[SimpleLineConfigParser.Entry],
-        unset_items: Iterable[ConfigItem],
-        *args,
-        **kwargs,
-    ) -> None:
-        super().__init__(message, configuration, undefined_entries, *args, **kwargs)
-        self._unset_items = list(unset_items)
-
-    @property
-    def unset_items(self) -> list[ConfigItem]:
-        return self._unset_items
-
-    @property
-    def friendly_message_head(self) -> str:
-        return "Entry key not defined in app config"
-
-    @property
-    def unset_items_message(self) -> str:
-        head = "App config items are not set in app config:\n"
-        return head + "\n".join([item.name for item in self.unset_items])
-
-    def get_user_message(self):
-        m = []
-        if len(self.error_entries) > 0:
-            m.append(super().get_user_message())
-        if len(self.unset_items) > 0:
-            m.append(self.unset_items_message)
-        return "\n".join(m)
-
-
 class AppConfigEntryValueFormatError(AppConfigFileEntryError):
     @property
     def friendly_message_head(self) -> str:
@@ -162,11 +127,12 @@ class AppConfigItemNotSetError(AppConfigError):
     def __init__(
         self,
         message: str,
+        configuration: Configuration,
         items: list[ConfigItem],
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(message, *args, **kwargs)
+        super().__init__(message, configuration, *args, **kwargs)
         self._items = items
 
 
@@ -258,8 +224,45 @@ class ConfigManager(AppCommandFeatureProvider):
     def config_file_path(self) -> AppFeaturePath:
         return self._config_file_path
 
-    def get_config_str_dict(self) -> dict[str, str]:
+    @property
+    def all_set(self) -> bool:
+        return self.configuration.all_set
+
+    def get_item(self, name: str) -> ConfigItem[Any]:
+        if not name.startswith(self.config_name_prefix + "_"):
+            name = f"{self.config_name_prefix}_{name}"
+
+        item = self.configuration.get_or(name, None)
+        if item is None:
+            raise AppConfigError(f"Config item '{name}' not found.", self.configuration)
+        return item
+
+    @overload
+    def get_item_value_str(self, name: str) -> str: ...
+
+    @overload
+    def get_item_value_str(self, name: str, ensure_set: Literal[True]) -> str: ...
+
+    @overload
+    def get_item_value_str(self, name: str, ensure_set: bool = True) -> str | None: ...
+
+    def get_item_value_str(self, name: str, ensure_set: bool = True) -> str | None:
         self.reload_config_file()
+        item = self.get_item(name)
+        if ensure_set and not item.is_set:
+            raise AppConfigItemNotSetError(
+                f"Config item '{name}' is not set.", self.configuration, [item]
+            )
+        return item.value_str
+
+    def get_str_dict(self, ensure_all_set: bool = True) -> dict[str, str]:
+        self.reload_config_file()
+        if ensure_all_set and not self.configuration.all_set:
+            raise AppConfigItemNotSetError(
+                "Some config items are not set.",
+                self.configuration,
+                self.configuration.get_unset_items(),
+            )
         return self.configuration.to_str_dict()
 
     def get_domain_item_name(self) -> str:
@@ -343,26 +346,6 @@ class ConfigManager(AppCommandFeatureProvider):
 
         return entry_dict
 
-    def _check_key(
-        self, entry_dict: dict[str, SimpleLineConfigParser.Entry]
-    ) -> dict[str, SimpleLineConfigParser.Entry]:
-        undefined: list[SimpleLineConfigParser.Entry] = []
-        for key, entry in entry_dict.items():
-            if not self.configuration.has_key(key):
-                undefined.append(entry)
-        unset_items: list[ConfigItem] = []
-        for item in self.configuration:
-            if item.name not in entry_dict or entry_dict[item.name].value == "":
-                unset_items.append(item)
-        if len(undefined) > 0 or len(unset_items) > 0:
-            raise AppConfigEntryKeyError(
-                "Entry keys are not defined in app config.",
-                self.configuration,
-                undefined,
-                unset_items,
-            )
-        return entry_dict
-
     def _check_type(
         self, entry_dict: dict[str, SimpleLineConfigParser.Entry]
     ) -> dict[str, Any]:
@@ -393,7 +376,6 @@ class ConfigManager(AppCommandFeatureProvider):
         parsed = self._parse_config_file()
         entry_groups = parsed.cru_iter().group_by(lambda e: e.key)
         entry_dict = self._check_duplicate(entry_groups)
-        entry_dict = self._check_key(entry_dict)
         value_dict = self._check_type(entry_dict)
         return value_dict
 
@@ -401,6 +383,8 @@ class ConfigManager(AppCommandFeatureProvider):
         self.configuration.reset_all()
         value_dict = self._read_config_file()
         for key, value in value_dict.items():
+            if value is None:
+                continue
             self.configuration.set_config_item(key, value)
 
     def _print_app_config_info(self):
@@ -415,26 +399,22 @@ class ConfigManager(AppCommandFeatureProvider):
             dest="config_command", required=True, metavar="CONFIG_COMMAND"
         )
         _init_parser = subparsers.add_parser(
-            "init", help="Create an initial configuration file."
+            "init", help="create an initial config file"
         )
         _print_app_parser = subparsers.add_parser(
             "print-app",
-            help="Print application configuration information "
-            "of the items defined in the application.",
+            help="print information of the config items defined by app",
         )
-        _print_parser = subparsers.add_parser(
-            "print", help="Print current configuration."
-        )
+        _print_parser = subparsers.add_parser("print", help="print current config")
         _check_config_parser = subparsers.add_parser(
             "check",
-            help="Check the validity of the configuration file.",
+            help="check the validity of the config file",
         )
         _check_config_parser.add_argument(
             "-f",
             "--format-only",
             action="store_true",
-            help="Only check content format, not "
-            "for application configuration requirements.",
+            help="only check content format, not app config item requirements.",
         )
 
     def run_command(self, args) -> None:

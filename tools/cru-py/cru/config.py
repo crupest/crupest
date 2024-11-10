@@ -113,7 +113,7 @@ class ConfigItem(Generic[_T]):
             self.value,
             self.default,
         )
-    
+
     @property
     def description_str(self) -> str:
         return f"{self.name} ({self.value_type.name}): {self.description}"
@@ -123,9 +123,19 @@ class Configuration(CruUniqueKeyList[ConfigItem[Any], str]):
     def __init__(self):
         super().__init__(lambda c: c.name)
 
+    def get_set_items(self) -> list[ConfigItem[Any]]:
+        return [item for item in self if item.is_set]
+
+    def get_unset_items(self) -> list[ConfigItem[Any]]:
+        return [item for item in self if not item.is_set]
+
+    @property
+    def all_set(self) -> bool:
+        return len(self.get_unset_items()) == 0
+
     @property
     def all_not_set(self) -> bool:
-        return self.cru_iter().all(lambda item: not item.is_set)
+        return len(self.get_set_items()) == 0
 
     def add_text_config(
         self,

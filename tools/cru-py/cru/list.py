@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
-from typing import Any, Generic, Iterable, TypeAlias, TypeVar
+from typing import Any, Generic, Iterable, TypeAlias, TypeVar, overload
 
 from ._error import CruInternalError
 from ._iter import CruIterator
@@ -77,6 +77,14 @@ class CruUniqueKeyList(Generic[_T, _K]):
         keys = self._list.transform(self._key_getter)
         if len(keys) != len(set(keys)):
             raise CruInternalError("Duplicate keys!")
+
+    @overload
+    def get_or(
+        self, key: _K, fallback: CruNotFound = CruNotFound.VALUE
+    ) -> _T | CruNotFound: ...
+
+    @overload
+    def get_or(self, key: _K, fallback: _O) -> _T | _O: ...
 
     def get_or(
         self, key: _K, fallback: _O | CruNotFound = CruNotFound.VALUE
