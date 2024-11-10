@@ -48,7 +48,7 @@ class TemplateManager(AppCommandFeatureProvider):
 
     def _generate_files(self, dry_run: bool) -> None:
         config_manager = self.app.get_feature(ConfigManager)
-        if not dry_run:
+        if not dry_run and self.generated_dir.full_path.exists():
             shutil.rmtree(self.generated_dir.full_path)
         self.template_tree.generate_to(
             self.generated_dir.full_path_str, config_manager.get_str_dict(), dry_run
@@ -81,4 +81,6 @@ class TemplateManager(AppCommandFeatureProvider):
             self._generate_files(dry_run)
             if dry_run:
                 print("Dry run successfully.")
-                print(f"Will delete dir {self.generated_dir.full_path_str}.")
+                print(
+                    f"Will delete dir {self.generated_dir.full_path_str} if it exists."
+                )
