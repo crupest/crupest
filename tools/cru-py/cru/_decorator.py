@@ -9,7 +9,7 @@ from typing import (
     cast,
 )
 
-from ._cru import CRU
+from ._base import CRU
 
 _P = ParamSpec("_P")
 _T = TypeVar("_T")

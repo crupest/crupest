@@ -13,7 +13,7 @@ from typing import (
 )
 
 
-from ._cru import CRU
+from ._base import CRU
 from ._const import CruPlaceholder
 
 _P = ParamSpec("_P")
@@ -163,11 +163,11 @@ class _Creators:
 
 
 class CruFunction:
-    RawBase = _RawBase
-    Base = _Base
-    Creators = _Creators
-    Wrapper = _Wrapper
-    Decorators = _Dec
+    RawBase: TypeAlias = _RawBase
+    Base: TypeAlias = _Base
+    Creators: TypeAlias = _Creators
+    Wrapper: TypeAlias = _Wrapper
+    Decorators: TypeAlias = _Dec
 
 
 CRU.add_objects(CruFunction)

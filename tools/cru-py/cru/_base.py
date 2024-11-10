@@ -1,6 +1,22 @@
-from typing import Any
+from typing import Any, NoReturn
 
 from ._lang import remove_none
+
+
+class CruException(Exception):
+    """Base exception class of all exceptions in cru."""
+
+
+class CruNamespaceError(CruException):
+    """Raised when a namespace is not found."""
+
+
+class CruUnreachableError(CruException):
+    """Raised when a code path is unreachable."""
+
+
+def cru_unreachable() -> NoReturn:
+    raise CruUnreachableError()
 
 
 class _Cru:
@@ -30,13 +46,15 @@ class _Cru:
             if name is None:
                 continue
             if self.has_name(name):
-                raise ValueError(f"Name {name} exists in CRU.")
+                raise CruNamespaceError(f"Name {name} exists in CRU.")
 
     @staticmethod
     def check_name_format(name: str) -> tuple[str, str]:
         no_prefix_name = _Cru._maybe_remove_prefix(name)
         if no_prefix_name is None:
-            raise ValueError(f"Name {name} is not prefixed with {_Cru.NAME_PREFIXES}.")
+            raise ValueError(
+                f"Name {name} is not prefixed with any of {_Cru.NAME_PREFIXES}."
+            )
         return name, no_prefix_name
 
     @staticmethod
