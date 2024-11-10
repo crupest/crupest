@@ -1,31 +1,32 @@
 import os
 from pathlib import Path
 
-from .error import CruException
+from ._error import CruException
+from ._path import CruPath
+
+
+class CruApplication:
+    def __init__(self, name: str) -> None:
+        self._name = name
 
 
 class ApplicationPathError(CruException):
-    def __init__(self, message: str, p: str | Path, *args, **kwargs):
-        super().__init__(message, *args, path=str(p), **kwargs)
+    def __init__(self, message, _path: Path, *args, **kwargs):
+        super().__init__(message, *args, **kwargs)
+        self._path = _path
 
-
-def check_parents_dir(p: str | Path, /, must_exist: bool = False) -> bool:
-    p = Path(p) if isinstance(p, str) else p
-    for p in reversed(p.parents):
-        if not p.exists() and not must_exist:
-            return False
-        if not p.is_dir():
-            raise ApplicationPathError("Parents path should be a dir.", p)
-    return True
+    @property
+    def path(self) -> Path:
+        return self._path
 
 
 class ApplicationPath:
     def __init__(self, p: str | Path, is_dir: bool) -> None:
-        self._path = Path(p) if isinstance(p, str) else p
+        self._path = CruPath(p)
         self._is_dir = is_dir
 
     @property
-    def path(self) -> Path:
+    def path(self) -> CruPath:
         return self._path
 
     @property
@@ -33,7 +34,7 @@ class ApplicationPath:
         return self._is_dir
 
     def check_parents(self, must_exist: bool = False) -> bool:
-        return check_parents_dir(self._path.parent, must_exist)
+        return self._path.check_parents_dir(must_exist)
 
     def check_self(self, must_exist: bool = False) -> bool:
         if not self.check_parents(must_exist):
@@ -41,7 +42,7 @@ class ApplicationPath:
         if not self.path.exists():
             if not must_exist:
                 return False
-            raise ApplicationPathError("Mot exist.", self.path)
+            raise ApplicationPathError("Not exist.", self.path)
         if self.is_dir:
             if not self.path.is_dir():
                 raise ApplicationPathError("Should be a directory, but not.", self.path)

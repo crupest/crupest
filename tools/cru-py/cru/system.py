@@ -7,10 +7,11 @@ def check_debian_derivative_version(name: str) -> None | str:
         return None
     with open("/etc/os-release", "r") as f:
         content = f.read()
-        if not f"ID={name}" in content:
+        if f"ID={name}" not in content:
             return None
         m = re.search(r'VERSION_ID="(.+)"', content)
-        if m is None: return None
+        if m is None:
+            return None
         return m.group(1)
 
 

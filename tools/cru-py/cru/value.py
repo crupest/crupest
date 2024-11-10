@@ -5,23 +5,23 @@ import secrets
 import string
 import uuid
 from abc import abstractmethod, ABCMeta
-from collections.abc import Mapping, Callable
-from typing import Any, ClassVar, Literal, TypeVar, Generic, ParamSpec
+from collections.abc import Callable
+from typing import Any, ClassVar, TypeVar, Generic
 
-from .error import CruInternalError, CruException
+from ._error import CruException
 
 
-def _str_case_in(s: str, case: bool, l: list[str]) -> bool:
+def _str_case_in(s: str, case: bool, str_list: list[str]) -> bool:
     if case:
-        return s in l
+        return s in str_list
     else:
-        return s.lower() in [s.lower() for s in l]
+        return s.lower() in [s.lower() for s in str_list]
 
 
-T = TypeVar("T")
+_T = TypeVar("_T")
 
 
-class CruValueError(CruException):
+class CruValueTypeError(CruException):
     def __init__(
         self,
         message: str,
@@ -47,17 +47,8 @@ class CruValueError(CruException):
         return self._value_type
 
 
-class CruValueValidationError(CruValueError):
-    pass
-
-
-class CruValueStringConversionError(CruValueError):
-    pass
-
-
-# TODO: Continue here tomorrow!
-class ValueType(Generic[T], metaclass=ABCMeta):
-    def __init__(self, name: str, _type: type[T]) -> None:
+class ValueType(Generic[_T], metaclass=ABCMeta):
+    def __init__(self, name: str, _type: type[_T]) -> None:
         self._name = name
         self._type = _type
 
@@ -66,67 +57,61 @@ class ValueType(Generic[T], metaclass=ABCMeta):
         return self._name
 
     @property
-    def type(self) -> type[T]:
+    def type(self) -> type[_T]:
         return self._type
 
-    def check_value_type(self, value: Any) -> bool:
-        return isinstance(value, self.type)
+    def check_value_type(self, value: Any) -> None:
+        if not isinstance(value, self.type):
+            raise CruValueTypeError("Type of value is wrong.", value, self)
 
-    def _do_check_value(self, value: Any) -> T:
+    def _do_check_value(self, value: Any) -> _T:
         return value
 
-    def check_value(self, value: Any) -> T:
-        if not isinstance(value, self.type):
-            raise CruValueValidationError("Value type is wrong.", value, self)
+    def check_value(self, value: Any) -> _T:
+        self.check_value_type(value)
         return self._do_check_value(value)
 
-    def _do_check_str_format(self, s: str) -> bool | tuple[bool, str]:
+    @abstractmethod
+    def _do_check_str_format(self, s: str) -> None:
         raise NotImplementedError()
 
     def check_str_format(self, s: str) -> None:
-        ok, err = self._do_check_str_format(s)
-        if ok is None:
-            raise CruInternalLogicError("_do_check_str_format should not return None.")
-        if ok:
-            return
-        if err is None:
-            err = "Invalid value str format."
-        raise ValueStringConvertionError(err, s, value_type=self)
+        if not isinstance(s, str):
+            raise CruValueTypeError("Try to check format on a non-str.", s, self)
+        self._do_check_str_format(s)
 
     @abstractmethod
-    def _do_convert_value_to_str(self, value: T) -> str:
+    def _do_convert_value_to_str(self, value: _T) -> str:
         raise NotImplementedError()
 
-    def convert_value_to_str(self, value: T) -> str:
+    def convert_value_to_str(self, value: _T) -> str:
         self.check_value(value)
         return self._do_convert_value_to_str(value)
 
     @abstractmethod
-    def _do_convert_str_to_value(self, s: str) -> T:
+    def _do_convert_str_to_value(self, s: str) -> _T:
         raise NotImplementedError()
 
-    def convert_str_to_value(self, s: str) -> T:
+    def convert_str_to_value(self, s: str) -> _T:
         self.check_str_format(s)
         return self._do_convert_str_to_value(s)
 
-    def check_value_or_try_convert_from_str(self, value_or_str: Any) -> T:
+    def check_value_or_try_convert_from_str(self, value_or_str: Any) -> _T:
         try:
             return self.check_value(value_or_str)
-        except ValidationError as e:
+        except CruValueTypeError:
             if isinstance(value_or_str, str):
                 return self.convert_str_to_value(value_or_str)
             else:
-                raise ValidationError(
-                    "Value is not valid and is not a str.", value_or_str, self, inner=e
-                )
+                raise
 
 
 class TextValueType(ValueType[str]):
     def __init__(self) -> None:
-        super().__init__("text")
+        super().__init__("text", str)
 
-    def _do_check_str_format(self, s):
-        return True
+    def _do_check_str_format(self, _s):
+        return
 
     def _do_convert_value_to_str(self, value):
         return value
@@ -138,14 +123,13 @@ class TextValueType(ValueType[str]):
 class IntegerValueType(ValueType[int]):
 
     def __init__(self) -> None:
-        super().__init__("integer")
+        super().__init__("integer", int)
 
     def _do_check_str_format(self, s):
         try:
             int(s)
-            return True
-        except ValueError:
-            return False
+        except ValueError as e:
+            raise CruValueTypeError("Invalid integer format.", s, self) from e
 
     def _do_convert_value_to_str(self, value):
         return str(value)
@@ -156,14 +140,13 @@ class IntegerValueType(ValueType[int]):
 
 class FloatValueType(ValueType[float]):
     def __init__(self) -> None:
-        super().__init__("float")
+        super().__init__("float", float)
 
     def _do_check_str_format(self, s):
         try:
             float(s)
-            return True
-        except ValueError:
-            return False
+        except ValueError as e:
+            raise CruValueTypeError("Invalid float format.", s, self) from e
 
     def _do_convert_value_to_str(self, value):
         return str(value)
@@ -183,7 +166,7 @@ class BooleanValueType(ValueType[bool]):
         true_list: None | list[str] = None,
         false_list: None | list[str] = None,
     ) -> None:
-        super().__init__("boolean")
+        super().__init__("boolean", bool)
         self._case_sensitive = case_sensitive
         self._valid_true_strs: list[str] = (
             true_list or BooleanValueType.DEFAULT_TRUE_LIST
@@ -209,15 +192,11 @@ class BooleanValueType(ValueType[bool]):
         return self._valid_true_strs + self._valid_false_strs
 
     def _do_check_str_format(self, s):
-        if _str_case_in(s, self.case_sensitive, self.valid_boolean_strs):
-            return True
-        return (
-            False,
-            f"Not a valid boolean string ({ValueType.case_sensitive_to_str(self.case_sensitive)}). Valid string of true: {' '.join(self._valid_true_strs)}. Valid string of false: {' '.join(self._valid_false_strs)}. All is case insensitive.",
-        )
+        if not _str_case_in(s, self.case_sensitive, self.valid_boolean_strs):
+            raise CruValueTypeError("Invalid boolean format.", s, self)
 
     def _do_convert_value_to_str(self, value):
-        return "True" if value else "False"
+        return self._valid_true_strs[0] if value else self._valid_false_strs[0]
 
     def _do_convert_str_to_value(self, s):
         return _str_case_in(s, self.case_sensitive, self._valid_true_strs)
@@ -225,9 +204,7 @@ class BooleanValueType(ValueType[bool]):
 
 class EnumValueType(ValueType[str]):
     def __init__(self, valid_values: list[str], /, case_sensitive=False) -> None:
-        s = " | ".join([f'"{v}"' for v in valid_values])
-        self._valid_value_str = f"[ {s} ]"
-        super().__init__(f"enum{self._valid_value_str}")
+        super().__init__(f"enum({'|'.join(valid_values)})", str)
         self._case_sensitive = case_sensitive
         self._valid_values = valid_values
 
@@ -240,16 +217,11 @@ class EnumValueType(ValueType[str]):
         return self._valid_values
 
     def _do_check_value(self, value):
-        ok, err = self._do_check_str_format(value)
-        return ok, (value if ok else err)
+        self._do_check_str_format(value)
 
     def _do_check_str_format(self, s):
-        if _str_case_in(s, self.case_sensitive, self.valid_values):
-            return True
-        return (
-            False,
-            f"Value is not in valid values ({ValueType.case_sensitive_to_str(self.case_sensitive)}): {self._valid_value_str}",
-        )
+        if not _str_case_in(s, self.case_sensitive, self.valid_values):
+            raise CruValueTypeError("Invalid enum value", s, self)
 
     def _do_convert_value_to_str(self, value):
         return value
@@ -262,69 +234,52 @@ TEXT_VALUE_TYPE = TextValueType()
 INTEGER_VALUE_TYPE = IntegerValueType()
 BOOLEAN_VALUE_TYPE = BooleanValueType()
 
-P = ParamSpec("P")
+
+class ValueGeneratorBase(Generic[_T], metaclass=ABCMeta):
+    @abstractmethod
+    def generate(self) -> _T:
+        raise NotImplementedError()
+
+    def __call__(self) -> _T:
+        return self.generate()
 
 
-class ValueGenerator(Generic[T, P]):
-    INTERACTIVE_KEY: ClassVar[Literal["interactive"]] = "interactive"
-
-    def __init__(
-        self, f: Callable[P, T], /, attributes: None | Mapping[str, Any] = None
-    ) -> None:
-        self._f = f
-        self._attributes = attributes or {}
-
-    @property
-    def f(self) -> Callable[P, T]:
-        return self._f
+class ValueGenerator(ValueGeneratorBase[_T]):
+    def __init__(self, generate_func: Callable[[], _T]) -> None:
+        self._generate_func = generate_func
 
     @property
-    def attributes(self) -> Mapping[str, Any]:
-        return self._attributes
+    def generate_func(self) -> Callable[[], _T]:
+        return self._generate_func
 
-    def generate(self, *args, **kwargs) -> T:
-        return self._f(*args, **kwargs)
-
-    def __call__(self, *args, **kwargs):
-        return self._f(*args, **kwargs)
-
-    @property
-    def interactive(self) -> bool:
-        return self._attributes.get(ValueGenerator.INTERACTIVE_KEY, False)
-
-    @staticmethod
-    def create_interactive(
-        f: Callable[P, T],
-        interactive: bool = True,
-        /,
-        attributes: None | Mapping[str, Any] = None,
-    ) -> "ValueGenerator[T, P]":
-        return ValueGenerator(
-            f, dict({ValueGenerator.INTERACTIVE_KEY: interactive}, **(attributes or {}))
-        )
+    def generate(self) -> _T:
+        return self._generate_func()
 
 
-class UuidValueGenerator(ValueGenerator[str, []]):
-    def __init__(self) -> None:
-        super().__init__(lambda: str(uuid.uuid4()))
+class UuidValueGenerator(ValueGeneratorBase[str]):
+
+    def generate(self):
+        return str(uuid.uuid4())
 
 
-class RandomStringValueGenerator(ValueGenerator[str, []]):
-    @staticmethod
-    def _create_generate_ramdom_func(length: int, secure: bool) -> Callable[str, []]:
-        random_choice = secrets.choice if secure else random.choice
-
-        def generate_random_string():
-            characters = string.ascii_letters + string.digits
-            random_string = "".join(random_choice(characters) for _ in range(length))
-            return random_string
-
-        return generate_random_string
-
+class RandomStringValueGenerator(ValueGeneratorBase[str]):
     def __init__(self, length: int, secure: bool) -> None:
-        super().__init__(
-            RandomStringValueGenerator._create_generate_ramdom_func(length, secure)
-        )
+        self._length = length
+        self._secure = secure
+
+    @property
+    def length(self) -> int:
+        return self._length
+
+    @property
+    def secure(self) -> bool:
+        return self._secure
+
+    def generate(self):
+        random_func = secrets.choice if self._secure else random.choice
+        characters = string.ascii_letters + string.digits
+        random_string = "".join(random_func(characters) for _ in range(self._length))
+        return random_string
 
 
 UUID_VALUE_GENERATOR = UuidValueGenerator()
