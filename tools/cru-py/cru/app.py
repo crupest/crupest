@@ -21,45 +21,57 @@ class ApplicationPathError(CruException):
 
 
 class ApplicationPath:
-    def __init__(self, p: str | Path, is_dir: bool) -> None:
-        self._path = CruPath(p)
+    def __init__(self, app_dir: str, subpath: str, is_dir: bool) -> None:
+        self._app_dir = app_dir
+        self._subpath = subpath
+        self._full_path = CruPath(app_dir, subpath)
         self._is_dir = is_dir
 
     @property
-    def path(self) -> CruPath:
-        return self._path
+    def app_dir(self) -> str:
+        return self._app_dir
+
+    @property
+    def subpath(self) -> str:
+        return self._subpath
+
+    @property
+    def full_path(self) -> CruPath:
+        return self._full_path
 
     @property
     def is_dir(self) -> bool:
         return self._is_dir
 
     def check_parents(self, must_exist: bool = False) -> bool:
-        return self._path.check_parents_dir(must_exist)
+        return self.full_path.check_parents_dir(must_exist)
 
     def check_self(self, must_exist: bool = False) -> bool:
         if not self.check_parents(must_exist):
             return False
-        if not self.path.exists():
+        if not self.full_path.exists():
             if not must_exist:
                 return False
-            raise ApplicationPathError("Not exist.", self.path)
+            raise ApplicationPathError("Not exist.", self.full_path)
         if self.is_dir:
-            if not self.path.is_dir():
-                raise ApplicationPathError("Should be a directory, but not.", self.path)
+            if not self.full_path.is_dir():
+                raise ApplicationPathError(
+                    "Should be a directory, but not.", self.full_path
+                )
             else:
                 return False
         else:
-            if not self.path.is_file():
-                raise ApplicationPathError("Should be a file, but not.", self.path)
+            if not self.full_path.is_file():
+                raise ApplicationPathError("Should be a file, but not.", self.full_path)
             else:
                 return False
 
     def ensure(self, create_file: bool = False) -> None:
         e = self.check_self(False)
         if not e:
-            os.makedirs(self.path.parent, exist_ok=True)
+            os.makedirs(self.full_path.parent, exist_ok=True)
             if self.is_dir:
-                os.mkdir(self.path)
+                os.mkdir(self.full_path)
             elif create_file:
-                with open(self.path, "w") as f:
+                with open(self.full_path, "w") as f:
                     f.write("")
