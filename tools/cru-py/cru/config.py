@@ -1,6 +1,6 @@
 from typing import Any, TypeVar, Generic
 
-from .excp import CruInternalLogicError
+from .error import CruInternalLogicError
 from .value import ValueType, ValueGenerator, ValidationError
 
 T = TypeVar("T")

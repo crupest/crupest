@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from .excp import CruException
+from .error import CruException
 
 
 class ApplicationPathError(CruException):
@@ -39,7 +39,8 @@ class ApplicationPath:
         if not self.check_parents(must_exist):
             return False
         if not self.path.exists():
-            if not must_exist: return False
+            if not must_exist:
+                return False
             raise ApplicationPathError("Mot exist.", self.path)
         if self.is_dir:
             if not self.path.is_dir():

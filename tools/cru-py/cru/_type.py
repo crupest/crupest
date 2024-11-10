@@ -1,61 +1,52 @@
-from types import NoneType
+from collections.abc import Iterable
 from typing import Any
 
-DEFAULT_NONE_ERR = ValueError
+from ._base import CruException, CruInternalError
+from ._iter import CruIterator
+
+
+class CruTypeCheckError(CruException):
+    pass
+
+
 DEFAULT_NONE_ERR_MSG = "None is not allowed here."
-DEFAULT_TYPE_ERR = ValueError
-DEFAULT_TYPE_ERR_MSG = "Type of object is not allowed here."
+DEFAULT_TYPE_ERR_MSG = "Object of this type is not allowed here."
 
 
-class TypeSet:
+class CruTypeSet(set[type]):
     def __init__(self, *types: type):
-        l = CruList.make(l).remove_all_value(None, NoneType)
-        if not l.all_is_instance(type):
-            raise TypeError("t must be a type or None.")
-        super().__init__(l)
+        type_set = CruIterator(types).filter(lambda t: t is not None).to_set()
+        if not CruIterator(type_set).all(lambda t: isinstance(t, type)):
+            raise CruInternalError("TypeSet can only contain type.")
+        super().__init__(type_set)
 
     def check_value(
         self,
-        v: Any,
+        value: Any,
         /,
-        allow_none: bool,
+        allow_none: bool = False,
         empty_allow_all: bool = True,
-        *,
-        none_err: type[Exception] = DEFAULT_NONE_ERR,
-        none_err_msg: str = DEFAULT_NONE_ERR_MSG,
-        type_err: type[Exception] = DEFAULT_TYPE_ERR,
-        type_err_msg: str = DEFAULT_TYPE_ERR_MSG,
     ) -> None:
-        if v is None:
+        if value is None:
             if allow_none:
                 return
             else:
-                raise none_err(none_err_msg)
+                raise CruTypeCheckError(DEFAULT_NONE_ERR_MSG)
         if len(self) == 0 and empty_allow_all:
             return
-        if type(v) not in self:
-            raise type_err(type_err_msg)
+        if not CruIterator(self).any(lambda t: isinstance(value, t)):
+            raise CruTypeCheckError(DEFAULT_TYPE_ERR_MSG)
 
     def check_value_list(
         self,
-        l: CanBeList,
+        values: Iterable[Any],
         /,
-        allow_none: bool,
+        allow_none: bool = False,
         empty_allow_all: bool = True,
-        *,
-        none_err: type[Exception] = DEFAULT_NONE_ERR,
-        none_err_msg: str = DEFAULT_NONE_ERR_MSG,
-        type_err: type[Exception] = DEFAULT_TYPE_ERR,
-        type_err_msg: str = DEFAULT_TYPE_ERR_MSG,
     ) -> None:
-        l = CruList.make(l)
-        for v in l:
+        for value in values:
             self.check_value(
-                v,
+                value,
                 allow_none,
                 empty_allow_all,
-                none_err=none_err,
-                none_err_msg=none_err_msg,
-                type_err=type_err,
-                type_err_msg=type_err_msg,
             )
