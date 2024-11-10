@@ -41,14 +41,14 @@ class TemplateManager(AppCommandFeatureProvider):
         )
         return self._template_tree
 
-    def print_file_lists(self) -> None:
+    def _print_file_lists(self) -> None:
         for file in CruIterator(self.template_tree.templates).transform(lambda t: t[0]):
             print(file.as_posix())
 
-    def generate_files(self) -> None:
+    def _generate_files(self) -> None:
         config_manager = self.app.get_feature(ConfigManager)
         self.template_tree.generate_to(
-            self.generated_dir.full_path_str, config_manager.get_config_str_dict()
+            self.generated_dir.full_path_str, config_manager.get_str_dict()
         )
 
     def get_command_info(self):
@@ -58,17 +58,17 @@ class TemplateManager(AppCommandFeatureProvider):
         subparsers = arg_parser.add_subparsers(
             dest="template_command", required=True, metavar="TEMPLATE_COMMAND"
         )
-        _list_parser = subparsers.add_parser("list", help="List templates.")
+        _list_parser = subparsers.add_parser("list", help="list templates")
         _variables_parser = subparsers.add_parser(
-            "variables", help="List variables for a specific template."
+            "variables", help="list variables used in all templates"
         )
-        _generate_parser = subparsers.add_parser("generate", help="Generate template.")
+        _generate_parser = subparsers.add_parser("generate", help="generate templates")
 
     def run_command(self, args: Namespace) -> None:
         if args.template_command == "list":
-            self.print_file_lists()
+            self._print_file_lists()
         elif args.template_command == "variables":
             for var in self.template_tree.variables:
                 print(var)
         elif args.template_command == "generate":
-            self.generate_files()
+            self._generate_files()

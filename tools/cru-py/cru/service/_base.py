@@ -219,7 +219,9 @@ class PathCommandProvider(AppCommandFeatureProvider):
         subparsers = arg_parser.add_subparsers(
             dest="path_command", required=True, metavar="PATH_COMMAND"
         )
-        _list_parser = subparsers.add_parser("list", help="list all paths.")
+        _list_parser = subparsers.add_parser(
+            "list", help="list special paths used by app"
+        )
 
     def run_command(self, args: Namespace) -> None:
         if args.path_command == "list":

@@ -29,6 +29,10 @@ class CruTemplate:
         return self._prefix
 
     @property
+    def raw_text(self) -> str:
+        return self._template.template
+
+    @property
     def py_template(self) -> Template:
         return self._template
 
