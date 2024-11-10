@@ -1,63 +1,41 @@
-from collections.abc import Callable
-from dataclasses import dataclass
-from types import NoneType
 from typing import Any
 
-from cru.attr import CruAttrDefRegistry
+from .attr import CruAttrDefRegistry, CRU_ATTR_USE_DEFAULT, CruAttr, CruAttrTable
+from .util import CanBeList
 
 CRU_EXCEPTION_ATTR_DEF_REGISTRY = CruAttrDefRegistry()
+_REGISTRY = CRU_EXCEPTION_ATTR_DEF_REGISTRY
 
 
-class CruException(Exception):
-    @staticmethod
-    def transform_inner(inner: Exception | list[Exception] | None):
-        if inner is None:
-            return None
-        if isinstance(inner, Exception):
-            return [inner]
-        if isinstance(inner, list):
-            return inner
+class CruException(Exception, CruAttrTable):
+    MESSAGE_KEY = "message"
+    INNER_KEY = "inner"
+    INTERNAL_KEY = "internal"
+    NAME_KEY = "name"
+    VALUE_KEY = "value"
+    PATH_KEY = "path"
+    TYPE_KEY = "type_"
 
-    @staticmethod
-    def validate_inner(inner: list[Exception]):
-        for i in inner:
-            if not isinstance(i, Exception):
-                raise TypeError(f"Invalid inner exception: {i}")
+    _REGISTRY.make_builder(MESSAGE_KEY, "Message describing the exception.").with_constraint(True, str,
+                                                                                             "").build()
+    _REGISTRY.make_builder("inner", "Inner exception.").with_constraint(True, Exception,
+                                                                        auto_list=True).build()
+    _REGISTRY.make_builder("internal",
+                           "True if the exception is caused by wrong internal logic. False if it is caused by user's wrong input.").with_constraint(
+        True, bool, False).build()
+    _REGISTRY.make_builder(NAME_KEY, "Name of the object that causes the exception.").with_types(str).build()
+    _REGISTRY.make_builder(VALUE_KEY, "Value that causes the exception.").build()
+    _REGISTRY.make_builder(PATH_KEY, "Path that causes the exception.").with_types(str).build()
+    _REGISTRY.make_builder(TYPE_KEY, "Python type related to the exception.").with_types(type).build()
 
-    MESSAGE_DEF = CRU_EXCEPTION_ATTR_DEF_REGISTRY.register_required("message", "Message describing the exception.",
-                                                                allow_types=str, default_value="")
-    INNER_DEF = CRU_EXCEPTION_ATTR_DEF_REGISTRY.register_required("inner", "Inner exception.",
-                                                  allow_types=list, default_value=[],
-                                                  transformer=transform_inner, validator=validate_inner)
-    INTERNAL_DEF = CRU_EXCEPTION_ATTR_DEF_REGISTRY.register_required("internal",
-                                                  "True if the exception is caused by wrong internal logic. False if it is caused by user's wrong input.",
-                                                  allow_types=bool, default_value=False)
-    CRU_EXCEPTION_ATTR_DEF_REGISTRY.register_optional("name", "Name of the object that causes the exception.",
-                                                  allow_types=str)
-    CRU_EXCEPTION_ATTR_DEF_REGISTRY.register_optional("value", "Value that causes the exception.",
-                                                  allow_types=[])
-    CRU_EXCEPTION_ATTR_DEF_REGISTRY.register_with("path", "Path that causes the exception.",)
-    CRU_EXCEPTION_ATTR_DEF_REGISTRY.register_with("type", "Python type related to the exception.")
-
+    # TODO: CONTINUE HERE TOMORROW!
     def __init__(self, message: str, *args,
-                 inner: Exception | list[Exception] | None = None,
-                 internal: bool = False,
-                 name: str | None = None,
-                 value: Any | None = None,
-                 path: str | None = None,
-                 type_: type | None = None,
                  init_attrs: dict[str, Any] | None = None,
                  attrs: dict[str, Any] | None = None, **kwargs) -> None:
         super().__init__(message, *args)
 
         self._attrs = {
             CruException.MESSAGE_KEY: message,
-            CruException.INTERNAL_KEY: internal,
-            CruException.INNER_KEY: inner,
-            CruException.NAME_KEY: name,
-            CruException.VALUE_KEY: value,
-            CruException.PATH_KEY: path,
-            CruException.TYPE_KEY: type_,
         }
         if init_attrs is not None:
             self._attrs.update(init_attrs)
