@@ -2,14 +2,9 @@ import json
 import os
 import re
 import subprocess
-from os.path import join, basename, dirname
 from typing import Literal, Any, cast, ClassVar
 
 import jsonschema
-
-from crupest.template2 import Template2
-from crupest.tui import Paths, UserFriendlyException, create_dir_if_not_exists, console, Confirm, ensure_dir
-from crupest.ui_base import file_name_style
 
 
 def restart_nginx(force=False) -> bool:
