@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from enum import Flag, auto
 from typing import (
     Any,
     Generic,
-    Iterable,
     Literal,
     ParamSpec,
     TypeAlias,

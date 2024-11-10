@@ -1,22 +1,11 @@
-from typing import Any, NoReturn
+from typing import Any
 
 from ._lang import remove_none
+from .error import CruInternalError
 
 
-class CruException(Exception):
-    """Base exception class of all exceptions in cru."""
-
-
-class CruNamespaceError(CruException):
+class CruNamespaceError(CruInternalError):
     """Raised when a namespace is not found."""
-
-
-class CruUnreachableError(CruException):
-    """Raised when a code path is unreachable."""
-
-
-def cru_unreachable() -> NoReturn:
-    raise CruUnreachableError()
 
 
 class _Cru:

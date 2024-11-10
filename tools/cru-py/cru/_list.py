@@ -1,17 +1,31 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Generic, Iterable, Self, TypeAlias, TypeVar
-from ._iter import CruIterable
+from collections.abc import Callable, Iterator
+from typing import Any, Generic, Iterable, TypeAlias, TypeVar
+
+from ._base import CruInternalError
+from ._iter import CruIterator
+from ._const import CruNotFound
 
 _T = TypeVar("_T")
+_O = TypeVar("_O")
 
 
-class CruListEdit(CruIterable.Wrapper[_T]):
-    def done(self) -> CruList[_T]:
-        l: CruList[_T] = self.my_attr["list"]
-        l.reset(self)
-        return l
+class CruListEdit(CruIterator[_T]):
+    def __init__(self, iterable: Iterable[_T], _list: CruList[Any]) -> None:
+        super().__init__(iterable)
+        self._list = _list
+
+    def create_me(self, iterable: Iterable[_O]) -> CruListEdit[_O]:
+        return CruListEdit(iterable, self._list)
+
+    @property
+    def list(self) -> CruList[Any]:
+        return self._list
+
+    def done(self) -> CruList[Any]:
+        self._list.reset(self)
+        return self._list
 
 
 class CruList(list[_T]):
@@ -22,11 +36,8 @@ class CruList(list[_T]):
         self.extend(new_values)
         return self
 
-    def as_iterable_wrapper(self) -> CruIterable.Wrapper[_T]:
-        return CruIterable.Wrapper(self)
-
-    def as_edit_iterable_wrapper(self) -> CruListEdit[_T]:
-        return CruListEdit(self, attr={"list": self})
+    def as_cru_iterator(self) -> CruIterator[_T]:
+        return CruIterator(self)
 
     @staticmethod
     def make(maybe_list: Iterable[_T] | _T | None) -> CruList[_T]:
@@ -65,62 +76,70 @@ class CruUniqueKeyList(Generic[_T, _K]):
     def validate_self(self):
         keys = self._list.transform(self._key_getter)
         if len(keys) != len(set(keys)):
-            raise ValueError("Duplicate keys!")
+            raise CruInternalError("Duplicate keys!")
 
-    # TODO: Continue here!
-    def get_or(self, key: K, fallback: Any = CRU_NOT_FOUND) -> _V | Any:
-        r = self._l.find_if(lambda i: k == self._key_getter(i))
-        return r if r is not CRU_NOT_FOUND else fallback
+    def get_or(
+        self, key: _K, fallback: _O | CruNotFound = CruNotFound.VALUE
+    ) -> _T | _O | CruNotFound:
+        return (
+            self._list.as_cru_iterator()
+            .filter(lambda v: key == self._key_getter(v))
+            .first_or(fallback)
+        )
 
-    def get(self, k: K) -> _V:
-        v = self.get_or(k, CRU_NOT_FOUND)
-        if v is CRU_NOT_FOUND:
-            raise KeyError(f"Key not found!")
-        return v
+    def get(self, key: _K) -> _T:
+        value = self.get_or(key)
+        if value is CruNotFound:
+            raise KeyError(f"Key {key} not found!")
+        return value  # type: ignore
 
-    def has_key(self, k: K) -> bool:
-        return self.get_or(k, CRU_NOT_FOUND) is not CRU_NOT_FOUND
+    def has_key(self, key: _K) -> bool:
+        return self.get_or(key) != CruNotFound.VALUE
 
-    def has_any_key(self, *k: K) -> bool:
-        return self._l.any(lambda i: self._key_getter(i) in k)
-
-    def try_remove(self, k: K) -> bool:
-        i = self._l.find_index_if(lambda v: k == self._key_getter(v))
-        if i is CRU_NOT_FOUND:
+    def try_remove(self, key: _K) -> bool:
+        value = self.get_or(key)
+        if value is CruNotFound.VALUE:
             return False
-        self._l.remove_by_indices(i)
+        self._list.remove(value)
         return True
 
-    def remove(self, k: K, allow_absense: bool = False) -> None:
-        if not self.try_remove(k) and not allow_absense:
-            raise KeyError(f"Key {k} not found!")
+    def remove(self, key: _K, allow_absence: bool = False) -> None:
+        if not self.try_remove(key) and not allow_absence:
+            raise KeyError(f"Key {key} not found!")
 
-    def add(self, v: _V, /, replace: bool = False) -> None:
-        if self.has_key(self._key_getter(v)):
-            if replace:
-                self.remove(self._key_getter(v))
-            else:
-                raise ValueError(f"Key {self._key_getter(v)} already exists!")
+    def add(self, value: _T, /, replace: bool = False) -> None:
+        v = self.get_or(self._key_getter(value))
+        if v is not CruNotFound.VALUE:
+            if not replace:
+                raise KeyError(f"Key {self._key_getter(v)} already exists!")
+            self._list.remove(v)
         if self._before_add is not None:
-            v = self._before_add(v)
-        self._l.append(v)
+            value = self._before_add(value)
+        self._list.append(value)
 
-    def set(self, v: _V) -> None:
-        self.add(v, True)
+    def set(self, value: _T) -> None:
+        self.add(value, True)
 
-    def extend(self, l: Iterable[_V], /, replace: bool = False) -> None:
-        if not replace and self.has_any_key([self._key_getter(i) for i in l]):
-            raise ValueError("Keys already exists!")
+    def extend(self, iterable: Iterable[_T], /, replace: bool = False) -> None:
+        values = list(iterable)
+        to_remove = []
+        for value in values:
+            v = self.get_or(self._key_getter(value))
+            if v is not CruNotFound.VALUE:
+                if not replace:
+                    raise KeyError(f"Key {self._key_getter(v)} already exists!")
+                to_remove.append(v)
+        for value in to_remove:
+            self._list.remove(value)
         if self._before_add is not None:
-            l = [self._before_add(i) for i in l]
-        keys = [self._key_getter(i) for i in l]
-        self._l.remove_all_if(lambda i: self._key_getter(i) in keys).extend(l)
+            values = [self._before_add(value) for value in values]
+        self._list.extend(values)
 
     def clear(self) -> None:
-        self._l.clear()
+        self._list.reset([])
 
-    def __iter__(self):
-        return iter(self._l)
+    def __iter__(self) -> Iterator[_T]:
+        return iter(self._list)
 
-    def __len__(self):
-        return len(self._l)
+    def __len__(self) -> int:
+        return len(self._list)
