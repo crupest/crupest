@@ -16,8 +16,9 @@ from typing import (
     cast,
 )
 
-from ._base import CRU, cru_unreachable
+from ._base import CRU
 from ._const import CruNotFound
+from ._error import cru_unreachable
 
 _P = ParamSpec("_P")
 _T = TypeVar("_T")

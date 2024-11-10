@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from typing import Any
 
-from ._base import CruException, CruInternalError
+from ._error import CruException, CruInternalError
 from ._iter import CruIterator
 
 

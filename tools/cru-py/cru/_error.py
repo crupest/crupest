@@ -17,7 +17,7 @@ class CruInternalError(CruException):
     """Raised when an internal logic error occurs."""
 
 
-class UserFriendlyException(CruException):
+class CruUserFriendlyException(CruException):
     def __init__(self, message: str, user_message: str, *args, **kwargs) -> None:
         super().__init__(message, *args, **kwargs)
         self._user_message = user_message

@@ -1,7 +1,7 @@
 from typing import Any
 
-from ._lang import remove_none
-from .error import CruInternalError
+from ._helper import remove_none
+from ._error import CruInternalError
 
 
 class CruNamespaceError(CruInternalError):

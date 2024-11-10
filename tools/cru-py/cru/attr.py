@@ -5,7 +5,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
-from ._list import CruUniqueKeyList
+from .list import CruUniqueKeyList
 from ._type import CruTypeSet
 from ._const import CruNotFound, CruUseDefault, CruDontChange
 from ._iter import CruIterator
