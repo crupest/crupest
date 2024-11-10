@@ -178,7 +178,7 @@ class ConfigManager(AppCommandFeatureProvider):
         self._init_app_defined_items()
 
     def _init_app_defined_items(self) -> None:
-        prefix = self.app.app_id.upper()
+        prefix = self.config_name_prefix
 
         def _add_text(name: str, description: str) -> None:
             self.configuration.add(
@@ -247,6 +247,10 @@ class ConfigManager(AppCommandFeatureProvider):
         )
 
     @property
+    def config_name_prefix(self) -> str:
+        return self.app.app_id.upper()
+
+    @property
     def configuration(self) -> Configuration:
         return self._configuration
 
@@ -257,6 +261,9 @@ class ConfigManager(AppCommandFeatureProvider):
     def get_config_str_dict(self) -> dict[str, str]:
         self.reload_config_file()
         return self.configuration.to_str_dict()
+
+    def get_domain_item_name(self) -> str:
+        return f"{self.config_name_prefix}_DOMAIN"
 
     def _set_with_default(self) -> None:
         if not self.configuration.all_not_set:
