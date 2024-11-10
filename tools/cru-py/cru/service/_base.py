@@ -235,8 +235,25 @@ class CommandDispatcher(AppFeatureProvider):
         self._parsed_args: argparse.Namespace | None = None
 
     def setup_arg_parser(self) -> None:
+        epilog = """
+==> to start,
+./tools/manage init
+./tools/manage config init
+ln -s generated/docker-compose.yaml .
+# Then edit config file.
+
+==> to update
+git pull
+./tools/manage template generate --no-dry-run
+docker compose up
+        """.strip()
+
         self._map: dict[str, AppCommandFeatureProvider] = {}
-        arg_parser = argparse.ArgumentParser(description="Service management")
+        arg_parser = argparse.ArgumentParser(
+            description="Service management",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog=epilog,
+        )
         arg_parser.add_argument(
             "--project-dir",
             help="The path of the project directory.",
@@ -245,7 +262,6 @@ class CommandDispatcher(AppFeatureProvider):
         )
         subparsers = arg_parser.add_subparsers(
             dest="command",
-            required=True,
             help="The management command to execute.",
             metavar="COMMAND",
         )
@@ -275,6 +291,9 @@ class CommandDispatcher(AppFeatureProvider):
 
     def run_command(self, args: argparse.Namespace | None = None) -> None:
         real_args = args or self.get_program_parsed_args()
+        if real_args.command is None:
+            self.arg_parser.print_help()
+            return
         self.map[real_args.command].run_command(real_args)
 
 
