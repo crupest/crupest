@@ -12,3 +12,7 @@ class ConfigManager(AppFeatureProvider):
     @property
     def config_path(self) -> AppFeaturePath:
         return self._config_path
+
+    @property
+    def config_map(self) -> dict[str, str]:
+        raise NotImplementedError()
