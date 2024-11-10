@@ -1,4 +1,4 @@
-from cru import CruUserFriendlyException
+from cru import CruException
 
 from ._app import create_app
 
@@ -11,6 +11,10 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except CruUserFriendlyException as e:
-        print(f"Error: {e.user_message}")
-        exit(1)
+    except CruException as e:
+        user_message = e.get_user_message()
+        if user_message is not None:
+            print(f"Error: {user_message}")
+            exit(1)
+        else:
+            raise

@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from typing import Any
 
-from ._error import CruException, CruInternalError
+from ._error import CruException, CruLogicError
 from ._iter import CruIterator
 
 
@@ -17,7 +17,7 @@ class CruTypeSet(set[type]):
     def __init__(self, *types: type):
         type_set = CruIterator(types).filter(lambda t: t is not None).to_set()
         if not CruIterator(type_set).all(lambda t: isinstance(t, type)):
-            raise CruInternalError("TypeSet can only contain type.")
+            raise CruLogicError("TypeSet can only contain type.")
         super().__init__(type_set)
 
     def check_value(

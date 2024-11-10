@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator
 from typing import Any, Generic, Iterable, TypeAlias, TypeVar
 
-from ._base import CruInternalError
+from ._error import CruInternalError
 from ._iter import CruIterator
 from ._const import CruNotFound
 

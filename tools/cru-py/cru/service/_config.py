@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from typing import Any, NoReturn
 
-from cru import CruException, CruUserFriendlyException
+from cru import CruException
 from cru.config import Configuration, ConfigItem
 from cru.value import (
     INTEGER_VALUE_TYPE,
@@ -25,16 +25,6 @@ class AppConfigError(CruException):
     @property
     def configuration(self) -> Configuration:
         return self._configuration
-
-    @property
-    def friendly_error_message(self) -> str:
-        raise NotImplementedError("Subclasses must implement this method.")
-
-    def to_friendly_error(self) -> CruUserFriendlyException:
-        return CruUserFriendlyException(self.friendly_error_message)
-
-    def raise_friendly_error(self) -> NoReturn:
-        raise self.to_friendly_error() from self
 
 
 class AppConfigFileError(AppConfigError):
@@ -64,8 +54,7 @@ class AppConfigFileNotFoundError(AppConfigFileError):
     def file_path(self) -> str:
         return self._file_path
 
-    @property
-    def friendly_error_message(self) -> str:
+    def get_user_message(self) -> str:
         return f"Config file not found at {self.file_path}. You may need to create one."
 
 
@@ -76,22 +65,18 @@ class AppConfigFileParseError(AppConfigFileError):
         configuration: Configuration,
         file_content: str,
         *args,
-        cause: ParseError | None = None,
         **kwargs,
     ) -> None:
         super().__init__(message, configuration, *args, **kwargs)
         self._file_content = file_content
-        if cause is not None:
-            self._cause = cause
-        self._cause = self.__cause__  # type: ignore
+        self.__cause__: ParseError
 
     @property
     def file_content(self) -> str:
         return self._file_content
 
-    @property
-    def friendly_error_message(self) -> str:
-        return f"Error while parsing config file at line {self._cause.line_number}."
+    def get_user_message(self) -> str:
+        return f"Error while parsing config file at line {self.__cause__.line_number}."
 
 
 class AppConfigFileEntryError(AppConfigFileError):
@@ -123,8 +108,7 @@ class AppConfigFileEntryError(AppConfigFileError):
     def friendly_message_head(self) -> str:
         return "Error entries found in config file"
 
-    @property
-    def friendly_error_message(self) -> str:
+    def get_user_message(self) -> str:
         return (
             f"{self.friendly_message_head}:\n"
             f"{self.entries_to_friendly_message(self.error_entries)}"
@@ -316,24 +300,19 @@ class ConfigManager(AppCommandFeatureProvider):
             ) from ExceptionGroup("Multiple format errors occurred.", errors)
         return value_dict
 
-    def _read_config_file(self, friendly: bool = False) -> dict[str, Any]:
-        try:
-            parsed = self._parse_config_file()
-            entry_groups = parsed.cru_iter().group_by(lambda e: e.key)
-            entry_dict = self._check_duplicate(entry_groups)
-            entry_dict = self._check_defined(entry_dict)
-            value_dict = self._check_type(entry_dict)
-            return value_dict
-        except AppConfigError as e:
-            if friendly:
-                e.raise_friendly_error()
-            raise
+    def _read_config_file(self) -> dict[str, Any]:
+        parsed = self._parse_config_file()
+        entry_groups = parsed.cru_iter().group_by(lambda e: e.key)
+        entry_dict = self._check_duplicate(entry_groups)
+        entry_dict = self._check_defined(entry_dict)
+        value_dict = self._check_type(entry_dict)
+        return value_dict
 
     def reload_config_file(self) -> bool:
         self.configuration.reset_all()
         value_dict = self._read_config_file()
-        # TODO: Continue here!
-        for key, value in config_dict.items():
+        for key, value in value_dict.items():
+            # TODO: Continue here!
             self.configuration.set(key, value)
         return True
 

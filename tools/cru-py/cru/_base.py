@@ -1,10 +1,10 @@
 from typing import Any
 
 from ._helper import remove_none
-from ._error import CruInternalError
+from ._error import CruException
 
 
-class CruNamespaceError(CruInternalError):
+class CruNamespaceError(CruException):
     """Raised when a namespace is not found."""
 
 
@@ -41,7 +41,7 @@ class _Cru:
     def check_name_format(name: str) -> tuple[str, str]:
         no_prefix_name = _Cru._maybe_remove_prefix(name)
         if no_prefix_name is None:
-            raise ValueError(
+            raise CruNamespaceError(
                 f"Name {name} is not prefixed with any of {_Cru.NAME_PREFIXES}."
             )
         return name, no_prefix_name
