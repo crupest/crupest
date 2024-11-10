@@ -11,15 +11,11 @@ readme = "README.md"
 python = "^3.11"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.10.0"
-isort = "^5.13.2"
-flake8 = "^7.1.1"
-flake8-bugbear = "^24.10.31"
 mypy = "^1.13.0"
+
+[tool.ruff.lint]
+select = ["E", "F", "B"]
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.isort]
-profile = "black"

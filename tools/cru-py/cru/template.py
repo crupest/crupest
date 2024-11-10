@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 import os
 import os.path
 from string import Template
@@ -27,7 +27,7 @@ class CruTemplate:
         return self._prefix
 
     @property
-    def real_template(self) -> Template:
+    def py_template(self) -> Template:
         return self._template
 
     @property
@@ -39,8 +39,16 @@ class CruTemplate:
         return self._all_variables
 
     @property
-    def has_no_variables(self) -> bool:
-        return len(self._variables) == 0
+    def has_variables(self) -> bool:
+        """
+        If the template does not has any variables that starts with the given prefix,
+        it returns False. This usually indicates that the template is not a real
+        template and should be copied as is. Otherwise, it returns True.
+
+        This can be used as a guard to prevent invalid templates created accidentally
+        without notice.
+        """
+        return len(self.variables) > 0
 
     def generate(self, mapping: Mapping[str, str], allow_extra: bool = True) -> str:
         values = dict(mapping)
@@ -51,118 +59,79 @@ class CruTemplate:
         return self._template.safe_substitute(values)
 
 
-class CruTemplateFile(CruTemplate):
-    def __init__(self, prefix: str, source: str, destination_path: str):
-        self._source = source
-        self._destination = destination_path
-        with open(source, "r") as f:
-            super().__init__(prefix, f.read())
-
-    @property
-    def source(self) -> str:
-        return self._source
-
-    @property
-    def destination(self) -> str | None:
-        return self._destination
-
-    def generate_to_destination(
-        self, mapping: Mapping[str, str], allow_extra: bool = True
-    ) -> None:
-        with open(self._destination, "w") as f:
-            f.write(self.generate(mapping, allow_extra))
-
-
 class TemplateTree:
     def __init__(
         self,
         prefix: str,
         source: str,
-        destination: str,
-        exclude: Iterable[str] | None = None,
-        template_file_suffix: str = ".template",
+        template_file_suffix: str | None = ".template",
     ):
+        """
+        If template_file_suffix is not None, the files will be checked according to the
+        suffix of the file name. If the suffix matches, the file will be regarded as a
+        template file. Otherwise, it will be regarded as a non-template file.
+        Content of template file must contain variables that need to be replaced, while
+        content of non-template file may not contain any variables.
+        If either case is false, it generally means whether the file is a template is
+        wrongly handled.
+        """
         self._prefix = prefix
-        self._files: list[CruTemplateFile] | None = None
+        self._files: list[tuple[str, CruTemplate]] = []
         self._source = source
-        self._destination = destination
-        self._exclude = [os.path.normpath(p) for p in exclude or []]
         self._template_file_suffix = template_file_suffix
+        self._load()
 
     @property
     def prefix(self) -> str:
         return self._prefix
 
     @property
-    def files(self) -> list[CruTemplateFile]:
-        if self._files is None:
-            self.reload()
-        return self._files  # type: ignore
-
-    @property
-    def template_files(self) -> list[CruTemplateFile]:
-        return (
-            CruIterator(self.files).filter(lambda f: not f.has_no_variables).to_list()
-        )
-
-    @property
-    def non_template_files(self) -> list[CruTemplateFile]:
-        return CruIterator(self.files).filter(lambda f: f.has_no_variables).to_list()
+    def templates(self) -> list[tuple[str, CruTemplate]]:
+        return self._files
 
     @property
     def source(self) -> str:
         return self._source
 
     @property
-    def destination(self) -> str:
-        return self._destination
-
-    @property
-    def exclude(self) -> list[str]:
-        return self._exclude
-
-    @property
-    def template_file_suffix(self) -> str:
+    def template_file_suffix(self) -> str | None:
         return self._template_file_suffix
 
     @staticmethod
-    def _scan_files(root_path: str, exclude: list[str]) -> Iterable[str]:
+    def _scan_files(root_path: str) -> list[str]:
+        files: list[str] = []
         for root, _dirs, files in os.walk(root_path):
             for file in files:
                 path = os.path.join(root, file)
                 path = os.path.relpath(path, root_path)
-                is_exclude = False
-                for exclude_path in exclude:
-                    if path.startswith(exclude_path):
-                        is_exclude = True
-                        break
-                if not is_exclude:
-                    yield path
+                files.append(path)
+        return files
 
-    def reload(self, strict=True) -> None:
-        self._files = []
-        file_names = self._scan_files(self.source, self.exclude)
-        for file_name in file_names:
-            source = os.path.join(self.source, file_name)
-            destination = os.path.join(self.destination, file_name)
-            file = CruTemplateFile(self._prefix, source, destination)
-            if file_name.endswith(self.template_file_suffix):
-                if strict and file.has_no_variables:
+    def _load(self) -> None:
+        files = self._scan_files(self.source)
+        for file_path in files:
+            template_file = os.path.join(self.source, file_path)
+            with open(template_file, "r") as f:
+                content = f.read()
+            template = CruTemplate(self.prefix, content)
+            if self.template_file_suffix is not None:
+                should_be_template = file_path.endswith(self.template_file_suffix)
+                if should_be_template and not template.has_variables:
                     raise CruTemplateError(
-                        f"Template file {file_name} has no variables."
+                        f"Template file {file_path} has no variables."
                     )
-            else:
-                if strict and not file.has_no_variables:
-                    raise CruTemplateError(f"Non-template {file_name} has variables.")
-            self._files.append(file)
+                elif not should_be_template and template.has_variables:
+                    raise CruTemplateError(f"Non-template {file_path} has variables.")
+            self._files.append((file_path, template))
 
     @property
     def variables(self) -> set[str]:
         s = set()
-        for file in self.files:
-            s.update(file.variables)
+        for _, template in self.templates:
+            s.update(template.variables)
         return s
 
-    def generate_to_destination(self, variables: Mapping[str, str]) -> None:
-        for file in self.files:
-            file.generate_to_destination(variables)
+    def generate_to(self, destination: str, variables: Mapping[str, str]) -> None:
+        for file, template in self.templates:
+            with open(os.path.join(destination, file), "w") as f:
+                f.write(template.generate(variables))

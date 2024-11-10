@@ -10,6 +10,7 @@ from cru import CruException, CruInternalError, CruPath
 
 _F = TypeVar("_F")
 
+OWNER_NAME = "crupest"
 
 class InternalAppException(CruInternalError):
     pass
