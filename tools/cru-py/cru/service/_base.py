@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import TypeVar, overload
 
-from cru import CruException, CruLogicError, CruPath
+from cru import CruException, CruLogicError
 
 _Feature = TypeVar("_Feature", bound="AppFeatureProvider")
 
@@ -64,14 +64,19 @@ class AppPath(ABC):
 
     @property
     @abstractmethod
-    def full_path(self) -> CruPath: ...
+    def full_path(self) -> Path: ...
 
     @property
     def full_path_str(self) -> str:
         return str(self.full_path)
 
     def check_parents(self, must_exist: bool = False) -> bool:
-        return self.full_path.check_parents_dir(must_exist)
+        for p in reversed(self.full_path.parents):
+            if not p.exists() and not must_exist:
+                return False
+            if not p.is_dir():
+                raise AppPathError("Parents' path must be a dir.", self.full_path)
+        return True
 
     def check_self(self, must_exist: bool = False) -> bool:
         if not self.check_parents(must_exist):
@@ -112,7 +117,7 @@ class AppPath(ABC):
         return self.app.add_path(name, is_dir, self, id, description)
 
     @property
-    def app_relative_path(self) -> CruPath:
+    def app_relative_path(self) -> Path:
         return self.full_path.relative_to(self.app.root.full_path)
 
 
@@ -143,15 +148,15 @@ class AppFeaturePath(AppPath):
         return self.parent.app
 
     @property
-    def full_path(self) -> CruPath:
-        return CruPath(self.parent.full_path, self.name).resolve()
+    def full_path(self) -> Path:
+        return Path(self.parent.full_path, self.name).resolve()
 
 
 class AppRootPath(AppPath):
     def __init__(self, app: AppBase):
         super().__init__("root", True, "Application root path.")
         self._app = app
-        self._full_path: CruPath | None = None
+        self._full_path: Path | None = None
 
     @property
     def parent(self) -> None:
@@ -162,7 +167,7 @@ class AppRootPath(AppPath):
         return self._app
 
     @property
-    def full_path(self) -> CruPath:
+    def full_path(self) -> Path:
         if self._full_path is None:
             raise AppError("App root path is not set yet.")
         return self._full_path
@@ -170,7 +175,7 @@ class AppRootPath(AppPath):
     def setup(self, path: os.PathLike) -> None:
         if self._full_path is not None:
             raise AppError("App root path is already set.")
-        self._full_path = CruPath(path).resolve()
+        self._full_path = Path(path).resolve()
 
 
 class AppFeatureProvider(ABC):
