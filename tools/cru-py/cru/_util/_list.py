@@ -1,85 +1,235 @@
+from __future__ import annotations
+
 from collections.abc import Iterable, Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import TypeVar, ParamSpec, Any, Generic, ClassVar, Optional, Union
+from typing import (
+    Generator,
+    Literal,
+    Self,
+    TypeAlias,
+    TypeVar,
+    ParamSpec,
+    Any,
+    Generic,
+    ClassVar,
+    Optional,
+    Union,
+    assert_never,
+    cast,
+    overload,
+    override,
+)
 
-from ._const import CRU_NOT_FOUND
+from ._const import CruNoValue, CruNotFound
 
+P = ParamSpec("P")
 T = TypeVar("T")
 O = TypeVar("O")
-R = TypeVar("R")
 F = TypeVar("F")
 
-CanBeList = T | Iterable[T] | None
+CanBeList: TypeAlias = Iterable[T] | T | None
 
-OptionalIndex = int | None
-OptionalType = type | None
-ElementOperation = Callable[[T], Any] | None
-ElementPredicate = Callable[[T], bool]
-ElementTransformer = Callable[[T], R]
-SelfElementTransformer = ElementTransformer[T, T]
-AnyElementTransformer = ElementTransformer[Any, Any]
-OptionalElementOperation = ElementOperation | None
-OptionalElementTransformer = ElementTransformer | None
-OptionalSelfElementTransformer = ElementTransformer[T, T]
-OptionalAnyElementTransformer = AnyElementTransformer | None
+OptionalIndex: TypeAlias = int | None
+OptionalType: TypeAlias = type | None
+ElementOperation: TypeAlias = Callable[[T], Any]
+ElementPredicate: TypeAlias = Callable[[T], bool]
+ElementTransformer: TypeAlias = Callable[[T], O]
+SelfElementTransformer: TypeAlias = ElementTransformer[T, T]
+AnyElementTransformer: TypeAlias = ElementTransformer[Any, Any]
 
 
-def _flatten_with_func(o: T, max_depth: int, is_leave: ElementPredicate[T],
-                       get_children: SelfElementTransformer[T], depth: int = 0) -> Iterable[T]:
+def flatten_with_func(
+    o: T,
+    max_depth: int,
+    is_leave: ElementPredicate[T],
+    get_children: ElementTransformer[T, Iterable[T]],
+    depth: int = 0,
+) -> Iterable[T]:
     if depth == max_depth or is_leave(o):
         yield o
         return
     for child in get_children(o):
-        yield from _flatten_with_func(child, max_depth, is_leave, get_children, depth + 1)
+        yield from flatten_with_func(
+            child, max_depth, is_leave, get_children, depth + 1
+        )
 
 
-class _Action(Enum):
+class _StepActionKind(Enum):
     SKIP = 0
+    # TODO: Rename this
     SEND = 1
     STOP = 2
     AGGREGATE = 3
 
 
 @dataclass
-class _Result(Generic[T]):
-    Action: ClassVar[type[_Action]] = _Action
+class _StepAction(Generic[T]):
+    value: Iterable[_StepAction[T]] | T | None
+    kind: _StepActionKind
 
-    value: T | O | None
-    action: Action
-
-    @staticmethod
-    def skip() -> "_Result"[T]:
-        return _Result(None, _Action.SKIP)
-
-    @staticmethod
-    def send(value: Any) -> "_Result"[T]:
-        return _Result(value, _Action.SEND)
+    @property
+    def non_aggregate_value(self) -> T:
+        assert self.kind != _StepActionKind.AGGREGATE
+        return cast(T, self.value)
 
     @staticmethod
-    def stop(value: Any = None) -> "_Result"[T]:
-        return _Result(value, _Action.STOP)
+    def skip() -> _StepAction[T]:
+        return _StepAction(None, _StepActionKind.SKIP)
 
     @staticmethod
-    def aggregate(*result: "_Result"[T]) -> "_Result"[T]:
-        return _Result(result, _Action.AGGREGATE)
+    def send(value: T | None) -> _StepAction[T]:
+        return _StepAction(value, _StepActionKind.SEND)
 
     @staticmethod
-    def send_last(value: Any) -> "_Result"[T]:
-        return _Result.aggregate(_Result.send(value), _Result.stop())
+    def stop(value: T | None = None) -> _StepAction[T]:
+        return _StepAction(value, _StepActionKind.STOP)
 
-    def flatten(self) -> Iterable["_Result"[T]]:
-        return _flatten_with_func(self, -1, lambda r: r.action != _Action.AGGREGATE, lambda r: r.value)
+    @staticmethod
+    def aggregate(*results: _StepAction[T]) -> _StepAction[T]:
+        return _StepAction(results, _StepActionKind.AGGREGATE)
+
+    @staticmethod
+    def send_last(value: Any) -> _StepAction[T]:
+        return _StepAction.aggregate(_StepAction.send(value), _StepAction.stop())
+
+    def flatten(self) -> Iterable[_StepAction[T]]:
+        return flatten_with_func(
+            self,
+            -1,
+            lambda r: r.kind != _StepActionKind.AGGREGATE,
+            lambda r: cast(Iterable[_StepAction[T]], r.value),
+        )
 
 
-_r_skip = _Result.skip
-_r_send = _Result.send
-_r_stop = _Result.stop
-_r_send_last = _Result.send_last
-_r_aggregate = _Result.aggregate
+_r_skip = _StepAction.skip
+_r_send = _StepAction.send
+_r_stop = _StepAction.stop
+_r_send_last = _StepAction.send_last
+_r_aggregate = _StepAction.aggregate
 
 
-class _Defaults:
+_GeneralStepAction: TypeAlias = _StepAction[T] | T | None
+_GeneralStepActionConverter: TypeAlias = Callable[
+    [_GeneralStepAction[T]], _StepAction[T]
+]
+_IterateOperation = Callable[[T, int], _GeneralStepAction[O]]
+_IteratePreHook = Callable[[Iterable[T]], _GeneralStepAction[O]]
+_IteratePostHook = Callable[[int], _GeneralStepAction[O]]
+
+
+class CruGenericIterableMeta:
+    StepActionKind = _StepActionKind
+    StepAction = _StepAction
+    GeneralStepAction = _GeneralStepAction
+    GeneralStepActionConverter = _GeneralStepActionConverter
+    IterateOperation = _IterateOperation
+    IteratePreHook = _IteratePreHook
+    IteratePostHook = _IteratePostHook
+
+    @staticmethod
+    def _non_result_to_send(value: O | None) -> _StepAction[O]:
+        return _StepAction.send(value)
+
+    @staticmethod
+    def _non_result_to_stop(value: O | None) -> _StepAction[O]:
+        return _StepAction.stop(value)
+
+    @staticmethod
+    def _none_pre_iterate() -> _StepAction[O]:
+        return _r_skip()
+
+    @staticmethod
+    def _none_post_iterate(
+        _index: int,
+    ) -> _StepAction[O]:
+        return _r_skip()
+
+    def iterate(
+        self,
+        operation: _IterateOperation[T, O],
+        fallback_return: O,
+        pre_iterate: _IteratePreHook[T, O],
+        post_iterate: _IteratePostHook[O],
+        convert_non_result: Callable[[O | None], _StepAction[O]],
+    ) -> Generator[O, None, O]:
+        pre_result = pre_iterate(self._iterable)
+        if not isinstance(pre_result, _StepAction):
+            real_pre_result = convert_non_result(pre_result)
+        for r in real_pre_result.flatten():
+            if r.kind == _StepActionKind.STOP:
+                return r.non_aggregate_value
+            elif r.kind == _StepActionKind.SEND:
+                yield r.non_aggregate_value
+
+        for index, element in enumerate(self._iterable):
+            result = operation(element, index)
+            if not isinstance(result, _StepAction):
+                real_result = convert_non_result(result)
+            for r in real_result.flatten():
+                if r.kind == _StepActionKind.STOP:
+                    return r.non_aggregate_value
+                elif r.kind == _StepActionKind.SEND:
+                    yield r.non_aggregate_value
+                else:
+                    continue
+
+        post_result = post_iterate(index + 1)
+        if not isinstance(post_result, _StepAction):
+            real_post_result = convert_non_result(post_result)
+        for r in real_post_result.flatten():
+            if r.kind == _StepActionKind.STOP:
+                return r.non_aggregate_value
+            elif r.kind == _StepActionKind.SEND:
+                yield r.non_aggregate_value
+
+        return fallback_return
+
+    def _new(
+        self,
+        operation: _IterateOperation,
+        fallback_return: O,
+        /,
+        pre_iterate: _IteratePreHook[T, O] | None = None,
+        post_iterate: _IteratePostHook[O] | None = None,
+    ) -> CruIterableWrapper:
+        return CruIterableWrapper(
+            self.iterate(
+                operation,
+                fallback_return,
+                pre_iterate or CruIterableWrapper._none_pre_iterate,
+                post_iterate or CruIterableWrapper._none_post_iterate,
+                CruIterableWrapper._non_result_to_send,
+            ),
+            self._create_new_upstream(),
+        )
+
+    def _result(
+        self,
+        operation: _IterateOperation,
+        fallback_return: O,
+        /,
+        result_transform: SelfElementTransformer[O] | None = None,
+        pre_iterate: _IteratePreHook[T, O] | None = None,
+        post_iterate: _IteratePostHook[O] | None = None,
+    ) -> O:
+        try:
+            for _ in self.iterate(
+                operation,
+                fallback_return,
+                pre_iterate or CruIterableWrapper._none_pre_iterate,
+                post_iterate or CruIterableWrapper._none_post_iterate,
+                CruIterableWrapper._non_result_to_stop,
+            ):
+                pass
+        except StopIteration as stop:
+            return (
+                stop.value if result_transform is None else result_transform(stop.value)
+            )
+        raise RuntimeError("Should not reach here")
+
+
+class IterDefaultResults:
     @staticmethod
     def true(_):
         return True
@@ -90,35 +240,30 @@ class _Defaults:
 
     @staticmethod
     def not_found(_):
-        return CRU_NOT_FOUND
-
-
-def _default_upstream() -> Iterable[Iterable]:
-    return iter([])
-
-
-CruIterableUpstream = Iterable[Iterable]
-CruIterableOptionalUpstream = CruIterableUpstream | None
+        return CruNotFound.VALUE
 
 
 class CruIterableCreators:
     @staticmethod
-    def with_(o: Any, /, upstreams: CruIterableOptionalUpstream = _default_upstream()) -> "CruIterableWrapper":
-        return CruIterableWrapper(iter(o), upstreams)
+    def with_(o: Any) -> CruIterableWrapper:
+        return CruIterableWrapper(iter(o))
 
     @staticmethod
-    def empty(upstreams: CruIterableOptionalUpstream = _default_upstream()) -> "CruIterableWrapper":
-        return CruIterableCreators.with_([], upstreams)
+    def empty() -> CruIterableWrapper:
+        return CruIterableCreators.with_([])
 
     @staticmethod
-    def range(a, b=None, c=None, /, upstreams: CruIterableOptionalUpstream = _default_upstream()) -> \
-    "CruIterableWrapper"[int]:
+    def range(
+        a,
+        b=None,
+        c=None,
+    ) -> CruIterableWrapper[int]:
         args = [arg for arg in [a, b, c] if arg is not None]
-        return CruIterableCreators.with_(range(*args), upstreams)
+        return CruIterableCreators.with_(range(*args))
 
     @staticmethod
-    def unite(*args: T, upstreams: CruIterableOptionalUpstream = _default_upstream()) -> "CruIterableWrapper"[T]:
-        return CruIterableCreators.with_(args, upstreams)
+    def unite(*args: T) -> CruIterableWrapper[T]:
+        return CruIterableCreators.with_(args)
 
     @staticmethod
     def _concat(*iterables: Iterable) -> Iterable:
@@ -126,138 +271,95 @@ class CruIterableCreators:
             yield from iterable
 
     @staticmethod
-    def concat(*iterables: Iterable,
-               upstreams: CruIterableOptionalUpstream = _default_upstream()) -> "CruIterableWrapper":
-        return CruIterableWrapper(CruIterableCreators._concat(*iterables), upstreams)
+    def concat(*iterables: Iterable) -> CruIterableWrapper:
+        return CruIterableWrapper(CruIterableCreators._concat(*iterables))
 
 
 class CruIterableWrapper(Generic[T]):
-    Upstream = CruIterableUpstream
-    OptionalUpstream = CruIterableOptionalUpstream
-    _Result = _Result[T]
-    _Operation = Callable[[T, int], _Result | Any | None]
 
-    def __init__(self, iterable: Iterable[T], /, upstreams: OptionalUpstream = _default_upstream()) -> None:
+    def __init__(
+        self,
+        iterable: Iterable[T],
+    ) -> None:
         self._iterable = iterable
-        self._upstreams = None if upstreams is None else list(upstreams)
+
+    def __iter__(self):
+        return self._iterable.__iter__()
 
     @property
     def me(self) -> Iterable[T]:
         return self._iterable
 
-    # TODO: Return Type
-    @property
-    def my_upstreams(self) -> Optional["CruIterableWrapper"]:
-        if self._upstreams is None:
-            return None
-        return CruIterableWrapper(iter(self._upstreams))
+    def replace_me_with(self, iterable: Iterable[O]) -> CruIterableWrapper[O]:
+        return CruIterableCreators.with_(iterable)
 
-    def disable_my_upstreams(self) -> "CruIterableWrapper"[T]:
-        return CruIterableWrapper(self._iterable, None)
+    def replace_me_with_empty(self) -> CruIterableWrapper[O]:
+        return CruIterableCreators.empty()
 
-    def clear_my_upstreams(self) -> "CruIterableWrapper"[T]:
-        return CruIterableWrapper(self._iterable)
+    def replace_me_with_range(self, a, b=None, c=None) -> CruIterableWrapper[int]:
+        return CruIterableCreators.range(a, b, c)
 
-    def _create_upstreams_prepend_self(self) -> Upstream:
-        yield self._iterable
-        yield self.my_upstreams
+    def replace_me_with_unite(self, *args: O) -> CruIterableWrapper[O]:
+        return CruIterableCreators.unite(*args)
 
-    # TODO: Return Type
-    def _create_new_upstreams(self, append: bool = True) -> Optional["CruIterableWrapper"]:
-        if not append: return self.my_upstreams
-        if self.my_upstreams is None:
-            return None
-        return CruIterableWrapper(self._create_upstreams_prepend_self())
-
-    def clone_me(self, /, update_upstreams: bool = True) -> "CruIterableWrapper"[T]:
-        return CruIterableWrapper(self._iterable, self._create_new_upstreams(update_upstreams))
-
-    def replace_me_with(self, iterable: Iterable[O], /, update_upstreams: bool = True) -> "CruIterableWrapper"[O]:
-        return CruIterableCreators.with_(iterable, upstreams=self._create_new_upstreams(update_upstreams))
-
-    def replace_me_with_empty(self, /, update_upstreams: bool = True) -> "CruIterableWrapper"[O]:
-        return CruIterableCreators.empty(upstreams=self._create_new_upstreams(update_upstreams))
-
-    def replace_me_with_range(self, a, b=None, c=None, /, update_upstreams: bool = True) -> "CruIterableWrapper"[int]:
-        return CruIterableCreators.range(a, b, c, upstreams=self._create_new_upstreams(update_upstreams))
-
-    def replace_me_with_unite(self, *args: O, update_upstreams: bool = True) -> "CruIterableWrapper"[O]:
-        return CruIterableCreators.unite(*args, upstreams=self._create_new_upstreams(update_upstreams))
-
-    def replace_me_with_concat(self, *iterables: Iterable, update_upstreams: bool = True) -> "CruIterableWrapper":
-        return CruIterableCreators.concat(*iterables, upstreams=self._create_new_upstreams(update_upstreams))
+    def replace_me_with_concat(self, *iterables: Iterable) -> CruIterableWrapper:
+        return CruIterableCreators.concat(*iterables)
 
     @staticmethod
-    def _non_result_to_yield(value: Any | None) -> _Result:
-        return _Result.stop(value)
-
-    @staticmethod
-    def _non_result_to_return(value: Any | None) -> _Result:
-        return _Result.stop(value)
-
-    def _real_iterate(self, operation: _Operation,
-                      convert_non_result: Callable[[Any | None], _Result]) -> Iterable:
-
-        for index, element in enumerate(self._iterable):
-            result = operation(element, index)
-            if not isinstance(result, _Result):
-                result = convert_non_result(result)
-            for result in result.flatten():
-                if result.action == _Result.Action.STOP:
-                    return result.value
-                elif result.action == _Result.Action.SEND:
-                    yield result.value
-                else:
-                    continue
-
-    def _new(self, operation: _Operation) -> "CruIterableWrapper":
-        return CruIterableWrapper(self._real_iterate(operation, CruIterableWrapper._non_result_to_yield),
-                                  self._create_new_upstreams())
-
-    def _result(self, operation: _Operation,
-                result_transform: OptionalElementTransformer[T, T | O] = None) -> T | O:
-        try:
-            self._real_iterate(operation, CruIterableWrapper._non_result_to_return)
-        except StopIteration as stop:
-            return stop.value if result_transform is None else result_transform(stop.value)
-
-    @staticmethod
-    def _make_set(iterable: Iterable, discard: Iterable | None) -> set:
+    def _make_set(iterable: Iterable[O], discard: Iterable[Any] | None) -> set[O]:
         s = set(iterable)
         if discard is not None:
             s = s - set(discard)
         return s
 
     @staticmethod
-    def _make_list(iterable: Iterable, discard: Iterable | None) -> list:
-        if discard is None: return list(iterable)
+    def _make_list(iterable: Iterable[O], discard: Iterable[Any] | None) -> list[O]:
+        if discard is None:
+            return list(iterable)
         return [v for v in iterable if v not in discard]
 
-    # noinspection PyMethodMayBeStatic
-    def _help_make_set(self, iterable: Iterable, discard: Iterable | None = iter([None])) -> set:
+    def _help_make_set(
+        self, iterable: Iterable[O], discard: Iterable[Any] | None
+    ) -> set[O]:
         return CruIterableWrapper._make_set(iterable, discard)
 
-    # noinspection PyMethodMayBeStatic
-    def _help_make_list(self, iterable: Iterable, discard: Iterable | None = iter([None])) -> list:
+    def _help_make_list(
+        self, iterable: Iterable[O], discard: Iterable[Any] | None
+    ) -> list[O]:
         return CruIterableWrapper._make_list(iterable, discard)
 
-    def to_set(self, discard: Iterable | None = None) -> set[T]:
+    def to_set(self, discard: Iterable[Any] | None = None) -> set[T]:
         return CruIterableWrapper._make_set(self.me, discard)
 
-    def to_list(self, discard: Iterable | None = None) -> list[T]:
+    def to_list(self, discard: Iterable[Any] | None = None) -> list[T]:
         return CruIterableWrapper._make_list(self.me, discard)
 
-    def copy(self) -> "CruIterableWrapper":
-        return CruIterableWrapper(iter(self.to_list()), self._create_new_upstreams())
+    def copy(self) -> CruIterableWrapper:
+        return CruIterableWrapper(iter(self.to_list()), self._create_new_upstream())
 
-    def concat(self, *iterable: Iterable[T]) -> "CruIterableWrapper":
-        return self.replace_me_with_concat(self.me, *iterable)
+    def new_start(
+        self, other: Iterable[O], /, clear_upstream: bool = False
+    ) -> CruIterableWrapper[O]:
+        return CruIterableWrapper(
+            other, None if clear_upstream else self._create_new_upstream()
+        )
+
+    @overload
+    def concat(self) -> Self: ...
+
+    @overload
+    def concat(
+        self, *iterable: Iterable[Any], last: Iterable[O]
+    ) -> CruIterableWrapper[O]: ...
+
+    def concat(self, *iterable: Iterable[Any]) -> CruIterableWrapper[Any]:  # type: ignore
+        return self.new_start(CruIterableCreators.concat(self.me, *iterable))
 
     def all(self, predicate: ElementPredicate[T]) -> bool:
         """
         partial
         """
-        return self._result(lambda v, _: predicate(v) and None, _Defaults.true)
+        return self._result(lambda v, _: predicate(v) and None, IterDefaultResults.true)
 
     def all_isinstance(self, *types: OptionalType) -> bool:
         """
@@ -270,21 +372,23 @@ class CruIterableWrapper(Generic[T]):
         """
         partial
         """
-        return self._result(lambda v, _: predicate(v) or None, _Defaults.false)
+        return self._result(lambda v, _: predicate(v) or None, IterDefaultResults.false)
 
-    def number(self) -> "CruIterableWrapper":
+    def number(self) -> CruIterableWrapper:
         """
         partial
         """
         return self._new(lambda _, i: i)
 
-    def take(self, predicate: ElementPredicate[T]) -> "CruIterableWrapper":
+    def take(self, predicate: ElementPredicate[T]) -> CruIterableWrapper:
         """
         complete
         """
         return self._new(lambda v, _: _r_send(v) if predicate(v) else None)
 
-    def transform(self, *transformers: OptionalElementTransformer) -> "CruIterableWrapper":
+    def transform(
+        self, *transformers: OptionalElementTransformer
+    ) -> CruIterableWrapper:
         """
         complete
         """
@@ -297,7 +401,7 @@ class CruIterableWrapper(Generic[T]):
 
         return self._new(_transform_element)
 
-    def take_n(self, max_count: int, neg_is_clone: bool = True) -> "CruIterableWrapper":
+    def take_n(self, max_count: int, neg_is_clone: bool = True) -> CruIterableWrapper:
         """
         partial
         """
@@ -308,17 +412,23 @@ class CruIterableWrapper(Generic[T]):
                 raise ValueError("max_count must be 0 or positive.")
         elif max_count == 0:
             return self.drop_all()
-        return self._new(lambda v, i: _r_send(v) if i < max_count - 1 else _r_send_last(v))
+        return self._new(
+            lambda v, i: _r_send(v) if i < max_count - 1 else _r_send_last(v)
+        )
 
-    def take_by_indices(self, *indices: OptionalIndex) -> "CruIterableWrapper":
+    def take_by_indices(self, *indices: OptionalIndex) -> CruIterableWrapper:
         """
         partial
         """
         indices = self._help_make_set(indices)
         max_index = max(indices)
-        return self.take_n(max_index + 1)._new(lambda v, i: _r_send(v) if i in indices else None)
+        return self.take_n(max_index + 1)._new(
+            lambda v, i: _r_send(v) if i in indices else None
+        )
 
-    def single_or(self, fallback: Any | None = CRU_NOT_FOUND) -> T | Any | CRU_NOT_FOUND:
+    def single_or(
+        self, fallback: Any | None = CRU_NOT_FOUND
+    ) -> T | Any | CRU_NOT_FOUND:
         """
         partial
         """
@@ -335,14 +445,18 @@ class CruIterableWrapper(Generic[T]):
         else:
             return fallback
 
-    def first_or(self, predicate: ElementPredicate[T], fallback: Any | None = CRU_NOT_FOUND) -> T | CRU_NOT_FOUND:
+    def first_or(
+        self, predicate: ElementPredicate[T], fallback: Any | None = CRU_NOT_FOUND
+    ) -> T | CRU_NOT_FOUND:
         """
         partial
         """
         result_iterable = self.take_n(1).single_or()
 
     @staticmethod
-    def first_index(iterable: Iterable[T], predicate: ElementPredicate[T]) -> int | CRU_NOT_FOUND:
+    def first_index(
+        iterable: Iterable[T], predicate: ElementPredicate[T]
+    ) -> int | CRU_NOT_FOUND:
         """
         partial
         """
@@ -351,7 +465,9 @@ class CruIterableWrapper(Generic[T]):
                 return index
 
     @staticmethod
-    def take_indices(iterable: Iterable[T], predicate: ElementPredicate[T]) -> Iterable[int]:
+    def take_indices(
+        iterable: Iterable[T], predicate: ElementPredicate[T]
+    ) -> Iterable[int]:
         """
         complete
         """
@@ -360,8 +476,12 @@ class CruIterableWrapper(Generic[T]):
                 yield index
 
     @staticmethod
-    def flatten(o, max_depth=-1, is_leave: ElementPredicate | None = None,
-                get_children: OptionalElementTransformer = None) -> Iterable:
+    def flatten(
+        o,
+        max_depth=-1,
+        is_leave: ElementPredicate | None = None,
+        get_children: OptionalElementTransformer = None,
+    ) -> Iterable:
         """
         complete
         """
@@ -369,7 +489,9 @@ class CruIterableWrapper(Generic[T]):
             is_leave = lambda v: not isinstance(v, Iterable)
         if get_children is None:
             get_children = lambda v: v
-        return CruIterableWrapper._flatten_with_func(o, max_depth, is_leave, get_children)
+        return CruIterableWrapper._flatten_with_func(
+            o, max_depth, is_leave, get_children
+        )
 
     @staticmethod
     def skip_by_indices(iterable: Iterable[T], *indices: OptionalIndex) -> Iterable[T]:
@@ -390,7 +512,7 @@ class CruIterableWrapper(Generic[T]):
             if not predicate(element):
                 yield element
 
-    def drop_all(self) -> "CruIterableWrapper":
+    def drop_all(self) -> CruIterableWrapper:
         return self.replace_me_with_empty()
 
     @staticmethod
@@ -407,7 +529,8 @@ class CruIterableWrapper(Generic[T]):
 
     @staticmethod
     def foreach(iterable: Iterable[T], *f: OptionalElementOperation[T]) -> None:
-        if len(f) == 0: return
+        if len(f) == 0:
+            return
         for v in iterable:
             for f_ in f:
                 if f_ is not None:
@@ -415,7 +538,8 @@ class CruIterableWrapper(Generic[T]):
 
     @staticmethod
     def make(v: CanBeList[T], /, none_to_empty_list: bool = True) -> list[T]:
-        if v is None and none_to_empty_list: return []
+        if v is None and none_to_empty_list:
+            return []
         return list(v) if isinstance(v, Iterable) else [v]
 
 
@@ -457,7 +581,9 @@ class ListOperations:
         return _God.new(iterable, lambda v, _: _God.yield_(v) if predicate(v) else None)
 
     @staticmethod
-    def transform(iterable: Iterable[T], *transformers: OptionalElementTransformer) -> Iterable:
+    def transform(
+        iterable: Iterable[T], *transformers: OptionalElementTransformer
+    ) -> Iterable:
         """
         complete
         """
@@ -479,7 +605,9 @@ class ListOperations:
             return iterable
         elif n == 0:
             return []
-        return range(n)._god_yield(iterable, lambda v, i: _yield(v) if i < n else _return())
+        return range(n)._god_yield(
+            iterable, lambda v, i: _yield(v) if i < n else _return()
+        )
 
     @staticmethod
     def take_by_indices(iterable: Iterable[T], *indices: OptionalIndex) -> Iterable[T]:
@@ -502,7 +630,9 @@ class ListOperations:
         return CRU_NOT_FOUND
 
     @staticmethod
-    def first_index(iterable: Iterable[T], predicate: ElementPredicate[T]) -> int | CRU_NOT_FOUND:
+    def first_index(
+        iterable: Iterable[T], predicate: ElementPredicate[T]
+    ) -> int | CRU_NOT_FOUND:
         """
         partial
         """
@@ -511,7 +641,9 @@ class ListOperations:
                 return index
 
     @staticmethod
-    def take_indices(iterable: Iterable[T], predicate: ElementPredicate[T]) -> Iterable[int]:
+    def take_indices(
+        iterable: Iterable[T], predicate: ElementPredicate[T]
+    ) -> Iterable[int]:
         """
         complete
         """
@@ -567,7 +699,8 @@ class ListOperations:
 
     @staticmethod
     def foreach(iterable: Iterable[T], *f: OptionalElementOperation[T]) -> None:
-        if len(f) == 0: return
+        if len(f) == 0:
+            return
         for v in iterable:
             for f_ in f:
                 if f_ is not None:
@@ -575,7 +708,8 @@ class ListOperations:
 
     @staticmethod
     def make(v: CanBeList[T], /, none_to_empty_list: bool = True) -> list[T]:
-        if v is None and none_to_empty_list: return []
+        if v is None and none_to_empty_list:
+            return []
         return list(v) if isinstance(v, Iterable) else [v]
 
 
@@ -629,7 +763,9 @@ class CruList(list, Generic[T]):
     def transform(self, *f: OptionalElementTransformer) -> "CruList"[Any]:
         return CruList(ListOperations.transform(self, *f))
 
-    def transform_if(self, f: OptionalElementTransformer, p: ElementPredicate[T]) -> "CruList"[Any]:
+    def transform_if(
+        self, f: OptionalElementTransformer, p: ElementPredicate[T]
+    ) -> "CruList"[Any]:
         return CruList(ListOperations.transform_if(self, f, p))
 
     def remove_by_indices(self, *index: int) -> "CruList"[T]:
@@ -670,7 +806,9 @@ class CruInplaceList(CruList, Generic[T]):
     def transform(self, *f: OptionalElementTransformer) -> "CruInplaceList"[Any]:
         return self.reset(super().transform(*f))
 
-    def transform_if(self, f: OptionalElementTransformer, p: ElementPredicate[T]) -> "CruInplaceList"[Any]:
+    def transform_if(
+        self, f: OptionalElementTransformer, p: ElementPredicate[T]
+    ) -> "CruInplaceList"[Any]:
         return self.reset(super().transform_if(f, p))
 
     def remove_by_indices(self, *index: int) -> "CruInplaceList"[T]:
@@ -682,7 +820,9 @@ class CruInplaceList(CruList, Generic[T]):
     def remove_all_value(self, *r: Any) -> "CruInplaceList"[T]:
         return self.reset(super().remove_all_value(*r))
 
-    def replace_all_value(self, old_value: Any, new_value: R) -> "CruInplaceList"[T | R]:
+    def replace_all_value(
+        self, old_value: Any, new_value: R
+    ) -> "CruInplaceList"[T | R]:
         return self.reset(super().replace_all_value(old_value, new_value))
 
     @staticmethod
@@ -696,7 +836,9 @@ K = TypeVar("K")
 class CruUniqueKeyInplaceList(Generic[T, K]):
     KeyGetter = Callable[[T], K]
 
-    def __init__(self, get_key: KeyGetter, *, before_add: Callable[[T], T] | None = None):
+    def __init__(
+        self, get_key: KeyGetter, *, before_add: Callable[[T], T] | None = None
+    ):
         super().__init__()
         self._get_key = get_key
         self._before_add = before_add
@@ -733,7 +875,8 @@ class CruUniqueKeyInplaceList(Generic[T, K]):
 
     def try_remove(self, k: K) -> bool:
         i = self._l.find_index_if(lambda v: k == self._get_key(v))
-        if i is CRU_NOT_FOUND: return False
+        if i is CRU_NOT_FOUND:
+            return False
         self._l.remove_by_indices(i)
         return True
 

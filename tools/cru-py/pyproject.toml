@@ -1,0 +1,28 @@
+[tool.poetry]
+package-mode = false
+name = "cru"
+version = "0.1.0"
+description = ""
+authors = ["Yuqian Yang <crupest@crupest.life>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+rich = "^13.9.4"
+jsonschema = "^4.23.0"
+cryptography = "^43.0.3"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.10.0"
+isort = "^5.13.2"
+flake8 = "^7.1.1"
+flake8-bugbear = "^24.10.31"
+mypy = "^1.13.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
