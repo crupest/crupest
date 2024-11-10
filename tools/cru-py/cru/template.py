@@ -4,8 +4,7 @@ import os.path
 from pathlib import Path
 from string import Template
 
-from cru._path import CruPath
-
+from ._path import CruPath
 from ._iter import CruIterator
 from ._error import CruException
 
