@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -e
+
+python3.11 --version >NUL 2>&1 || (
+    echo Error: failed to run Python with py -3 --version.
+    exit 1
+)
+
+script_dir=$(dirname "$0")
+project_dir=$(realpath "$script_dir/..")
+
+cd "$project_dir"
+
+export PYTHONPATH="$project_dir/tools/cru-py:$PYTHONPATH"
+python3.11 -m cru.service --project-dir "$project_dir" "$@"

@@ -4,7 +4,6 @@ import os.path
 from pathlib import Path
 from string import Template
 
-from ._path import CruPath
 from ._iter import CruIterator
 from ._error import CruException
 
@@ -82,7 +81,7 @@ class TemplateTree:
         wrongly handled.
         """
         self._prefix = prefix
-        self._files: list[tuple[CruPath, CruTemplate]] = []
+        self._files: list[tuple[Path, CruTemplate]] = []
         self._source = source
         self._template_file_suffix = template_file_suffix
         self._load()
@@ -92,7 +91,7 @@ class TemplateTree:
         return self._prefix
 
     @property
-    def templates(self) -> list[tuple[CruPath, CruTemplate]]:
+    def templates(self) -> list[tuple[Path, CruTemplate]]:
         return self._files
 
     @property
@@ -104,13 +103,13 @@ class TemplateTree:
         return self._template_file_suffix
 
     @staticmethod
-    def _scan_files(root_path: str) -> list[CruPath]:
-        result: list[CruPath] = []
+    def _scan_files(root_path: str) -> list[Path]:
+        result: list[Path] = []
         for root, _dirs, files in os.walk(root_path):
             for file in files:
                 path = Path(root, file)
                 path = path.relative_to(root_path)
-                result.append(CruPath(path))
+                result.append(Path(path))
         return result
 
     def _load(self) -> None:
@@ -141,7 +140,7 @@ class TemplateTree:
         self, destination: str, variables: Mapping[str, str], dry_run: bool
     ) -> None:
         for file, template in self.templates:
-            des = CruPath(destination) / file
+            des = Path(destination) / file
             if self.template_file_suffix is not None and des.name.endswith(
                 self.template_file_suffix
             ):

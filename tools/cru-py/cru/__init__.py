@@ -19,7 +19,6 @@ from ._const import (
 from ._func import CruFunction
 from ._iter import CruIterable, CruIterator
 from ._event import CruEvent, CruEventHandlerToken
-from ._path import CruPath, CruPathError
 from ._type import CruTypeSet, CruTypeCheckError
 
 
@@ -56,8 +55,6 @@ __all__ = [
     "CruIterator",
     "CruEvent",
     "CruEventHandlerToken",
-    "CruPath",
-    "CruPathError",
     "CruTypeSet",
     "CruTypeCheckError",
 ]
