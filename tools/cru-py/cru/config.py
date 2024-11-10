@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, TypeVar, Generic
 
-from ._error import CruInternalError, CruException
+from ._error import CruException
 from .list import CruUniqueKeyList
 from .value import (
     INTEGER_VALUE_TYPE,
@@ -110,8 +110,8 @@ class ConfigItem(Generic[_T]):
             self.value_type.check_value(v)
             return v
         except CruValueTypeError as e:
-            raise CruInternalError(
-                "Config value generator returns an invalid value."
+            raise CruConfigError(
+                "Config value generator returns an invalid value.", self
             ) from e
 
     def copy(self) -> "ConfigItem":

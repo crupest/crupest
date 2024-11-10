@@ -2,11 +2,11 @@ import sys
 
 from ._base import CRU, CruNamespaceError, CRU_NAME_PREFIXES
 from ._error import (
-    cru_unreachable,
     CruException,
-    CruUserFriendlyException,
+    CruLogicError,
     CruInternalError,
     CruUnreachableError,
+    cru_unreachable,
 )
 from ._const import (
     CruConstantBase,
@@ -40,11 +40,11 @@ __all__ = [
     "CRU_NAME_PREFIXES",
     "check_python_version",
     "CruException",
+    "CruInternalError",
+    "CruLogicError",
+    "CruUnreachableError",
     "cru_unreachable",
     "CruInitError",
-    "CruUserFriendlyException",
-    "CruInternalError",
-    "CruUnreachableError",
     "CruConstantBase",
     "CruDontChange",
     "CruNotFound",

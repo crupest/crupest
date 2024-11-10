@@ -7,15 +7,25 @@ import os
 from pathlib import Path
 from typing import TypeVar, overload
 
-from cru import CruException, CruInternalError, CruPath, CruUserFriendlyException
+from cru import CruException, CruLogicError, CruPath
 
 _Feature = TypeVar("_Feature", bound="AppFeatureProvider")
 
 OWNER_NAME = "crupest"
 
 
-class InternalAppException(CruInternalError):
+class AppError(CruException):
     pass
+
+
+class AppFeatureError(AppError):
+    def __init__(self, message, feature: type | str, *args, **kwargs):
+        super().__init__(message, *args, **kwargs)
+        self._feature = feature
+
+    @property
+    def feature(self) -> type | str:
+        return self._feature
 
 
 class AppPathError(CruException):
@@ -152,12 +162,12 @@ class AppRootPath(AppPath):
     @property
     def full_path(self) -> CruPath:
         if self._full_path is None:
-            raise CruInternalError("App root path is not set yet.")
+            raise AppError("App root path is not set yet.")
         return self._full_path
 
     def setup(self, path: os.PathLike) -> None:
         if self._full_path is not None:
-            raise CruInternalError("App root path is already set.")
+            raise AppError("App root path is already set.")
         self._full_path = CruPath(path)
 
 
@@ -270,7 +280,7 @@ class AppBase:
     @staticmethod
     def get_instance() -> AppBase:
         if AppBase._instance is None:
-            raise CruInternalError("App instance not initialized")
+            raise AppError("App instance not initialized")
         return AppBase._instance
 
     def __init__(self, name: str):
@@ -312,8 +322,9 @@ class AppBase:
 
     def ensure_app_initialized(self) -> AppRootPath:
         if not self.app_initialized:
-            raise CruUserFriendlyException(
-                "Root directory does not exist. Please run 'init' to create one."
+            raise AppError(
+                user_message="Root directory does not exist. "
+                "Please run 'init' to create one."
             )
         return self.root
 
@@ -328,7 +339,9 @@ class AppBase:
     def add_feature(self, feature: _Feature) -> _Feature:
         for f in self.features:
             if f.name == feature.name:
-                raise CruInternalError(f"Duplicate feature name: {feature.name}.")
+                raise AppFeatureError(
+                    f"Duplicate feature name: {feature.name}.", feature.name
+                )
         self._features.append(feature)
         return feature
 
@@ -365,14 +378,12 @@ class AppBase:
                 if isinstance(f, feature):
                     return f
         else:
-            raise InternalAppException(
-                "Argument must be the name of feature or its class."
-            )
+            raise CruLogicError("Argument must be the name of feature or its class.")
 
-        raise InternalAppException(f"Feature {feature} not found.")
+        raise AppFeatureError(f"Feature {feature} not found.", feature)
 
     def get_path(self, name: str) -> AppFeaturePath:
         for p in self._paths:
             if p.id == name or p.name == name:
                 return p
-        raise InternalAppException(f"Application path {name} not found.")
+        raise AppPathError(f"Application path {name} not found.", name)
