@@ -4,6 +4,8 @@ import os.path
 from pathlib import Path
 from string import Template
 
+from cru._path import CruPath
+
 from ._iter import CruIterator
 from ._error import CruException
 
@@ -77,7 +79,7 @@ class TemplateTree:
         wrongly handled.
         """
         self._prefix = prefix
-        self._files: list[tuple[str, CruTemplate]] = []
+        self._files: list[tuple[CruPath, CruTemplate]] = []
         self._source = source
         self._template_file_suffix = template_file_suffix
         self._load()
@@ -87,7 +89,7 @@ class TemplateTree:
         return self._prefix
 
     @property
-    def templates(self) -> list[tuple[str, CruTemplate]]:
+    def templates(self) -> list[tuple[CruPath, CruTemplate]]:
         return self._files
 
     @property
@@ -99,24 +101,24 @@ class TemplateTree:
         return self._template_file_suffix
 
     @staticmethod
-    def _scan_files(root_path: str) -> list[str]:
-        result: list[str] = []
+    def _scan_files(root_path: str) -> list[CruPath]:
+        result: list[CruPath] = []
         for root, _dirs, files in os.walk(root_path):
             for file in files:
                 path = Path(root, file)
                 path = path.relative_to(root_path)
-                result.append(str(path.as_posix()))
+                result.append(CruPath(path))
         return result
 
     def _load(self) -> None:
         files = self._scan_files(self.source)
         for file_path in files:
-            template_file = os.path.join(self.source, file_path)
+            template_file = Path(self.source) / file_path
             with open(template_file, "r") as f:
                 content = f.read()
             template = CruTemplate(self.prefix, content)
             if self.template_file_suffix is not None:
-                should_be_template = file_path.endswith(self.template_file_suffix)
+                should_be_template = file_path.name.endswith(self.template_file_suffix)
                 if should_be_template and not template.has_variables:
                     raise CruTemplateError(
                         f"Template file {file_path} has no variables."

@@ -147,3 +147,6 @@ class CruUniqueKeyList(Generic[_T, _K]):
 
     def __len__(self) -> int:
         return len(self._list)
+
+    def cru_iter(self) -> CruIterator[_T]:
+        return CruIterator(self._list)
