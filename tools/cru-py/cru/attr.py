@@ -1,48 +1,40 @@
 import copy
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
-from .util import CanBeList, TypeSet, L, ListOperations
+from .util import CanBeList, TypeSet, F, L, WF, CruUniqueKeyInplaceList, CRU_NOT_FOUND, CRU_USE_DEFAULT, \
+    CRU_DONT_CHANGE, CRU_PLACEHOLDER
 
 
 @dataclass
 class CruAttr:
+    USE_DEFAULT: ClassVar = CRU_USE_DEFAULT
+
     name: str
     value: Any
     description: str
 
-
-class _CruAttrVoid:
-    _i = False
-
-    def __init__(self):
-        if self._i:
-            raise ValueError("CruAttrNotSet is a singleton!")
-        self._i = True
-
-    def __copy__(self):
-        return self
+    @staticmethod
+    def make(name: str, value: Any = USE_DEFAULT, description: str | None = None) -> "CruAttr":
+        return CruAttr(name, value, description)
 
 
-CRU_ATTR_NOT_SET = _CruAttrVoid()
-CRU_ATTR_USE_DEFAULT = CRU_ATTR_NOT_SET.__copy__()
-
-
-def _is_attr_void(v: Any) -> bool:
-    return isinstance(v, _CruAttrVoid)
+CruAttrDefaultFactory = Callable[["CruAttrDef"], Any]
+CruAttrTransformer = Callable[[Any, "CruAttrDef"], Any]
+CruAttrValidator = Callable[[Any, "CruAttrDef"], None]
 
 
 @dataclass
 class CruAttrDef:
     name: str
     description: str
-    default_factory: Callable[[], Any]
-    transformer: Callable[[Any], Any]
-    validator: Callable[[Any], None]
+    default_factory: CruAttrDefaultFactory
+    transformer: CruAttrTransformer
+    validator: CruAttrValidator
 
-    def __init__(self, name: str, description: str, default_factory: Callable[[], Any],
-                 transformer: Callable[[Any], Any], validator: Callable[[Any], None]) -> None:
+    def __init__(self, name: str, description: str, default_factory: CruAttrDefaultFactory,
+                 transformer: CruAttrTransformer, validator: CruAttrValidator) -> None:
         self.name = name
         self.description = description
         self.default_factory = default_factory
@@ -51,22 +43,22 @@ class CruAttrDef:
 
     def transform(self, value: Any) -> Any:
         if self.transformer is not None:
-            return self.transformer(value)
+            return self.transformer(value, self)
         return value
 
     def validate(self, value: Any, /, force_allow_none: bool = False) -> None:
         if force_allow_none is value is None:
             return
         if self.validator is not None:
-            self.validator(value)
+            self.validator(value, self)
 
-    def transform_and_validate(self, value: Any = CRU_ATTR_USE_DEFAULT, /, force_allow_none: bool = False) -> Any:
+    def transform_and_validate(self, value: Any, /, force_allow_none: bool = False) -> Any:
         value = self.transform(value)
         self.validate(value, force_allow_none)
         return value
 
     def make_default_value(self) -> Any:
-        return self.transform_and_validate(self.default_factory())
+        return self.transform_and_validate(self.default_factory(self))
 
     def adopt(self, attr: CruAttr) -> CruAttr:
         attr = copy.deepcopy(attr)
@@ -76,7 +68,7 @@ class CruAttrDef:
         elif attr.name != self.name:
             raise ValueError(f"Attr name is not match: {attr.name} != {self.name}")
 
-        if attr.value is CRU_ATTR_NOT_SET:
+        if attr.value is CruAttr.USE_DEFAULT:
             attr.value = self.make_default_value()
         else:
             attr.value = self.transform_and_validate(attr.value)
@@ -86,9 +78,8 @@ class CruAttrDef:
 
         return attr
 
-    def make(self, value: Any = CRU_ATTR_USE_DEFAULT, description: None | str = None) -> CruAttr:
-        value = self.default_factory() if _is_attr_void(value) else value
-        value = self.default_factory() if value is CRU_ATTR_USE_DEFAULT else value
+    def make(self, value: Any = CruAttr.USE_DEFAULT, description: None | str = None) -> CruAttr:
+        value = self.make_default_value() if value is CruAttr.USE_DEFAULT else value
         value = self.transform_and_validate(value)
         return CruAttr(self.name, value,
                        description if description is not None else self.description)
@@ -96,17 +87,19 @@ class CruAttrDef:
 
 @dataclass
 class CruAttrDefBuilder:
+    DONT_CHANGE: ClassVar = CRU_DONT_CHANGE
+
     name: str
     description: str
     types: CanBeList[type] = field(default=None)
     allow_none: bool = field(default=True)
-    default: Any = field(default=CRU_ATTR_NOT_SET)
-    default_factory: Callable[[], Any] | None = field(default=None)
+    default: Any = field(default=CruAttr.USE_DEFAULT)
+    default_factory: CruAttrDefaultFactory | None = field(default=None)
     auto_list: bool = field(default=False)
-    transformers: list[Callable[[Any], Any]] = field(default_factory=list)
-    validators: list[Callable[[Any], None]] = field(default_factory=list)
-    override_transformer: Callable[[Any], Any] | None = field(default=None)
-    override_validator: Callable[[Any], None] | None = field(default=None)
+    transformers: list[CruAttrTransformer] = field(default_factory=list)
+    validators: list[CruAttrValidator] = field(default_factory=list)
+    override_transformer: CruAttrTransformer | None = field(default=None)
+    override_validator: CruAttrValidator | None = field(default=None)
 
     build_hook: Callable[[CruAttrDef], None] | None = field(default=None)
 
@@ -116,12 +109,12 @@ class CruAttrDefBuilder:
         self.description = description
 
     def auto_adjust_default(self) -> "CruAttrDefBuilder":
-        if self.default is not CRU_ATTR_NOT_SET and self.default is not None:
+        if self.default is not CruAttr.USE_DEFAULT and self.default is not None:
             return self
-        if self.allow_none and _is_attr_void(self.default):
+        if self.allow_none and self.default is CruAttr.USE_DEFAULT:
             self.default = None
         if not self.allow_none and self.default is None:
-            self.default = CRU_ATTR_NOT_SET
+            self.default = CruAttr.USE_DEFAULT
         if self.auto_list and not self.allow_none:
             self.default = []
 
@@ -133,49 +126,63 @@ class CruAttrDefBuilder:
         self.description = default_description
         return self
 
-    def with_default(self, default: Any, is_factory: bool = False,
-                     reserve_if_not_set: bool = False) -> "CruAttrDefBuilder":
-        if is_factory:
-            self.default_factory = default
-        else:
-            if _is_attr_void(default) and reserve_if_not_set:
-                return self
-            else:
-                self.default = default
+    def with_default(self, /, default: Any | DONT_CHANGE = DONT_CHANGE,
+                     default_factory: CruAttrDefaultFactory | DONT_CHANGE = DONT_CHANGE) -> "CruAttrDefBuilder":
+        if default is not CruAttrDefBuilder.DONT_CHANGE:
+            self.default = default
+        if default_factory is not CruAttrDefBuilder.DONT_CHANGE:
+            self.default_factory = default_factory
         return self
 
-    def with_default_factory(self, default_factory: Callable[[], Any]) -> "CruAttrDefBuilder":
-        return self.with_default(default_factory, is_factory=True)
+    def with_default_value(self, default: Any) -> "CruAttrDefBuilder":
+        self.default = default
+        return self
 
-    def with_types(self, allowed_types: CanBeList[type], default: Any = CRU_ATTR_NOT_SET) -> "CruAttrDefBuilder":
+    def with_default_factory(self, default_factory: CruAttrDefaultFactory) -> "CruAttrDefBuilder":
+        self.default_factory = default_factory
+        return self
+
+    def with_types(self, allowed_types: CanBeList[type], default: Any = DONT_CHANGE) -> "CruAttrDefBuilder":
         self.types = allowed_types
-        if _is_attr_void(default):
+        if default is not CruAttrDefBuilder.DONT_CHANGE:
             self.default = default
         return self
 
-    def with_allow_none(self, allow_none: bool, default: Any = CRU_ATTR_NOT_SET) -> "CruAttrDefBuilder":
+    def with_allow_none(self, allow_none: bool, default: Any = DONT_CHANGE) -> "CruAttrDefBuilder":
         self.allow_none = allow_none
-        if _is_attr_void(default):
+        if default is not CruAttrDefBuilder.DONT_CHANGE:
             self.default = default
         return self
 
-    def with_optional(self, default: Any = CRU_ATTR_NOT_SET) -> "CruAttrDefBuilder":
+    def with_optional(self, default: Any = DONT_CHANGE) -> "CruAttrDefBuilder":
         return self.with_allow_none(True, default)
 
-    def with_required(self, default: Any = CRU_ATTR_NOT_SET) -> "CruAttrDefBuilder":
+    def with_required(self, default: Any = DONT_CHANGE) -> "CruAttrDefBuilder":
         return self.with_allow_none(False, default)
 
-    def with_constraint(self, required: bool, allowed_types: CanBeList[type] = None, /,
-                        default: Any = CRU_ATTR_NOT_SET, auto_list=False, *, default_is_factory: bool = False,
-                        default_reserve_if_not_set: bool = True) -> "CruAttrDefBuilder":
-        return (self.with_allow_none(required).with_types(allowed_types).with_auto_list(auto_list).
-                with_default(default, default_is_factory, default_reserve_if_not_set))
+    def with_constraint(self, /, required: bool = DONT_CHANGE, allowed_types: CanBeList[type] = DONT_CHANGE,
+                        default: Any = DONT_CHANGE, default_factory: CruAttrDefaultFactory = DONT_CHANGE,
+                        auto_list: bool = DONT_CHANGE) -> "CruAttrDefBuilder":
+        def should_change(v):
+            return v is not CruAttrDefBuilder.DONT_CHANGE
+
+        if should_change(required):
+            self.allow_none = not required
+        if should_change(allowed_types):
+            self.types = allowed_types
+        if should_change(default):
+            self.default = default
+        if should_change(default_factory):
+            self.default_factory = default_factory
+        if should_change(auto_list):
+            self.auto_list = auto_list
+        return self
 
     def with_auto_list(self, transform_auto_list: bool = True) -> "CruAttrDefBuilder":
         self.auto_list = transform_auto_list
         return self
 
-    def add_transformer(self, transformer: Callable[[Any], Any] | None) -> "CruAttrDefBuilder":
+    def add_transformer(self, transformer: Callable[[Any, "CruAttrDef"], Any] | None) -> "CruAttrDefBuilder":
         if transformer is not None:
             self.transformers.append(transformer)
         return self
@@ -184,7 +191,7 @@ class CruAttrDefBuilder:
         self.transformers.clear()
         return self
 
-    def add_validator(self, validator: Callable[[Any], None] | None) -> "CruAttrDefBuilder":
+    def add_validator(self, validator: Callable[[Any, "CruAttrDef"], None] | None) -> "CruAttrDefBuilder":
         if validator is not None:
             self.validators.append(validator)
         return self
@@ -217,32 +224,38 @@ class CruAttrDefBuilder:
         valid, err = b.is_valid()
         if not valid: raise ValueError(err)
 
-        def composed_transformer(v: Any):
+        def composed_transformer(v: Any, d_):
+            transformers = L(b.transformers)
+            transformers.transform(lambda f: F(f).bind(CRU_PLACEHOLDER, d_))
+            transformer = F.make_chain(*transformers) if not transformers.is_empty else WF.only_you
             if b.auto_list:
                 v = L.make(v)
-            for t in b.transformers:
-                v = t(v)
+                v = v.transform(transformer)
+            else:
+                v = transformer(v)
             return v
 
         type_set = TypeSet(b.types)
 
-        def composed_validator(v: Any):
+        def composed_validator(v: Any, d_):
+            validators = L(b.validators)
+            validators.transform(lambda f: F(f).bind(CRU_PLACEHOLDER, d_))
+            validator = F.make_chain(*validators) if not validators.is_empty else WF.true
             if b.auto_list:
                 type_set.check_value_list(v, allow_none=b.allow_none)
-                ListOperations.foreach(v, *b.validators)
+                L(v).foreach(validator)
             else:
                 type_set.check_value(v, allow_none=b.allow_none)
-                for vl in b.validators: vl(v)
+                validator(v)
 
-        validator = b.override_validator or composed_validator
-        transformer = b.override_transformer or composed_transformer
+        real_transformer = b.override_transformer or composed_transformer
+        real_validator = b.override_validator or composed_validator
 
         default_factory = b.default_factory
-        if b.default_factory is None:
-            default_factory = lambda: copy.deepcopy(b.default)
-        validator(default_factory())
+        if default_factory is None:
+            default_factory = lambda _d: copy.deepcopy(b.default)
 
-        d = CruAttrDef(b.name, b.description, default_factory, transformer, validator)
+        d = CruAttrDef(b.name, b.description, default_factory, real_transformer, real_validator)
         if b.build_hook: b.build_hook(d)
         return d
 
@@ -252,93 +265,77 @@ class CruAttrDefBuilder:
         return CruAttrDefBuilder._build(c, auto_adjust_default)
 
 
-class CruAttrDefRegistry:
+class CruAttrDefRegistry(CruUniqueKeyInplaceList[CruAttrDef, str]):
 
     def __init__(self) -> None:
-        self._def_list = []
-
-    @property
-    def items(self) -> list[CruAttrDef]:
-        return self._def_list
-
-    def register(self, def_: CruAttrDef):
-        for i in self._def_list:
-            if i.name == def_.name:
-                raise ValueError(f"Attribute {def_.name} already exists!")
-        self._def_list.append(def_)
+        super().__init__(lambda d: d.name)
 
     def make_builder(self, name: str, default_description: str) -> CruAttrDefBuilder:
         b = CruAttrDefBuilder(name, default_description)
-        b.build_hook = lambda a: self.register(a)
+        b.build_hook = lambda a: self.add(a)
         return b
 
-    def get_item_optional(self, name: str) -> CruAttrDef | None:
-        for i in self._def_list:
-            if i.name == name:
-                return i
-        return None
+    def adopt(self, attr: CruAttr) -> CruAttr:
+        d = self.get(attr.name)
+        return d.adopt(attr)
 
 
-class CruAttrTable:
+class CruAttrTable(CruUniqueKeyInplaceList[CruAttr, str]):
     def __init__(self, registry: CruAttrDefRegistry) -> None:
         self._registry: CruAttrDefRegistry = registry
-        self._attrs: list[CruAttr] = []
+        super().__init__(lambda a: a.name, before_add=registry.adopt)
 
-    def get_attr_or(self, name: str, fallback: Any = None) -> CruAttr | Any:
-        for a in self._attrs:
-            if a.name == name:
-                return a
-        return fallback
+    @property
+    def registry(self) -> CruAttrDefRegistry:
+        return self._registry
 
-    def get_attr(self, name) -> CruAttr:
-        a = self.get_attr_or(name, None)
-        if a is None:
-            raise KeyError(f"Attribute {name} not found!")
-        return a
-
-    def get_value_or(self, name: str, fallback: Any = None) -> Any:
-        a = self.get_attr_or(name, None)
-        if a is None:
+    def get_value_or(self, name: str, fallback: Any = CRU_NOT_FOUND) -> Any:
+        a = self.get_or(name, CRU_NOT_FOUND)
+        if a is CRU_NOT_FOUND:
             return fallback
         return a.value
 
     def get_value(self, name: str) -> Any:
-        a = self.get_attr(name)
+        a = self.get(name)
         return a.value
 
-    def get_def_or(self, name: str, fallback: Any = None) -> CruAttrDef | Any:
-        d = self._registry.get_item_optional(name)
-        return d if d is not None else fallback
+    def make_attr(self, name: str, value: Any = CruAttr.USE_DEFAULT, /, description: str | None = None) -> CruAttr:
+        d = self._registry.get(name)
+        return d.make(value, description or d.description)
 
-    def get_def(self, name: str) -> CruAttrDef:
-        d = self._registry.get_item_optional(name)
-        if d is None:
-            raise KeyError(f"Attribute definition {name} not found!")
-        return d
-
-    def _check_already_exist(self, name: str) -> None:
-        if name in self:
-            raise KeyError(f"Attribute {name} already exists!")
-
-    def add_attr(self, attr: CruAttr) -> CruAttr:
-        self._check_already_exist(attr.name)
-        d = self.get_def(attr.name)
-        attr = d.adopt(attr)
-        self._attrs.append(attr)
+    def add_value(self, name: str, value: Any = CruAttr.USE_DEFAULT, /, description: str | None = None, *,
+                  replace: bool = False) -> CruAttr:
+        attr = self.make_attr(name, value, description)
+        self.add(attr, replace)
         return attr
 
-    def add(self, name: str, value: Any = CRU_ATTR_USE_DEFAULT, /, description: str | None = None) -> CruAttr:
-        self._check_already_exist(name)
-        d = self.get_def(name)
-        attr = d.make(value, description or d.description)
-        self._attrs.append(attr)
-        return attr
+    def extend_values(self, *t: tuple[str, Any, str | None], replace: bool = False) -> None:
+        t = [self.make_attr(n, v, d) for n, v, d in t]
+        self.extend(t, replace)
 
-    def remove(self, name: str, /, allow_absense: bool = True) -> None:
-        l = [a for a in self._attrs if a.name == name]
-        if len(l) != len(self._attrs) and not allow_absense:
-            raise KeyError(f"Attribute {name} not found!")
-        self._attrs = l
+    def extend_with(self, a: CruAttr | Iterable[CruAttr | tuple[str, Any, str | None]] | dict[
+        str, Any | tuple[Any, str]] | None = None, replace: bool = False):
+        if a is None: return
 
-    def __contains__(self, name):
-        return any(a.name == name for a in self._attrs)
+        if isinstance(a, CruAttr):
+            self.add(a, replace)
+            return
+
+        if isinstance(a, dict):
+            l = L()
+            for k, v in a.items():
+                if isinstance(v, tuple):
+                    v, d = v
+                else:
+                    d = None
+                l.append(self.make_attr(k, v, d))
+            self.extend(l, replace)
+            return
+
+        if isinstance(a, Iterable):
+            l = L(a)
+            l.transform_if(lambda n_, v_, d_: self.make_attr(n_, v_, d_), F(isinstance).bind(CRU_PLACEHOLDER, tuple))
+            self.extend(l, replace)
+            return
+
+        raise TypeError(f"Unsupported type: {type(a)}")

@@ -1,7 +1,7 @@
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from typing import TypeVar, Any, ParamSpec
 
-from ._list import ListOperations, CruList
+from ._const import CRU_PLACEHOLDER
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -10,33 +10,26 @@ P = ParamSpec("P")
 P1 = ParamSpec("P1")
 
 
-class _Placeholder:
-    pass
-
-
-PLACEHOLDER = _Placeholder()
-
-
 class RawFunctions:
     @staticmethod
-    def ignore(*_v, **_kwargs) -> None:
+    def none(*_v, **_kwargs) -> None:
         return None
 
     @staticmethod
-    def true_(*_v, **_kwargs) -> True:
+    def true(*_v, **_kwargs) -> True:
         return True
 
     @staticmethod
-    def false_(*_v, **_kwargs) -> False:
+    def false(*_v, **_kwargs) -> False:
         return False
-
-    @staticmethod
-    def i_dont_care(r: T, *_v, **_kwargs) -> T:
-        return r
 
     @staticmethod
     def identity(v: T) -> T:
         return v
+
+    @staticmethod
+    def only_you(r: T, *_v, **_kwargs) -> T:
+        return r
 
     @staticmethod
     def equal(a: Any, b: Any) -> bool:
@@ -58,7 +51,7 @@ class MetaFunction:
             popped = 0
             real_args = []
             for a in bind_args:
-                if isinstance(a, _Placeholder):
+                if a is CRU_PLACEHOLDER:
                     real_args.append(args[popped])
                     popped += 1
                 else:
@@ -129,22 +122,17 @@ class CruFunction:
     def __call__(self, *args, **kwargs):
         return self._f(*args, **kwargs)
 
-    def list_transform(self, l: Iterable[T]) -> CruList[T]:
-        return CruList(l).transform(self)
-
-    def list_all(self, l: Iterable[T]) -> bool:
-        return ListOperations.all(l, self)
-
-    def list_any(self, l: Iterable[T]) -> bool:
-        return ListOperations.any(l, self)
-
-    def list_remove_all_if(self, l: Iterable[T]) -> CruList[T]:
-        return CruList(ListOperations.remove_all_if(l, self))
+    @staticmethod
+    def make_chain(*fs: Callable) -> Callable[P, R1]:
+        return CruFunction(MetaFunction.chain(*fs))
 
 
 class WrappedFunctions:
+    none = CruFunction(RawFunctions.none)
+    true = CruFunction(RawFunctions.true)
+    false = CruFunction(RawFunctions.false)
     identity = CruFunction(RawFunctions.identity)
-    ignore = CruFunction(RawFunctions.ignore)
+    only_you = CruFunction(RawFunctions.only_you)
     equal = CruFunction(RawFunctions.equal)
     not_equal = CruFunction(RawFunctions.not_equal)
     not_ = CruFunction(RawFunctions.not_)

@@ -1,5 +1,5 @@
-import re
 import os.path
+import re
 
 
 def check_debian_derivative_version(name: str) -> None | str:
