@@ -11,8 +11,6 @@ from cru import CruException, CruLogicError, CruPath
 
 _Feature = TypeVar("_Feature", bound="AppFeatureProvider")
 
-OWNER_NAME = "crupest"
-
 
 class AppError(CruException):
     pass
@@ -314,8 +312,9 @@ class AppBase:
             raise AppError("App instance not initialized")
         return AppBase._instance
 
-    def __init__(self, name: str):
+    def __init__(self, app_id: str, name: str):
         AppBase._instance = self
+        self._app_id = app_id
         self._name = name
         self._root = AppRootPath(self)
         self._paths: list[AppFeaturePath] = []
@@ -331,6 +330,10 @@ class AppBase:
             feature.setup()
         for path in self.paths:
             path.check_self()
+
+    @property
+    def app_id(self) -> str:
+        return self._app_id
 
     @property
     def name(self) -> str:

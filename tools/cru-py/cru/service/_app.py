@@ -1,12 +1,18 @@
-from ._base import AppBase, CommandDispatcher, AppInitializer, PathCommandProvider, OWNER_NAME
+from ._base import (
+    AppBase,
+    CommandDispatcher,
+    AppInitializer,
+    PathCommandProvider,
+)
 from ._config import ConfigManager
 from ._data import DataManager
 from ._template import TemplateManager
 
+APP_ID = "crupest"
 
 class App(AppBase):
     def __init__(self):
-        super().__init__(f"{OWNER_NAME}-service")
+        super().__init__(APP_ID,f"{APP_ID}-service")
         self.add_feature(PathCommandProvider())
         self.add_feature(AppInitializer())
         self.add_feature(DataManager())
