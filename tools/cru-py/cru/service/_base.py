@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from argparse import ArgumentParser, Namespace
 from abc import ABC, abstractmethod
+import argparse
+from collections.abc import Sequence
 import os
 from pathlib import Path
 from typing import TypeVar, overload
@@ -11,6 +13,7 @@ from cru import CruException, CruInternalError, CruPath
 _F = TypeVar("_F")
 
 OWNER_NAME = "crupest"
+
 
 class InternalAppException(CruInternalError):
     pass
@@ -153,7 +156,7 @@ class AppRootPath(AppPath):
         return self._app
 
 
-class AppFeatureProvider:
+class AppFeatureProvider(ABC):
     def __init__(self, name: str, /, app: AppBase | None = None):
         super().__init__()
         self._name = name
@@ -168,13 +171,54 @@ class AppFeatureProvider:
     def name(self) -> str:
         return self._name
 
-
-class AppCommandFeatureProvider(AppFeatureProvider, ABC):
     @abstractmethod
-    def add_arg_parser(self, arg_parser: ArgumentParser) -> None: ...
+    def setup(self) -> None: ...
+
+
+class AppCommandFeatureProvider(AppFeatureProvider):
+    @abstractmethod
+    def get_command_info(self) -> tuple[str, str]: ...
+
+    @abstractmethod
+    def setup_arg_parser(self, arg_parser: ArgumentParser): ...
 
     @abstractmethod
     def run_command(self, args: Namespace) -> None: ...
+
+
+DATA_DIR_NAME = "data"
+
+
+class CommandDispatcher(AppFeatureProvider):
+    def __init__(self) -> None:
+        super().__init__("command-dispatcher")
+
+    def _setup_arg_parser(self) -> None:
+        self._map: dict[str, AppCommandFeatureProvider] = {}
+        arg_parser = argparse.ArgumentParser(description="Service management")
+        subparsers = arg_parser.add_subparsers(dest="command")
+        for feature in self.app.features:
+            if isinstance(feature, AppCommandFeatureProvider):
+                info = feature.get_command_info()
+                command_subparser = subparsers.add_parser(info[0], help=info[1])
+                feature.setup_arg_parser(command_subparser)
+                self._map[info[0]] = feature
+        self._arg_parser = arg_parser
+
+    def setup(self):
+        self._setup_arg_parser()
+
+    @property
+    def arg_parser(self) -> argparse.ArgumentParser:
+        return self._arg_parser
+
+    @property
+    def map(self) -> dict[str, AppCommandFeatureProvider]:
+        return self._map
+
+    def run_command(self, _args: Sequence[str] | None = None) -> None:
+        args = self.arg_parser.parse_args(_args)
+        self.map[args.command].run_command(args)
 
 
 class AppBase:

@@ -1,4 +1,4 @@
-from argparse import ArgumentParser, Namespace
+from argparse import Namespace
 
 from cru import CruIterator
 from cru.template import TemplateTree
@@ -11,6 +11,8 @@ class TemplateManager(AppCommandFeatureProvider):
     def __init__(self, prefix: str = OWNER_NAME.upper()):
         super().__init__("template-manager")
         self._prefix = prefix
+
+    def setup(self) -> None:
         self._templates_dir = self.app.add_path("templates", True)
         self._generated_dir = self.app.add_path("generated", True)
         self._template_tree: TemplateTree | None = None
@@ -56,7 +58,10 @@ class TemplateManager(AppCommandFeatureProvider):
             self.generated_dir.full_path_str, config_manager.config_map
         )
 
-    def add_arg_parser(self, arg_parser: ArgumentParser) -> None:
+    def get_command_info(self):
+        return ("template", "Template Management")
+
+    def setup_arg_parser(self, arg_parser):
         subparsers = arg_parser.add_subparsers(dest="template_command")
         _list_parser = subparsers.add_parser("list", help="List templates.")
         _generate_parser = subparsers.add_parser("generate", help="Generate template.")
