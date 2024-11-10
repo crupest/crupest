@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 import os
 import os.path
+from pathlib import Path
 from string import Template
 
 from ._iter import CruIterator
@@ -99,13 +100,13 @@ class TemplateTree:
 
     @staticmethod
     def _scan_files(root_path: str) -> list[str]:
-        files: list[str] = []
+        result: list[str] = []
         for root, _dirs, files in os.walk(root_path):
             for file in files:
-                path = os.path.join(root, file)
-                path = os.path.relpath(path, root_path)
-                files.append(path)
-        return files
+                path = Path(root, file)
+                path = path.relative_to(root_path)
+                result.append(str(path.as_posix()))
+        return result
 
     def _load(self) -> None:
         files = self._scan_files(self.source)

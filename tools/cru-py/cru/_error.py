@@ -18,9 +18,11 @@ class CruInternalError(CruException):
 
 
 class CruUserFriendlyException(CruException):
-    def __init__(self, message: str, user_message: str, *args, **kwargs) -> None:
+    def __init__(
+        self, message: str, user_message: str | None = None, *args, **kwargs
+    ) -> None:
         super().__init__(message, *args, **kwargs)
-        self._user_message = user_message
+        self._user_message = user_message or message
 
     @property
     def user_message(self) -> str:
