@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar, Generic
+from typing import Any, TypeVar, Generic
 
 from ._error import CruInternalError, CruException
 from .list import CruUniqueKeyList
@@ -124,7 +124,7 @@ class ConfigItem(Generic[_T]):
         )
 
 
-class Configuration(CruUniqueKeyList[ConfigItem, str]):
+class Configuration(CruUniqueKeyList[ConfigItem[Any], str]):
     def __init__(self):
         super().__init__(lambda c: c.name)
 
@@ -134,7 +134,7 @@ class Configuration(CruUniqueKeyList[ConfigItem, str]):
         description: str,
         value: str | None = None,
         default: ValueGeneratorBase[str] | str | None = None,
-    ) -> ConfigItem:
+    ) -> ConfigItem[str]:
         item = ConfigItem(name, description, TEXT_VALUE_TYPE, value, default)
         self.add(item)
         return item
@@ -145,7 +145,7 @@ class Configuration(CruUniqueKeyList[ConfigItem, str]):
         description: str,
         value: int | None = None,
         default: ValueGeneratorBase[int] | int | None = None,
-    ) -> ConfigItem:
+    ) -> ConfigItem[int]:
         item = ConfigItem(name, description, INTEGER_VALUE_TYPE, value, default)
         self.add(item)
         return item
@@ -153,3 +153,11 @@ class Configuration(CruUniqueKeyList[ConfigItem, str]):
     def reset_all(self, clear_default_cache=False) -> None:
         for item in self:
             item.reset(clear_default_cache)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {item.name: item.value for item in self}
+
+    def to_str_dict(self) -> dict[str, str]:
+        return {
+            item.name: item.value_type.convert_value_to_str(item.value) for item in self
+        }

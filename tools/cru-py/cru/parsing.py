@@ -9,7 +9,7 @@ from ._iter import CruIterable
 _T = TypeVar("_T")
 
 
-class ParseException(CruException, Generic[_T]):
+class ParseError(CruException, Generic[_T]):
     def __init__(
         self,
         message,
@@ -53,16 +53,16 @@ class Parser(Generic[_T], metaclass=ABCMeta):
         self, text: str, line_number: int | None = None
     ) -> NoReturn:
         a = line_number and f" at line {line_number}" or ""
-        raise ParseException(f"Parser {self.name} failed{a}.", self, text, line_number)
+        raise ParseError(f"Parser {self.name} failed{a}.", self, text, line_number)
 
 
-class SimpleLineConfigParserItem(NamedTuple):
+class SimpleLineConfigParserEntry(NamedTuple):
     key: str
     value: str
     line_number: int | None = None
 
 
-class SimpleLineConfigParserResult(CruIterable.IterList[SimpleLineConfigParserItem]):
+class SimpleLineConfigParserResult(CruIterable.IterList[SimpleLineConfigParserEntry]):
     pass
 
 
@@ -71,13 +71,13 @@ class SimpleLineConfigParser(Parser[SimpleLineConfigParserResult]):
     The parsing result is a list of tuples (key, value, line number).
     """
 
-    Item: TypeAlias = SimpleLineConfigParserItem
+    Entry: TypeAlias = SimpleLineConfigParserEntry
     Result: TypeAlias = SimpleLineConfigParserResult
 
     def __init__(self) -> None:
         super().__init__(type(self).__name__)
 
-    def _parse(self, text: str, callback: Callable[[Item], None]) -> None:
+    def _parse(self, text: str, callback: Callable[[Entry], None]) -> None:
         for ln, line in enumerate(text.splitlines()):
             line_number = ln + 1
             # check if it's a comment
@@ -90,7 +90,7 @@ class SimpleLineConfigParser(Parser[SimpleLineConfigParserResult]):
             key, value = line.split("=", 1)
             key = key.strip()
             value = value.strip()
-            callback(SimpleLineConfigParserItem(key, value, line_number))
+            callback(SimpleLineConfigParserEntry(key, value, line_number))
 
     def parse(self, text: str) -> Result:
         result = SimpleLineConfigParserResult()
