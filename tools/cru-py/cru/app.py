@@ -40,6 +40,10 @@ class ApplicationPath:
         return self._full_path
 
     @property
+    def full_path_str(self) -> str:
+        return str(self._full_path)
+
+    @property
     def is_dir(self) -> bool:
         return self._is_dir
 
