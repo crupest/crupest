@@ -5,6 +5,7 @@ from cru.value import (
     RandomStringValueGenerator,
     UuidValueGenerator,
 )
+from cru.parsing import SimpleLineConfigParser
 
 from ._base import AppFeaturePath, AppFeatureProvider, OWNER_NAME
 
@@ -83,7 +84,7 @@ class ConfigManager(AppFeatureProvider):
         )
 
     @property
-    def config_path(self) -> AppFeaturePath:
+    def config_file_path(self) -> AppFeaturePath:
         return self._config_path
 
     @property
@@ -91,5 +92,18 @@ class ConfigManager(AppFeatureProvider):
         return self._configuration
 
     @property
+    def config_keys(self) -> list[str]:
+        return [item.name for item in self.configuration]
+
+    @property
     def config_map(self) -> dict[str, str]:
         raise NotImplementedError()
+
+    def reload_config_file(self) -> bool:
+        self.configuration.reset_all()
+        if not self.config_file_path.check_self():
+            return False
+        parser = SimpleLineConfigParser()
+        parse_result = parser.parse(self.config_file_path.full_path.read_text())
+        config_dict = parse_result.cru_iter().group_by(lambda i: i.key)
+        return True
