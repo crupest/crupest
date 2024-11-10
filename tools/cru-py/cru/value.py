@@ -105,6 +105,9 @@ class ValueType(Generic[_T], metaclass=ABCMeta):
             else:
                 raise
 
+    def create_default_value(self) -> _T:
+        return self.type()
+
 
 class TextValueType(ValueType[str]):
     def __init__(self) -> None:
@@ -121,7 +124,6 @@ class TextValueType(ValueType[str]):
 
 
 class IntegerValueType(ValueType[int]):
-
     def __init__(self) -> None:
         super().__init__("integer", int)
 
@@ -201,6 +203,9 @@ class BooleanValueType(ValueType[bool]):
     def _do_convert_str_to_value(self, s):
         return _str_case_in(s, self.case_sensitive, self._valid_true_strs)
 
+    def create_default_value(self):
+        return self.valid_false_strs[0]
+
 
 class EnumValueType(ValueType[str]):
     def __init__(self, valid_values: list[str], /, case_sensitive=False) -> None:
@@ -228,6 +233,9 @@ class EnumValueType(ValueType[str]):
 
     def _do_convert_str_to_value(self, s):
         return s
+
+    def create_default_value(self):
+        return self.valid_values[0]
 
 
 TEXT_VALUE_TYPE = TextValueType()
@@ -257,7 +265,6 @@ class ValueGenerator(ValueGeneratorBase[_T]):
 
 
 class UuidValueGenerator(ValueGeneratorBase[str]):
-
     def generate(self):
         return str(uuid.uuid4())
 
