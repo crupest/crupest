@@ -161,3 +161,18 @@ class Configuration(CruUniqueKeyList[ConfigItem[Any], str]):
         return {
             item.name: item.value_type.convert_value_to_str(item.value) for item in self
         }
+
+    def set_value_dict(
+        self,
+        value_dict: dict[str, Any],
+        *,
+        empty_is_default: bool = True,
+        allow_convert_from_str: bool = True,
+    ) -> None:
+        for name, value in value_dict.items():
+            item = self.get(name)
+            item.set_value(
+                value,
+                empty_is_default=empty_is_default,
+                allow_convert_from_str=allow_convert_from_str,
+            )

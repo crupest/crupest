@@ -1,8 +1,12 @@
+from collections.abc import Iterable
+from typing import Any, NoReturn
+
 from cru import CruException, CruUserFriendlyException
 from cru.config import Configuration, ConfigItem
 from cru.value import (
     INTEGER_VALUE_TYPE,
     TEXT_VALUE_TYPE,
+    CruValueTypeError,
     RandomStringValueGenerator,
     UuidValueGenerator,
 )
@@ -12,51 +16,137 @@ from ._base import AppFeaturePath, AppCommandFeatureProvider, OWNER_NAME
 
 
 class AppConfigError(CruException):
-    pass
-
-
-class AppConfigDuplicateEntryError(AppConfigError):
     def __init__(
-        self, message: str, entries: list[SimpleLineConfigParser.Entry], *args, **kwargs
+        self, message: str, configuration: Configuration, *args, **kwargs
     ) -> None:
         super().__init__(message, *args, **kwargs)
-        self._entries = entries
+        self._configuration = configuration
 
     @property
-    def duplicate_entries(self) -> list[SimpleLineConfigParser.Entry]:
-        return self._entries
+    def configuration(self) -> Configuration:
+        return self._configuration
 
-    @staticmethod
-    def duplicate_entries_to_friendly_message(
-        entries: list[SimpleLineConfigParser.Entry],
-    ) -> str:
-        return "".join(
-            f"line {entry.line_number}: {entry.key}={entry.value}\n"
-            for entry in entries
-        )
+    @property
+    def friendly_error_message(self) -> str:
+        raise NotImplementedError("Subclasses must implement this method.")
 
     def to_friendly_error(self) -> CruUserFriendlyException:
-        e = CruUserFriendlyException(
-            f"Duplicate entries found in config file:\n"
-            f"{self.duplicate_entries_to_friendly_message(self.duplicate_entries)}"
-        )
-        return e
+        return CruUserFriendlyException(self.friendly_error_message)
+
+    def raise_friendly_error(self) -> NoReturn:
+        raise self.to_friendly_error() from self
 
 
-class AppConfigFileNotFoundError(AppConfigError):
-    def __init__(self, message: str, file_path: str, *args, **kwargs) -> None:
-        super().__init__(message, *args, **kwargs)
+class AppConfigFileError(AppConfigError):
+    def __init__(
+        self,
+        message: str,
+        configuration: Configuration,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(message, configuration, *args, **kwargs)
+
+
+class AppConfigFileNotFoundError(AppConfigFileError):
+    def __init__(
+        self,
+        message: str,
+        configuration: Configuration,
+        file_path: str,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(message, configuration, *args, **kwargs)
         self._file_path = file_path
 
     @property
     def file_path(self) -> str:
         return self._file_path
 
-    def to_friendly_error(self) -> CruUserFriendlyException:
-        e = CruUserFriendlyException(
-            f"Config file not found at {self.file_path}. You may need to create one."
+    @property
+    def friendly_error_message(self) -> str:
+        return f"Config file not found at {self.file_path}. You may need to create one."
+
+
+class AppConfigFileParseError(AppConfigFileError):
+    def __init__(
+        self,
+        message: str,
+        configuration: Configuration,
+        file_content: str,
+        *args,
+        cause: ParseError | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(message, configuration, *args, **kwargs)
+        self._file_content = file_content
+        if cause is not None:
+            self._cause = cause
+        self._cause = self.__cause__  # type: ignore
+
+    @property
+    def file_content(self) -> str:
+        return self._file_content
+
+    @property
+    def friendly_error_message(self) -> str:
+        return f"Error while parsing config file at line {self._cause.line_number}."
+
+
+class AppConfigFileEntryError(AppConfigFileError):
+    def __init__(
+        self,
+        message: str,
+        configuration: Configuration,
+        entries: Iterable[SimpleLineConfigParser.Entry],
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(message, configuration, *args, **kwargs)
+        self._entries = list(entries)
+
+    @property
+    def error_entries(self) -> list[SimpleLineConfigParser.Entry]:
+        return self._entries
+
+    @staticmethod
+    def entries_to_friendly_message(
+        entries: Iterable[SimpleLineConfigParser.Entry],
+    ) -> str:
+        return "".join(
+            f"line {entry.line_number}: {entry.key}={entry.value}\n"
+            for entry in entries
         )
-        return e
+
+    @property
+    def friendly_message_head(self) -> str:
+        return "Error entries found in config file"
+
+    @property
+    def friendly_error_message(self) -> str:
+        return (
+            f"{self.friendly_message_head}:\n"
+            f"{self.entries_to_friendly_message(self.error_entries)}"
+        )
+
+
+class AppConfigDuplicateEntryError(AppConfigFileEntryError):
+    @property
+    def friendly_message_head(self) -> str:
+        return "Duplicate entries found in config file"
+
+
+class AppConfigEntryKeyNotDefinedError(AppConfigFileEntryError):
+    @property
+    def friendly_message_head(self) -> str:
+        return "Entry key not defined in app config"
+
+
+class AppConfigEntryValueFormatError(AppConfigFileEntryError):
+    @property
+    def friendly_message_head(self) -> str:
+        return "Invalid value format for entries"
 
 
 class AppConfigItemNotSetError(AppConfigError):
@@ -69,28 +159,6 @@ class AppConfigItemNotSetError(AppConfigError):
     ) -> None:
         super().__init__(message, *args, **kwargs)
         self._items = items
-
-
-class AppConfigItemNotDefinedError(AppConfigError):
-    def __init__(
-        self,
-        message: str,
-        undefined_names: list[str],
-        configuration: Configuration,
-        *args,
-        **kwargs,
-    ) -> None:
-        super().__init__(message, *args, **kwargs)
-        self._undefined_names = undefined_names
-        self._configuration = configuration
-
-    @property
-    def undefined_names(self) -> list[str]:
-        return self._undefined_names
-
-    @property
-    def configuration(self) -> Configuration:
-        return self._configuration
 
 
 class ConfigManager(AppCommandFeatureProvider):
@@ -178,50 +246,93 @@ class ConfigManager(AppCommandFeatureProvider):
     def _parse_config_file(self) -> SimpleLineConfigParser.Result:
         if not self.config_file_path.check_self():
             raise AppConfigFileNotFoundError(
-                "Config file not found.", self.config_file_path.full_path_str
+                "Config file not found.",
+                self.configuration,
+                self.config_file_path.full_path_str,
             )
-        parser = SimpleLineConfigParser()
-        return parser.parse(self.config_file_path.full_path.read_text())
+
+        text = self.config_file_path.full_path.read_text()
+        try:
+            parser = SimpleLineConfigParser()
+            return parser.parse(text)
+        except ParseError as e:
+            raise AppConfigFileParseError(
+                "Failed to parse config file.", self.configuration, text
+            ) from e
 
     def _check_duplicate(
         self,
         parse_result: dict[str, list[SimpleLineConfigParser.Entry]],
-    ) -> dict[str, str]:
-        config_dict = {}
-        duplicate_entries = []
+    ) -> dict[str, SimpleLineConfigParser.Entry]:
+        entry_dict: dict[str, SimpleLineConfigParser.Entry] = {}
+        duplicate_entries: list[SimpleLineConfigParser.Entry] = []
         for key, entries in parse_result.items():
-            config_dict[key] = entries[0].value
+            entry_dict[key] = entries[0]
             for entry in entries[1:]:
                 duplicate_entries.append(entry)
 
         if len(duplicate_entries) > 0:
             raise AppConfigDuplicateEntryError(
-                "Duplicate entries found.", duplicate_entries
+                "Duplicate entries found.", self.configuration, duplicate_entries
             )
 
-        return config_dict
+        return entry_dict
 
     def _check_defined(
-        self,
-        config_dict: dict[str, str],
-        allow_extra: bool = True,
-    ) -> dict[str, str]:
-        # TODO: Continue here!
-        raise NotImplementedError()
+        self, entry_dict: dict[str, SimpleLineConfigParser.Entry]
+    ) -> dict[str, SimpleLineConfigParser.Entry]:
+        undefined: list[SimpleLineConfigParser.Entry] = []
+        for key, entry in entry_dict.items():
+            if not self.configuration.has_key(key):
+                undefined.append(entry)
+        if len(undefined) > 0:
+            raise AppConfigEntryKeyNotDefinedError(
+                "Entry keys are not defined in app config.",
+                self.configuration,
+                undefined,
+            )
+        return entry_dict
 
-    def _check_config_file(self) -> dict[str, str]:
+    def _check_type(
+        self, entry_dict: dict[str, SimpleLineConfigParser.Entry]
+    ) -> dict[str, Any]:
+        value_dict: dict[str, Any] = {}
+        error_entries: list[SimpleLineConfigParser.Entry] = []
+        errors: list[CruValueTypeError] = []
+        for key, entry in entry_dict.items():
+            config_item = self.configuration.get(key)
+            try:
+                value_dict[key] = config_item.value_type.convert_str_to_value(
+                    entry.value
+                )
+            except CruValueTypeError as e:
+                error_entries.append(entry)
+                errors.append(e)
+        if len(error_entries) > 0:
+            raise AppConfigEntryValueFormatError(
+                "Entry value format is not correct.",
+                self.configuration,
+                error_entries,
+            ) from ExceptionGroup("Multiple format errors occurred.", errors)
+        return value_dict
+
+    def _read_config_file(self, friendly: bool = False) -> dict[str, Any]:
         try:
             parsed = self._parse_config_file()
-            config = self._check_duplicate(parsed)
-            return config
-        except ParseError as e:
-            raise CruUserFriendlyException("Failed to parse config file.") from e
-        except AppConfigDuplicateEntryError as e:
-            raise e.to_friendly_error() from e
+            entry_groups = parsed.cru_iter().group_by(lambda e: e.key)
+            entry_dict = self._check_duplicate(entry_groups)
+            entry_dict = self._check_defined(entry_dict)
+            value_dict = self._check_type(entry_dict)
+            return value_dict
+        except AppConfigError as e:
+            if friendly:
+                e.raise_friendly_error()
+            raise
 
     def reload_config_file(self) -> bool:
         self.configuration.reset_all()
-        config_dict = self._check_config_file()
+        value_dict = self._read_config_file()
+        # TODO: Continue here!
         for key, value in config_dict.items():
             self.configuration.set(key, value)
         return True
