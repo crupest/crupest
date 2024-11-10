@@ -1,7 +1,9 @@
 from typing import Any
 
+from ._cru import CRU
 
-def make_unique_object() -> Any:
+
+def cru_make_unique_object() -> Any:
     class _CruUnique:
         _i = False
 
@@ -21,7 +23,7 @@ def make_unique_object() -> Any:
     return v
 
 
-def make_bool_unique_object(b: bool) -> Any:
+def cru_make_bool_unique_object(b: bool) -> Any:
     class _CruBoolUnique:
         _i = False
 
@@ -45,7 +47,10 @@ def make_bool_unique_object(b: bool) -> Any:
     return v
 
 
-CRU_NOT_FOUND = make_bool_unique_object(False)
-CRU_USE_DEFAULT = make_unique_object()
-CRU_DONT_CHANGE = make_unique_object()
-CRU_PLACEHOLDER = make_unique_object()
+CRU_NOT_FOUND = cru_make_bool_unique_object(False)
+CRU_USE_DEFAULT = cru_make_unique_object()
+CRU_DONT_CHANGE = cru_make_unique_object()
+CRU_PLACEHOLDER = cru_make_unique_object()
+
+CRU.add_objects(cru_make_unique_object, cru_make_bool_unique_object, CRU_NOT_FOUND, CRU_USE_DEFAULT,
+                CRU_DONT_CHANGE, CRU_PLACEHOLDER)
