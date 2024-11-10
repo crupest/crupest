@@ -1,12 +1,11 @@
-from cru.app import ApplicationPath
-from ._base import AppFeatureProvider
+from ._base import AppFeaturePath, AppFeatureProvider
 
 
 class DataManager(AppFeatureProvider):
     def __init__(self) -> None:
         super().__init__("data-manager")
-        self._dir = self.add_app_path("data", True)
+        self._dir = self.app.add_path("data", True)
 
     @property
-    def data_dir(self) -> ApplicationPath:
+    def data_dir(self) -> AppFeaturePath:
         return self._dir

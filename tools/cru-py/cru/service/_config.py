@@ -1,15 +1,14 @@
-import os.path
-from ._base import AppFeatureProvider
+from ._base import AppFeaturePath, AppFeatureProvider
 from ._data import DataManager
 
 
 class ConfigManager(AppFeatureProvider):
-    def __init__(self, config_file_name="config") -> None:
+    def __init__(self) -> None:
         super().__init__("config-manager")
-        self._file_name = config_file_name
+        self._config_path = self.app.get_feature(DataManager).data_dir.add_subpath(
+            "config", False, description="Configuration file path."
+        )
 
     @property
-    def config_file_path(self) -> str:
-        return os.path.join(
-            self.app.get_feature(DataManager).data_dir.full_path, self._file_name
-        )
+    def config_path(self) -> AppFeaturePath:
+        return self._config_path
