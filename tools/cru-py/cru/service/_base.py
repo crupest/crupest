@@ -142,7 +142,7 @@ class AppFeaturePath(AppPath):
 
     @property
     def full_path(self) -> CruPath:
-        return CruPath(self.parent.full_path, self.name)
+        return CruPath(self.parent.full_path, self.name).resolve()
 
 
 class AppRootPath(AppPath):
@@ -217,7 +217,12 @@ class CommandDispatcher(AppFeatureProvider):
             required=True,
             type=str,
         )
-        subparsers = arg_parser.add_subparsers(dest="command")
+        subparsers = arg_parser.add_subparsers(
+            dest="command",
+            required=True,
+            help="The management command to execute.",
+            metavar="COMMAND",
+        )
         for feature in self.app.features:
             if isinstance(feature, AppCommandFeatureProvider):
                 info = feature.get_command_info()

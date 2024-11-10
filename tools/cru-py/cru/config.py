@@ -40,7 +40,6 @@ class ConfigItem(Generic[_T]):
         self._value_type = value_type
         self._value = value
         self._default = default
-        self._default_value: _T | None = None
 
     @property
     def name(self) -> str:
@@ -61,18 +60,25 @@ class ConfigItem(Generic[_T]):
     @property
     def value(self) -> _T:
         if self._value is None:
-            raise CruConfigError("Config value is not set.", self)
+            raise CruConfigError(
+                "Config value is not set.",
+                self,
+                user_message=f"Config item {self.name} is not set.",
+            )
         return self._value
 
     @property
-    def value_or_default(self) -> _T:
-        if self._value is not None:
-            return self._value
-        elif self._default_value is not None:
-            return self._default_value
+    def value_str(self) -> str:
+        return self.value_type.convert_value_to_str(self.value)
+
+    def set_value(self, v: _T | str, allow_convert_from_str=False):
+        if allow_convert_from_str:
+            self._value = self.value_type.check_value_or_try_convert_from_str(v)
         else:
-            self._default_value = self.generate_default_value()
-            return self._default_value
+            self._value = self.value_type.check_value(v)
+
+    def reset(self):
+        self._value = None
 
     @property
     def default(self) -> ValueGeneratorBase[_T] | _T | None:
@@ -81,21 +87,6 @@ class ConfigItem(Generic[_T]):
     @property
     def can_generate_default(self) -> bool:
         return self.default is not None
-
-    def set_value(
-        self, v: _T | str, *, empty_is_default=True, allow_convert_from_str=True
-    ):
-        if empty_is_default and v == "":
-            self._value = None
-        elif allow_convert_from_str:
-            self._value = self.value_type.check_value_or_try_convert_from_str(v)
-        else:
-            self._value = self.value_type.check_value(v)
-
-    def reset(self, clear_default_cache=False):
-        if clear_default_cache:
-            self._default_value = None
-        self._value = None
 
     def generate_default_value(self) -> _T:
         if self.default is None:
@@ -122,11 +113,19 @@ class ConfigItem(Generic[_T]):
             self.value,
             self.default,
         )
+    
+    @property
+    def description_str(self) -> str:
+        return f"{self.name} ({self.value_type.name}): {self.description}"
 
 
 class Configuration(CruUniqueKeyList[ConfigItem[Any], str]):
     def __init__(self):
         super().__init__(lambda c: c.name)
+
+    @property
+    def all_not_set(self) -> bool:
+        return self.cru_iter().all(lambda item: not item.is_set)
 
     def add_text_config(
         self,
@@ -150,9 +149,21 @@ class Configuration(CruUniqueKeyList[ConfigItem[Any], str]):
         self.add(item)
         return item
 
-    def reset_all(self, clear_default_cache=False) -> None:
+    def set_config_item(
+        self,
+        name: str,
+        value: Any | str,
+        allow_convert_from_str=True,
+    ) -> None:
+        item = self.get(name)
+        item.set_value(
+            value,
+            allow_convert_from_str=allow_convert_from_str,
+        )
+
+    def reset_all(self) -> None:
         for item in self:
-            item.reset(clear_default_cache)
+            item.reset()
 
     def to_dict(self) -> dict[str, Any]:
         return {item.name: item.value for item in self}
@@ -165,14 +176,11 @@ class Configuration(CruUniqueKeyList[ConfigItem[Any], str]):
     def set_value_dict(
         self,
         value_dict: dict[str, Any],
-        *,
-        empty_is_default: bool = True,
-        allow_convert_from_str: bool = True,
+        allow_convert_from_str: bool = False,
     ) -> None:
         for name, value in value_dict.items():
             item = self.get(name)
             item.set_value(
                 value,
-                empty_is_default=empty_is_default,
                 allow_convert_from_str=allow_convert_from_str,
             )

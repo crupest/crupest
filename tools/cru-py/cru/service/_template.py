@@ -41,28 +41,23 @@ class TemplateManager(AppCommandFeatureProvider):
         )
         return self._template_tree
 
-    def list_files(self) -> list[str]:
-        return (
-            CruIterator(self.template_tree.templates)
-            .transform(lambda t: t[0])
-            .to_list()
-        )
-
     def print_file_lists(self) -> None:
-        for file in self.list_files():
-            print(file)
+        for file in CruIterator(self.template_tree.templates).transform(lambda t: t[0]):
+            print(file.as_posix())
 
     def generate_files(self) -> None:
         config_manager = self.app.get_feature(ConfigManager)
         self.template_tree.generate_to(
-            self.generated_dir.full_path_str, config_manager.config_map
+            self.generated_dir.full_path_str, config_manager.get_config_str_dict()
         )
 
     def get_command_info(self):
         return ("template", "Manage templates.")
 
     def setup_arg_parser(self, arg_parser):
-        subparsers = arg_parser.add_subparsers(dest="template_command")
+        subparsers = arg_parser.add_subparsers(
+            dest="template_command", required=True, metavar="TEMPLATE_COMMAND"
+        )
         _list_parser = subparsers.add_parser("list", help="List templates.")
         _variables_parser = subparsers.add_parser(
             "variables", help="List variables for a specific template."
