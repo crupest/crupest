@@ -1,38 +1,27 @@
 services:
-  timeline:
-    image: crupest/timeline:latest
-    pull_policy: always
-    container_name: timeline
-    restart: on-failure:3
-    environment:
-      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
-      - TIMELINE_DisableAutoBackup=true
-    volumes:
-      - ./data/timeline:/root/timeline
 
-  crupest-blog:
+  blog:
     pull_policy: build
     build:
-      context: ./docker/crupest-blog
+      context: ./docker/blog
       dockerfile: Dockerfile
       pull: true
       tags:
-        - "crupest/crupest-blog:latest"
-    container_name: crupest-blog
-    restart: on-failure:3
+        - "crupest/blog:latest"
+    container_name: blog
     volumes:
       - "blog-public:/public"
+    restart: on-failure:3
 
   nginx:
     pull_policy: build
     build:
-      context: ./docker/crupest-nginx
+      context: ./docker/nginx
       dockerfile: Dockerfile
       pull: true
       tags:
-        - "crupest/crupest-nginx:latest"
+        - "crupest/nginx:latest"
     container_name: nginx
-    restart: on-failure:3
     ports:
       - "80:80"
       - "443:443"
@@ -41,33 +30,22 @@ services:
       - "./nginx-config:/etc/nginx/conf.d:ro"
       - "./data/certbot/certs:/etc/letsencrypt:ro"
       - "./data/certbot/webroot:/srv/acme:ro"
-      - "blog-public:/srv/blog:ro"
-
-  crupest-api:
-    pull_policy: build
-    build:
-      context: ./docker/crupest-api
-      dockerfile: Dockerfile
-      pull: true
-      tags:
-        - "crupest/crupest-api:latest"
-    container_name: crupest-api
-    volumes:
-      - "./crupest-api-config.json:/crupest-api-config.json:ro"
+      - "blog-public:/srv/www/blog:ro"
+    restart: on-failure:3
 
   v2ray:
     pull_policy: build
     build:
-      context: ./docker/crupest-v2ray
+      context: ./docker/v2ray
       dockerfile: Dockerfile
       pull: true
       tags:
-        - "crupest/crupest-v2ray:latest"
-    command: [ "run", "-c", "/etc/v2fly/config.json" ]
+        - "crupest/v2ray:latest"
     container_name: v2ray
-    restart: on-failure:3
+    command: [ "run", "-c", "/etc/v2fly/config.json" ]
     volumes:
       - "./v2ray-config.json:/etc/v2fly/config.json:ro"
+    restart: on-failure:3
 
   auto-certbot:
     pull_policy: build
@@ -148,7 +126,7 @@ services:
   debian-dev:
     pull_policy: build
     build:
-      context: ./docker/crupest-debian-dev
+      context: ./docker/debian-dev
       dockerfile: Dockerfile
       pull: true
       args:
@@ -158,16 +136,15 @@ services:
     container_name: debian-dev
     init: true
     command: [ "/bootstrap/start/code-server.bash" ]
-    restart: on-failure:3
     volumes:
       - ./data/debian-dev:/data
       - debian-dev-home:/home/crupest
+    restart: on-failure:3
 
   forgejo:
     image: code.forgejo.org/forgejo/forgejo:9
     pull_policy: always
     container_name: forgejo
-    restart: on-failure:3
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -175,11 +152,11 @@ services:
       - ./data/forgejo:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
+    restart: on-failure:3
 
   roundcubemail:
     image: roundcube/roundcubemail:latest
     container_name: roundcubemail
-    restart: on-failure:3
     volumes:
       - ./data/secret/gnupg:/gnupg
       - ./data/roundcube/www/html:/var/www/html
@@ -193,6 +170,7 @@ services:
       - ROUNDCUBEMAIL_SMTP_PORT=465
       - ROUNDCUBEMAIL_DB_TYPE=sqlite
       - ROUNDCUBEMAIL_PLUGINS=archive,enigma,jqueryui,newmail_notifier,show_additional_headers,userinfo,zipdownload
+    restart: on-failure:3
 
   2fauth:
     image: 2fauth/2fauth

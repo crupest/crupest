@@ -1,0 +1,24 @@
+services:
+
+  timeline:
+    image: crupest/timeline:latest
+    pull_policy: always
+    container_name: timeline
+    restart: on-failure:3
+    environment:
+      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+      - TIMELINE_DisableAutoBackup=true
+    volumes:
+      - ./data/timeline:/root/timeline
+
+  crupest-api:
+    pull_policy: build
+    build:
+      context: ./docker/crupest-api
+      dockerfile: Dockerfile
+      pull: true
+      tags:
+        - "crupest/crupest-api:latest"
+    container_name: crupest-api
+    volumes:
+      - "./crupest-api-config.json:/crupest-api-config.json:ro"

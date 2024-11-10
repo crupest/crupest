@@ -1,38 +1,34 @@
-crupest
-
-# software
-forgejo
-sypht
-2fauth
-
-# secret
-vnext
-vmess
-confdir
-geodata
-geosite
-geoip
-userid
-
-# university
-ustc
-
 # debian
+# secret
+# software
+# university
+2fauth
 aarch64
-nproc
-chroot
-cpio
-kmod
-
 buildpackage
-nocheck
-indep
-devscripts
+chroot
+confdir
+cpio
+createchroot
+crupest
 debhelper
+debootstrap
+devscripts
+dquilt
+forgejo
+geodata
+geoip
+geosite
+indep
+kmod
+nocheck
+nproc
+quiltrc
+rspamd
 sbuild
 sbuildrc
 schroot
-createchroot
-debootstrap
-quiltrc
-dquilt
+sypht
+userid
+ustc
+vmess
+vnext
