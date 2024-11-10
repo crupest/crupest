@@ -27,7 +27,8 @@ services:
       - "443:443"
       - "443:443/udp"
     volumes:
-      - "./generated/nginx:/etc/nginx/conf.d:ro"
+      - "./generated/nginx/conf.d:/etc/nginx/conf.d:ro"
+      - "./generated/nginx/common:/etc/nginx/common:ro"
       - "./data/certbot/certs:/etc/letsencrypt:ro"
       - "./data/certbot/webroot:/srv/acme:ro"
       - "blog-public:/srv/www/blog:ro"

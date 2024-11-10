@@ -1,7 +1,6 @@
 server {
-    listen 80;
-    listen [::]:80;
     server_name timeline.${CRUPEST_DOMAIN};
+    include common/http-listen;
 
     include common/acme-challenge;
 }
