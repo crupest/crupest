@@ -12,18 +12,18 @@ from os.path import *
 import argparse
 import subprocess
 from rich.prompt import Confirm
-from crupest.install_docker import *
-from crupest.path import *
-from crupest.nginx import *
-from crupest.config import *
-from crupest.check import *
-from crupest.backup import *
-from crupest.download_tools import *
-from crupest.test import *
-from crupest.dns import *
-from crupest.setup import *
+from install_docker import *
+from path import *
+from nginx import *
+from config import *
+from check import *
+from backup import *
+from download_tools import *
+from test import *
+from dns import *
+from setup import *
 
-from crupest.tui import console
+from tui import console
 
 
 parser = argparse.ArgumentParser(
