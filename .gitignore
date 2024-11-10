@@ -5,7 +5,6 @@
 /generated
 
 docker-compose.yaml
-mailserver.env
 crupest-api-config.json
 nginx-config
 v2ray-config.json
