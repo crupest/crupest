@@ -1,9 +1,10 @@
-from typing import Literal, Any, cast, ClassVar
-import os
-from os.path import join, basename, dirname
-import subprocess
-import re
 import json
+import os
+import re
+import subprocess
+from os.path import join, basename, dirname
+from typing import Literal, Any, cast, ClassVar
+
 import jsonschema
 
 from crupest.template2 import Template2

@@ -6,7 +6,7 @@ from abc import abstractmethod, ABCMeta
 from collections.abc import Mapping, Callable
 from typing import Any, ClassVar, Literal, TypeVar, Generic, ParamSpec
 
-from .excp import CruInternalLogicError, CruException, CRU_EXCEPTION_ATTR_DEF_REGISTRY
+from .excp import CruInternalLogicError, CruException
 
 
 def _str_case_in(s: str, case: bool, l: list[str]) -> bool:
@@ -24,10 +24,10 @@ T = TypeVar("T")
 class _ValueErrorMixin:
     VALUE_TYPE_KEY = "value_type"
 
-    CRU_EXCEPTION_ATTR_DEF_REGISTRY.register_with(
+    CruException.ATTR_REGISTRY.make_builder(
         VALUE_TYPE_KEY,
         "The type of the value that causes the exception."
-    )
+    ).build()
 
 
 class ValidationError(CruException, _ValueErrorMixin):
@@ -38,7 +38,7 @@ class ValidationError(CruException, _ValueErrorMixin):
 
     @property
     def value_type(self) -> _ValueTypeForward[T] | None:
-        return self[ValidationError.VALUE_TYPE_KEY]
+        return self.get_attr(ValidationError.VALUE_TYPE_KEY)
 
 
 class ValueStringConvertionError(CruException, _ValueErrorMixin):
@@ -50,7 +50,7 @@ class ValueStringConvertionError(CruException, _ValueErrorMixin):
 
     @property
     def value_type(self) -> _ValueTypeForward[T] | None:
-        return self[ValueStringConvertionError.VALUE_TYPE_KEY]
+        return self.get_attr(ValidationError.VALUE_TYPE_KEY)
 
 
 class ValueType(Generic[T], metaclass=ABCMeta):
