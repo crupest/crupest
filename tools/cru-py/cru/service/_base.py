@@ -113,6 +113,10 @@ class AppPath(ABC):
     ) -> AppFeaturePath:
         return self.app.add_path(name, is_dir, self, id, description)
 
+    @property
+    def app_relative_path(self) -> CruPath:
+        return self.full_path.relative_to(self.app.root.full_path)
+
 
 class AppFeaturePath(AppPath):
     def __init__(
@@ -168,7 +172,7 @@ class AppRootPath(AppPath):
     def setup(self, path: os.PathLike) -> None:
         if self._full_path is not None:
             raise AppError("App root path is already set.")
-        self._full_path = CruPath(path)
+        self._full_path = CruPath(path).resolve()
 
 
 class AppFeatureProvider(ABC):
@@ -201,6 +205,28 @@ class AppCommandFeatureProvider(AppFeatureProvider):
 
 
 DATA_DIR_NAME = "data"
+
+
+class PathCommandProvider(AppCommandFeatureProvider):
+    def __init__(self) -> None:
+        super().__init__("path-command-provider")
+
+    def setup(self):
+        pass
+
+    def get_command_info(self):
+        return ("path", "Get information about paths used by app.")
+
+    def setup_arg_parser(self, arg_parser: ArgumentParser) -> None:
+        subparsers = arg_parser.add_subparsers(
+            dest="path_command", required=True, metavar="PATH_COMMAND"
+        )
+        _list_parser = subparsers.add_parser("list", help="list all paths.")
+
+    def run_command(self, args: Namespace) -> None:
+        if args.path_command == "list":
+            for path in self.app.paths:
+                print(f"{path.app_relative_path.as_posix()}: {path.description}")
 
 
 class CommandDispatcher(AppFeatureProvider):
