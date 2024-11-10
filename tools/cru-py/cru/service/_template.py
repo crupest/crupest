@@ -3,14 +3,14 @@ from argparse import Namespace
 from cru import CruIterator
 from cru.template import TemplateTree
 
-from ._base import AppCommandFeatureProvider, AppFeaturePath, OWNER_NAME
+from ._base import AppCommandFeatureProvider, AppFeaturePath
 from ._config import ConfigManager
 
 
 class TemplateManager(AppCommandFeatureProvider):
-    def __init__(self, prefix: str = OWNER_NAME.upper()):
+    def __init__(self, prefix: str | None = None):
         super().__init__("template-manager")
-        self._prefix = prefix
+        self._prefix = prefix or self.app.app_id.upper()
 
     def setup(self) -> None:
         self._templates_dir = self.app.add_path("templates", True)

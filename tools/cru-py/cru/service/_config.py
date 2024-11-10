@@ -12,7 +12,7 @@ from cru.value import (
 )
 from cru.parsing import ParseError, SimpleLineConfigParser
 
-from ._base import AppFeaturePath, AppCommandFeatureProvider, OWNER_NAME
+from ._base import AppFeaturePath, AppCommandFeatureProvider
 
 
 class AppConfigError(CruException):
@@ -178,7 +178,7 @@ class ConfigManager(AppCommandFeatureProvider):
         self._init_app_defined_items()
 
     def _init_app_defined_items(self) -> None:
-        prefix = OWNER_NAME.upper()
+        prefix = self.app.app_id.upper()
 
         def _add_text(name: str, description: str) -> None:
             self.configuration.add(
