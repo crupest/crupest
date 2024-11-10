@@ -3,6 +3,7 @@ import os
 import os.path
 from string import Template
 
+from ._iter import CruIterator
 from ._error import CruException
 
 
@@ -10,11 +11,52 @@ class CruTemplateError(CruException):
     pass
 
 
-class TemplateFile:
-    def __init__(self, source: str, destination_path: str | None):
+class CruTemplate:
+    def __init__(self, prefix: str, text: str):
+        self._prefix = prefix
+        self._template = Template(text)
+        self._variables = (
+            CruIterator(self._template.get_identifiers())
+            .filter(lambda i: i.startswith(self._prefix))
+            .to_set()
+        )
+        self._all_variables = set(self._template.get_identifiers())
+
+    @property
+    def prefix(self) -> str:
+        return self._prefix
+
+    @property
+    def real_template(self) -> Template:
+        return self._template
+
+    @property
+    def variables(self) -> set[str]:
+        return self._variables
+
+    @property
+    def all_variables(self) -> set[str]:
+        return self._all_variables
+
+    @property
+    def has_no_variables(self) -> bool:
+        return len(self._variables) == 0
+
+    def generate(self, mapping: Mapping[str, str], allow_extra: bool = True) -> str:
+        values = dict(mapping)
+        if not self.variables <= set(values.keys()):
+            raise CruTemplateError("Missing variables.")
+        if not allow_extra and not set(values.keys()) <= self.variables:
+            raise CruTemplateError("Extra variables.")
+        return self._template.safe_substitute(values)
+
+
+class CruTemplateFile(CruTemplate):
+    def __init__(self, prefix: str, source: str, destination_path: str):
         self._source = source
         self._destination = destination_path
-        self._template: Template | None = None
+        with open(source, "r") as f:
+            super().__init__(prefix, f.read())
 
     @property
     def source(self) -> str:
@@ -24,55 +66,48 @@ class TemplateFile:
     def destination(self) -> str | None:
         return self._destination
 
-    @destination.setter
-    def destination(self, value: str | None) -> None:
-        self._destination = value
-
-    @property
-    def template(self) -> Template:
-        if self._template is None:
-            return self.reload_template()
-        return self._template
-
-    def reload_template(self) -> Template:
-        with open(self._source, "r") as f:
-            self._template = Template(f.read())
-        return self._template
-
-    @property
-    def variables(self) -> set[str]:
-        return set(self.template.get_identifiers())
-
-    def generate(self, variables: Mapping[str, str]) -> str:
-        return self.template.substitute(variables)
-
-    def generate_to_destination(self, variables: Mapping[str, str]) -> None:
-        if self._destination is None:
-            raise CruTemplateError("No destination specified for this template.")
+    def generate_to_destination(
+        self, mapping: Mapping[str, str], allow_extra: bool = True
+    ) -> None:
         with open(self._destination, "w") as f:
-            f.write(self.generate(variables))
+            f.write(self.generate(mapping, allow_extra))
 
 
-class TemplateDirectory:
+class TemplateTree:
     def __init__(
         self,
+        prefix: str,
         source: str,
         destination: str,
         exclude: Iterable[str],
-        file_suffix: str = ".template",
+        template_file_suffix: str = ".template",
     ):
-        self._files: list[TemplateFile] | None = None
+        self._prefix = prefix
+        self._files: list[CruTemplateFile] | None = None
         self._source = source
         self._destination = destination
         self._exclude = [os.path.normpath(p) for p in exclude]
-        self._file_suffix = file_suffix
+        self._template_file_suffix = template_file_suffix
 
     @property
-    def files(self) -> list[TemplateFile]:
+    def prefix(self) -> str:
+        return self._prefix
+
+    @property
+    def files(self) -> list[CruTemplateFile]:
         if self._files is None:
-            return self.reload()
-        else:
-            return self._files
+            self.reload()
+        return self._files  # type: ignore
+
+    @property
+    def template_files(self) -> list[CruTemplateFile]:
+        return (
+            CruIterator(self.files).filter(lambda f: not f.has_no_variables).to_list()
+        )
+
+    @property
+    def non_template_files(self) -> list[CruTemplateFile]:
+        return CruIterator(self.files).filter(lambda f: f.has_no_variables).to_list()
 
     @property
     def source(self) -> str:
@@ -87,42 +122,39 @@ class TemplateDirectory:
         return self._exclude
 
     @property
-    def file_suffix(self) -> str:
-        return self._file_suffix
+    def template_file_suffix(self) -> str:
+        return self._template_file_suffix
 
     @staticmethod
-    def _scan_files(
-        root_path: str, exclude: list[str], suffix: str | None
-    ) -> Iterable[str]:
+    def _scan_files(root_path: str, exclude: list[str]) -> Iterable[str]:
         for root, _dirs, files in os.walk(root_path):
             for file in files:
-                if suffix is None or file.endswith(suffix):
-                    path = os.path.join(root, file)
-                    path = os.path.relpath(path, root_path)
-                    if suffix is not None:
-                        path = path[: -len(suffix)]
-                    is_exclude = False
-                    for exclude_path in exclude:
-                        if path.startswith(exclude_path):
-                            is_exclude = True
-                            break
-                    if not is_exclude:
-                        yield path
+                path = os.path.join(root, file)
+                path = os.path.relpath(path, root_path)
+                is_exclude = False
+                for exclude_path in exclude:
+                    if path.startswith(exclude_path):
+                        is_exclude = True
+                        break
+                if not is_exclude:
+                    yield path
 
-    def reload(self) -> list[TemplateFile]:
-        if not os.path.isdir(self.source):
-            raise CruTemplateError(
-                f"Source directory {self.source} does not exist or is not a directory."
-            )
-        files = self._scan_files(self.source, self.exclude, self.file_suffix)
-        self._files = [
-            TemplateFile(
-                os.path.join(self._source, file + self.file_suffix),
-                os.path.join(self._destination, file),
-            )
-            for file in files
-        ]
-        return self._files
+    def reload(self, strict=True) -> None:
+        self._files = []
+        file_names = self._scan_files(self.source, self.exclude)
+        for file_name in file_names:
+            source = os.path.join(self.source, file_name)
+            destination = os.path.join(self.destination, file_name)
+            file = CruTemplateFile(self._prefix, source, destination)
+            if file_name.endswith(self.template_file_suffix):
+                if strict and file.has_no_variables:
+                    raise CruTemplateError(
+                        f"Template file {file_name} has no variables."
+                    )
+            else:
+                if strict and not file.has_no_variables:
+                    raise CruTemplateError(f"Non-template {file_name} has variables.")
+            self._files.append(file)
 
     @property
     def variables(self) -> set[str]:
@@ -134,9 +166,3 @@ class TemplateDirectory:
     def generate_to_destination(self, variables: Mapping[str, str]) -> None:
         for file in self.files:
             file.generate_to_destination(variables)
-
-    def extra_files_in_destination(self) -> Iterable[str]:
-        source_files = set(os.path.relpath(f.source, self.source) for f in self.files)
-        for file in self._scan_files(self.destination, self.exclude, None):
-            if file not in source_files:
-                yield file
