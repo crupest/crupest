@@ -18,7 +18,7 @@ from typing import (
     cast,
 )
 
-from ._cru import CRU
+from ._base import CRU, cru_unreachable
 from ._const import CruNotFound
 
 _P = ParamSpec("_P")
@@ -238,7 +238,7 @@ class _Generic:
                 pass
         except StopIteration as stop:
             return stop.value
-        raise RuntimeError("Should not reach here")
+        cru_unreachable()
 
 
 class _Helper:
@@ -255,37 +255,48 @@ class _Helper:
         return wrapper
 
 
-class _Dec:
-
-    @staticmethod
-    def wrap(origin: Callable[_P, Iterable[_T]]) -> Callable[_P, _Wrapper[_T]]:
-        def _wrapped(*args: _P.args, **kwargs: _P.kwargs) -> _Wrapper[_T]:
-            return _Wrapper(origin(*args, **kwargs))
-
-        return _wrapped
-
-
 class _Creators:
-    @staticmethod
-    @_Dec.wrap
-    def empty() -> Iterable[Never]:
-        return iter([])
 
     @staticmethod
-    @_Dec.wrap
-    def range(*args) -> Iterable[int]:
-        return iter(range(*args))
+    def empty(
+        *,
+        wrapper_type: type["_Wrapper[Never]"] | None = None,
+        attr: dict[str, Any] | None = None,
+    ) -> _Wrapper[Never]:
+        wrapper_type = wrapper_type or _Wrapper
+        return wrapper_type(iter([]), attr)
 
     @staticmethod
-    @_Dec.wrap
-    def unite(*args: _O) -> Iterable[_O]:
-        return iter(args)
+    def range(
+        *args,
+        wrapper_type: type["_Wrapper[int]"] | None = None,
+        attr: dict[str, Any] | None = None,
+    ) -> _Wrapper[int]:
+        wrapper_type = wrapper_type or _Wrapper
+        return wrapper_type(iter(range(*args)), attr)
 
     @staticmethod
-    @_Dec.wrap
-    def concat(*iterables: Iterable[_T]) -> Iterable[_T]:
+    def unite(
+        *args: _O,
+        wrapper_type: type["_Wrapper[_O]"] | None = None,
+        attr: dict[str, Any] | None = None,
+    ) -> _Wrapper[_O]:
+        wrapper_type = wrapper_type or _Wrapper
+        return wrapper_type(iter(args), attr)
+
+    @staticmethod
+    def _concat(*iterables: Iterable[_T]) -> Iterable[_T]:
         for iterable in iterables:
             yield from iterable
+
+    @staticmethod
+    def concat(
+        *iterables: Iterable[_T],
+        wrapper_type: type["_Wrapper[_T]"] | None = None,
+        attr: dict[str, Any] | None = None,
+    ) -> _Wrapper[_T]:
+        wrapper_type = wrapper_type or _Wrapper
+        return wrapper_type(_Creators._concat(*iterables), attr)
 
 
 class _Wrapper(Generic[_T]):
@@ -297,10 +308,10 @@ class _Wrapper(Generic[_T]):
     AnyElementTransformer: TypeAlias = ElementTransformer[Any, Any]
 
     def __init__(
-        self,
-        iterable: Iterable[_T],
+        self, iterable: Iterable[_T], attr: dict[str, Any] | None = None
     ) -> None:
         self._iterable = iterable
+        self._attr = attr or {}
 
     def __iter__(self) -> Iterator[_T]:
         return self._iterable.__iter__()
@@ -309,23 +320,39 @@ class _Wrapper(Generic[_T]):
     def me(self) -> Iterable[_T]:
         return self._iterable
 
-    _wrap = _Dec.wrap
+    @property
+    def my_attr(self) -> dict[str, Any]:
+        return self._attr
+
+    def create_with_me(self, iterable: Iterable[_O]) -> _Wrapper[_O]:
+        return type(self)(iterable, self._attr)  # type: ignore
+
+    @staticmethod
+    def _wrap(
+        f: Callable[Concatenate[_Wrapper[_T], _P], Iterable[_O]]
+    ) -> Callable[Concatenate[_Wrapper[_T], _P], _Wrapper[_O]]:
+        def _wrapped(
+            self: _Wrapper[_T], *args: _P.args, **kwargs: _P.kwargs
+        ) -> _Wrapper[_O]:
+            return self.create_with_me(f(self, *args, **kwargs))
+
+        return _wrapped
 
     @_wrap
     def replace_me(self, iterable: Iterable[_O]) -> Iterable[_O]:
         return iterable
 
     def replace_me_with_empty(self) -> _Wrapper[Never]:
-        return _Creators.empty()
+        return _Creators.empty(wrapper_type=type(self), attr=self._attr)  # type: ignore
 
     def replace_me_with_range(self, *args) -> _Wrapper[int]:
-        return _Creators.range(*args)
+        return _Creators.range(*args, attr=self._attr)
 
     def replace_me_with_unite(self, *args: _O) -> _Wrapper[_O]:
-        return _Creators.unite(*args)
+        return _Creators.unite(*args, attr=self._attr)
 
     def replace_me_with_concat(self, *iterables: Iterable[_T]) -> _Wrapper[_T]:
-        return _Creators.concat(*iterables)
+        return _Creators.concat(*iterables, attr=self._attr)
 
     def to_set(self, discard: Iterable[Any]) -> set[_T]:
         return set(self.me) - set(discard)
@@ -422,11 +449,10 @@ class _Wrapper(Generic[_T]):
 
 
 class CruIterable:
-    Decorators = _Dec
-    Generic = _Generic
-    Helper = _Helper
-    Creators = _Creators
-    Wrapper = _Wrapper
+    Generic: TypeAlias = _Generic
+    Helper: TypeAlias = _Helper
+    Creators: TypeAlias = _Creators
+    Wrapper: TypeAlias = _Wrapper
 
 
 CRU.add_objects(CruIterable, _Wrapper)

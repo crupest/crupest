@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from typing import Self, TypeGuard, TypeVar
 
-from ._cru import CRU
+from ._base import CRU
 
 _T = TypeVar("_T")
 

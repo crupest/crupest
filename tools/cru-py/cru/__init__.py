@@ -1,7 +1,9 @@
 import sys
 
+from ._base import CruException
 
-class CruInitError(Exception):
+
+class CruInitError(CruException):
     pass
 
 
