@@ -1,10 +1,24 @@
+local lspconfig = require("lspconfig")
+local cmp_nvim_lsp = require("cmp_nvim_lsp")
+local cmp_default_caps = cmp_nvim_lsp.default_capabilities()
+
+local lspconfig_default_caps = lspconfig.util.default_config.capabilities
+
+lspconfig.util.default_config = vim.tbl_extend(
+    "force",
+    lspconfig.util.default_config,
+    {
+        capabilities = vim.tbl_extend("force",  lspconfig_default_caps, cmp_default_caps),
+        autostart = false,
+    })
+
 local function setup()
-    require("crupest.nvim.lsp.bash").setup()
+    lspconfig.cmake.setup {}
+    lspconfig.bashls.setup {}
     require("crupest.nvim.lsp.c").setup()
-    require("crupest.nvim.lsp.cmake").setup()
     require("crupest.nvim.lsp.lua").setup()
 
-    -- Use LspAttach autocommand to only map the following keys
+    -- Use LspAttach auto command to only map the following keys
     -- after the language server attaches to the current buffer
     vim.api.nvim_create_autocmd('LspAttach', {
         group = vim.api.nvim_create_augroup('UserLspConfig', {}),
