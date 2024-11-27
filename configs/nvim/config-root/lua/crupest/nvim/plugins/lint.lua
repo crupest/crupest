@@ -1,4 +1,5 @@
 local lint = require("lint")
+
 local find = require('crupest.utils.find')
 local is_win = vim.fn.has("win32") ~= 0
 
@@ -16,10 +17,11 @@ local cspell_config_patterns = {
     "cspell.yml",
 }
 
+--- @type FindExeForBufOpts[]
 local my_linters = {
     {
         name = "cspell",
-        exe_places = { "npm", "global" },
+        places = { "node_modules", "global" },
         config_files = cspell_config_patterns,
     },
 }
@@ -77,5 +79,4 @@ end
 
 return {
     setup = setup,
-    run = run
 }

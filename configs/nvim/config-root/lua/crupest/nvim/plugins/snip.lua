@@ -1,3 +1,5 @@
+--- spellchecker: disable
+
 local luasnip = require("luasnip")
 
 local ls = luasnip
