@@ -21,7 +21,10 @@ class CliToolCommandProvider(AppCommandFeatureProvider):
             "-t", "--test", action="store_true", help="run certbot in test mode"
         )
         _install_docker_parser = subparsers.add_parser(
-            "install-docker", help="print docker commands"
+            "install-docker", help="print docker installation commands"
+        )
+        _update_blog_parser = subparsers.add_parser(
+            "update-blog", help="print blog update command"
         )
 
     def _print_install_docker_commands(self) -> None:
@@ -62,8 +65,17 @@ sudo usermod -aG docker $USER
 """.strip()
         print(output)
 
+    def _print_update_blog_command(self):
+        output = """
+### COMMAND: update blog
+docker exec -it blog /scripts/update.bash
+""".strip()
+        print(output)
+
     def run_command(self, args):
         if args.gen_cli_command == "certbot":
             self.app.get_feature(NginxManager).print_all_certbot_commands(args.test)
         elif args.gen_cli_command == "install-docker":
             self._print_install_docker_commands()
+        elif args.gen_cli_command == "update-blog":
+            self._print_update_blog_command()

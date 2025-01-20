@@ -91,10 +91,9 @@ class NginxManager(AppCommandFeatureProvider):
     def _certbot_command(
         self,
         action: CertbotAction | str,
-        /,
-        test=False,
-        no_docker=False,
+        test: bool,
         *,
+        docker=True,
         standalone=None,
         email=None,
         agree_tos=True,
@@ -123,7 +122,7 @@ class NginxManager(AppCommandFeatureProvider):
 
         data_dir = self.app.data_dir.full_path.as_posix()
 
-        if no_docker:
+        if not docker:
             command_args.append("certbot")
         else:
             command_args.extend(
@@ -141,6 +140,8 @@ class NginxManager(AppCommandFeatureProvider):
             command_args.append("certbot/certbot")
 
         command_args.append(command_action)
+
+        command_args.append(f"--cert-name {self.root_domain}")
 
         if standalone:
             command_args.append("--standalone")
@@ -208,14 +209,16 @@ class NginxManager(AppCommandFeatureProvider):
         _list_parser = subparsers.add_parser("list", help="list domains")
         certbot_parser = subparsers.add_parser("certbot", help="print certbot commands")
         certbot_parser.add_argument(
-            "-t", "--test", action="store_true", help="run certbot in test mode"
+            "--no-test",
+            action="store_true",
+            help="remove args making certbot run in test mode",
         )
 
     def run_command(self, args: Namespace) -> None:
         if args.nginx_command == "list":
             self._print_domains()
         elif args.nginx_command == "certbot":
-            self.print_all_certbot_commands(args.test)
+            self.print_all_certbot_commands(not args.no_test)
 
     def _generate_dns_zone(
         self,
