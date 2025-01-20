@@ -1,25 +1,40 @@
+:root {
+  --im-happy: dodgerblue;
+  --im-angry: orangered;
+  --im-good: hsl(120, 85%, 85%);
+  --im-active: hsl(20, 85%, 85%);
+}
+
 html {
   width: 100%;
-  line-height: 1.5;
-  font-family: ui-sans-serif;
 }
 
 body {
   width: 100%;
   margin: 0;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
-a.mono {
-  font-family: ui-monospace;
+a {
+  font-family: monospace;
 }
 
-.h-note {
-  font-size: 0.6em;
-  color: gray;
+#main-article {
+  max-width: 880px;
+  margin-top: 1em;
+  padding: 0 1em;
+  align-self: center;
 }
 
-@keyframes article-enter {
+#title-name {
+  font-family: monospace;
+  background-color: black;
+  color: white;
+}
+
+@keyframes content-enter {
   from {
     opacity: 0;
     transform: translateY(100px);
@@ -31,66 +46,25 @@ a.mono {
   }
 }
 
-:root {
-  --main-article-horizontal-padding: 1em;
-  --main-article-horizontal-margin-shrink: -1em;
-
-  --im-me: deepskyblue;
-  --im-happy: dodgerblue;
-  --im-angry: orangered;
-  --im-good: hsl(120, 85%, 85%);
-  --im-active: hsl(20, 85%, 85%);
-}
-
-@media (min-width: 576px) {
-  :root {
-    --main-article-horizontal-padding: 2em;
-    --main-article-horizontal-margin-shrink: -2em;
-  }
-}
-
-#main-article {
-  padding: 0 var(--main-article-horizontal-padding);
-  animation: article-enter 1s;
-}
-
-#title {
-  font-size: 2em;
-}
-
-@keyframes title-name-enter {
-  from {
-    background-color: white;
-  }
-
-  to {
-    background-color: var(--im-me);
-  }
-}
-
-#title-name {
-  font-family: ui-monospace;
-  border-radius: 8px;
-  background-color: white;
-  animation: title-name-enter 3s 2s forwards;
-}
-
 @keyframes avatar-enter {
   from {
     opacity: 0;
-    transform: translateX(calc(100% + var(--main-article-horizontal-padding)));
+    transform: translateX(100%);
   }
 
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
   }
+}
+
+#main-article > * {
+  animation: content-enter 0.8s;
 }
 
 #avatar {
   float: right;
-  transform: translateX(calc(100% + var(--main-article-horizontal-padding)));
-  animation: avatar-enter 0.5s 1s forwards;
+  animation: avatar-enter 0.8s;
 }
 
 .slogan-container {
@@ -105,9 +79,10 @@ a.mono {
   padding: 0.5em 1em;
   text-align: center;
   box-sizing: border-box;
+  color: white;
   position: absolute;
   transform: translateY(-100%);
-  transition: transform 1s;
+  transition: transform 0.8s;
 }
 
 .slogan.happy {
@@ -118,68 +93,29 @@ a.mono {
   background-color: var(--im-angry);
 }
 
-.slogan-container[data-slogan-emotion="happy"] .slogan.happy {
+body[data-emotion="happy"] .slogan.happy {
   transform: translateY(0);
 }
 
-.slogan-container[data-slogan-emotion="angry"] .slogan.angry {
+body[data-emotion="angry"] .slogan.angry {
   transform: translateY(0);
-}
-
-.slogan-text {
-  display: inline-block;
-  text-align: initial;
-  color: white;
-  font-size: 1.2em;
-}
-
-#todo-container {
-  list-style: none;
-  margin-block: 0;
-  padding-inline: 0;
-}
-
-@keyframes todo-enter {
-  from {
-    opacity: 0;
-    transform: translateX(-100%);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-#todo-container li {
-  margin: 0 var(--main-article-horizontal-margin-shrink);
-  padding: 0.25em 3em;
-  transform: translateX(-100%);
-  animation: todo-enter 1s forwards;
-}
-
-#todo-container li[data-status="closed"] {
-  background-color: var(--im-good);
-}
-
-#todo-container li[data-status="open"] {
-  background-color: var(--im-active);
 }
 
 .friend-link {
   display: inline-block;
+  font-family: unset;
 }
 
 .friend-img {
   display: block;
-  width: 80px;
-  height: 80px;
   object-fit: cover;
-  border-radius: 50%;
 }
 
 .friend-name {
   display: block;
   text-align: center;
-  font-size: 1.2em;
+}
+
+footer img {
+  vertical-align: middle;
 }
