@@ -1,9 +1,9 @@
-FROM mcr.microsoft.com/dotnet/sdk:7.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 COPY AutoBackup /AutoBackup
 WORKDIR /AutoBackup
 RUN dotnet publish AutoBackup.csproj --configuration Release --output ./publish/ -r linux-x64 --self-contained false
 
-FROM mcr.microsoft.com/dotnet/runtime:7.0-alpine
+FROM mcr.microsoft.com/dotnet/runtime:9.0-alpine
 RUN apk add --no-cache tini coreutils bash tar xz
 ARG CRUPEST_AUTO_BACKUP_INIT_DELAY=0
 ARG CRUPEST_AUTO_BACKUP_INTERVAL=1d
