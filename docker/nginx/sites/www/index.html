@@ -21,15 +21,16 @@
   <article id="main-article">
     <img id="avatar" src="./avatar.png" title="my avatar" width="80" height="80">
     <h1 id="title">Hello! This is <span id="title-name">crupest</span> !</h1>
+    <hr/>
     <section>
-      <p>Welcome to my home page! Nice to meet you here!</p>
+      <p>Welcome to my home page! Nice to meet you here! 🥰</p>
       <p>If you have something interesting to share with me, feel free to email me at
         <a href="mailto:crupest@crupest.life">crupest@crupest.life</a>.</p>
-      <p>You can also file an issue in any of my repos on GitHub,
+      <p>You can also create an issue in any of my repos on GitHub to talk anything to me,
         <a href="https://github.com/crupest">https://github.com/crupest</a>.</p>
     </section>
     <section>
-      <h2 id="friends">My Friends</h2>
+      <h2 id="friends">My Friends <small>(more links are being collected ...)</small></h2>
       <div id="friends-container">
         <a class="friend-link" href="https://wsmcs.cn" target="_blank">
           <img class="friend-img"
@@ -42,24 +43,34 @@
     <section>
       <h2>Other Links</h2>
       <ul>
-        <li><a href="https://crupest.life" target="_blank">https://crupest.life</a> : my home page,
-          aka the one you are reading. Built with <a href="https://parceljs.org" target="_blank">Parcel</a>
+        <li><a href="https://crupest.life" target="_blank">https://crupest.life</a> : home page,
+          aka the one you are reading, built with <a href="https://parceljs.org" target="_blank">Parcel</a>
           and <a href="https://pnpm.io" target="_blank">pnpm</a>.</li>
-        <li><a href="https://crupest.life/blog" target="_blank">https://crupest.life/blog</a> : my blogs
+        <li><a href="https://crupest.life/blog" target="_blank">https://crupest.life/blog</a> : blogs,
           built with <a href="https://gohugo.io" target="_blank">hugo</a>.</li>
-        <li><a href="https://git.crupest.life" target="_blank">https://git.crupest.life</a> : my private
-          hosted <a href="https://forgejo.org" target="_blank">Forgejo</a> instance.</li>
-        <li><del><a href="https://timeline.crupest.life" target="_blank">https://timeline.crupest.life</a> : my
+        <li><a href="https://git.crupest.life" target="_blank">https://git.crupest.life</a> :
+          self-hosted <a href="https://forgejo.org" target="_blank">Forgejo</a> instance.</li>
+        <li><del><a href="https://timeline.crupest.life" target="_blank">https://timeline.crupest.life</a> :
           micro-blog with my own web app <a href="https://github.com/crupest/Timeline">Timeline</a>.</del>
-          No longer maintain, so it stops serving due to security problems.
+          No longer maintain, so it stops serving due to security concerns.
         </li>
       </ul>
     </section>
+    <hr/>
     <footer>
-      © 2025 crupest <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License"
-        src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" /></a><br/>
-      This work is licensed under a <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">Creative Commons
-      Attribution-NonCommercial 4.0 International License</a>.
+      <p id="license">
+        <small>This work is licensed under
+          <a href="https://creativecommons.org/licenses/by-nc/4.0/"
+            target="_blank" rel="license noopener noreferrer">
+            <span id="license-text">CC BY-NC 4.0</span>
+            <span id="license-img-container">
+              <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg">
+              <img src="https://mirrors.creativecommons.org/presskit/icons/by.svg">
+              <img src="https://mirrors.creativecommons.org/presskit/icons/nc.svg">
+            </span>
+          </a>
+        </small>
+      </p> 
     </footer>
   </article>
   <script type="module" src="./src/main.ts"></script>
