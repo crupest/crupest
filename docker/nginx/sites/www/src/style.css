@@ -114,6 +114,17 @@ body[data-emotion="angry"] .slogan.angry {
   text-align: center;
 }
 
-footer img {
+#license a {
+  font-family: initial;
+  text-decoration: none;
+}
+
+#license-text {
+  font-family: monospace;
+  text-decoration: initial;
+}
+
+#license-img-container img {
+  height: 1em;
   vertical-align: middle;
 }
