@@ -3,7 +3,7 @@ import "./style.css";
 class Emotion {
   static opposite_map = new Map<Emotion, Emotion>();
 
-  constructor(public name: string) {
+  constructor(public readonly name: string) {
   }
 
   get opposite(): Emotion {
@@ -16,9 +16,6 @@ class Emotion {
 
   get elementHeight(): number {
     return this.element.clientHeight;
-  }
-
-  updateBodyTopPadding(): void {
   }
 
   apply() {
@@ -35,7 +32,6 @@ Emotion.opposite_map.set(angry, happy)
 
 const emotionKey = "emotion";
 const savedEmotionName = localStorage.getItem(emotionKey) ?? happy.name;
-document.body.dataset.emotion = savedEmotionName;
 
 for (const emotion of [happy, angry]) {
   if (emotion.name == savedEmotionName) {
