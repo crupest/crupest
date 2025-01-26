@@ -143,7 +143,7 @@ services:
     restart: on-failure:3
 
   forgejo:
-    image: code.forgejo.org/forgejo/forgejo:9
+    image: code.forgejo.org/forgejo/forgejo:10
     pull_policy: always
     container_name: forgejo
     environment:
