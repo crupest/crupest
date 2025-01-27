@@ -91,7 +91,7 @@ services:
     restart: on-failure:3
 
   mailserver:
-    image: docker.io/mailserver/docker-mailserver:latest
+    image: docker.io/mailserver/docker-mailserver:edge
     pull_policy: always
     container_name: mailserver
     # If the FQDN for your mail-server is only two labels (eg: example.com),
