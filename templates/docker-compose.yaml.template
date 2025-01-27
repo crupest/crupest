@@ -108,6 +108,7 @@ services:
       - "465:465" # ESMTP (implicit TLS)
       - "587:587" # ESMTP (explicit TLS => STARTTLS)
       - "993:993" # IMAP4 (implicit TLS)
+      - "4190:4190" # manage sieve protocol
     volumes:
       - ./data/dms/mail-data/:/var/mail/
       - ./data/dms/mail-state/:/var/mail-state/
