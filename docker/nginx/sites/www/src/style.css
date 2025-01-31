@@ -99,19 +99,26 @@ body[data-emotion="angry"] .slogan.angry {
   transform: translateY(0);
 }
 
-.friend-link {
-  display: inline-block;
+#friends-container {
+  display: flex;
+  gap: 1em;
+}
+
+.friend {
+  flex-grow: 0;
+  text-align: center;
+}
+
+.friend a {
   font-family: unset;
 }
 
 .friend-img {
-  display: block;
   object-fit: cover;
 }
 
-.friend-name {
-  display: block;
-  text-align: center;
+.friend-tag {
+  font-size: 0.8em;
 }
 
 #license a {
