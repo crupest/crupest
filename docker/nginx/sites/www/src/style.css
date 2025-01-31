@@ -121,6 +121,14 @@ body[data-emotion="angry"] .slogan.angry {
   font-size: 0.8em;
 }
 
+.citation {
+  margin: auto;
+}
+
+.citation figcaption {
+  text-align: right;
+}
+
 #license a {
   font-family: initial;
   text-decoration: none;
