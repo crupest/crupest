@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.8",
-    "@types/parcel-env": "^0.0.6",
+    "@types/parcel-env": "^0.0.8",
     "parcel": "^2.13.3",
     "prettier": "^3.4.2",
     "typescript": "^5.7.3"
