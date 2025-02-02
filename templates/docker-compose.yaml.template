@@ -158,6 +158,7 @@ services:
 
   roundcubemail:
     image: roundcube/roundcubemail:latest
+    pull_policy: always
     container_name: roundcubemail
     volumes:
       - ./data/secret/gnupg:/gnupg
@@ -176,6 +177,7 @@ services:
 
   2fauth:
     image: 2fauth/2fauth
+    pull_policy: always
     container_name: 2fauth
     volumes:
       - ./data/2fauth:/2fauth
