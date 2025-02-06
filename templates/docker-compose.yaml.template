@@ -125,24 +125,6 @@ services:
       timeout: 3s
       retries: 0
 
-  debian-dev:
-    pull_policy: build
-    build:
-      context: ./docker/debian-dev
-      dockerfile: Dockerfile
-      pull: true
-      args:
-        - USER=crupest
-      tags:
-        - "crupest/debian-dev:latest"
-    container_name: debian-dev
-    init: true
-    command: [ "/bootstrap/start/code-server.bash" ]
-    volumes:
-      - ./data/debian-dev:/data
-      - debian-dev-home:/home/crupest
-    restart: on-failure:3
-
   forgejo:
     image: code.forgejo.org/forgejo/forgejo:10
     pull_policy: always
@@ -199,5 +181,4 @@ services:
 
 volumes:
   blog-public:
-  debian-dev-home:
   roundcubemail-temp:
