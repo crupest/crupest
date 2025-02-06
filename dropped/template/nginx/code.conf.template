@@ -1,0 +1,20 @@
+server {
+    server_name code.${CRUPEST_DOMAIN};
+    include common/https-listen;
+    
+    location / {
+        include common/proxy-common;
+        proxy_pass http://debian-dev:8080/;
+    }
+
+    client_max_body_size 5G;
+}
+
+
+server {
+    server_name code.${CRUPEST_DOMAIN};
+    include common/http-listen;
+
+    include common/https-redirect;
+    include common/acme-challenge;
+}
