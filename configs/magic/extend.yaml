@@ -1,0 +1,64 @@
+# Profile Enhancement Merge Template for Clash Verge
+
+profile:
+  store-selected: true
+
+rules:
+  - "GEOSITE,github,node-select"
+  - "GEOSITE,google,node-select"
+  - "GEOSITE,youtube,node-select"
+  - "GEOSITE,twitter,node-select"
+  - "GEOSITE,facebook,node-select"
+  - "GEOSITE,discord,node-select"
+  - "GEOSITE,reddit,node-select"
+  - "GEOSITE,twitch,node-select"
+  - "GEOSITE,quora,node-select"
+  - "GEOSITE,telegram,node-select"
+  - "GEOSITE,imgur,node-select"
+  - "GEOSITE,stackexchange,node-select"
+  - "GEOSITE,onedrive,node-select"
+
+  - "GEOSITE,duckduckgo,node-select"
+  - "GEOSITE,wikimedia,node-select"
+  - "GEOSITE,gitbook,node-select"
+  - "GEOSITE,gitlab,node-select"
+  - "GEOSITE,creativecommons,node-select"
+  - "GEOSITE,archive,node-select"
+  - "GEOSITE,matrix,node-select"
+  - "GEOSITE,tor,node-select"
+
+  - "GEOSITE,python,node-select"
+  - "GEOSITE,ruby,node-select"
+  - "GEOSITE,rust,node-select"
+  - "GEOSITE,nodejs,node-select"
+  - "GEOSITE,npmjs,node-select"
+  - "GEOSITE,qt,node-select"
+  - "GEOSITE,docker,node-select"
+  - "GEOSITE,v2ray,node-select"
+  - "GEOSITE,homebrew,node-select"
+  - "GEOSITE,bootstrap,node-select"
+
+  - "GEOSITE,heroku,node-select"
+  - "GEOSITE,vercel,node-select"
+
+  - "GEOSITE,ieee,node-select"
+  - "GEOSITE,sci-hub,node-select"
+  - "GEOSITE,libgen,node-select"
+
+  - "DOMAIN-SUFFIX,gnu.org,node-select"
+  - "DOMAIN-SUFFIX,nongnu.org,node-select"
+  - "DOMAIN-SUFFIX,ietf.org,node-select"
+  - "DOMAIN-SUFFIX,packagist.org,node-select"
+  - "DOMAIN-SUFFIX,metacubex.one,node-select"
+  - "MATCH,DIRECT"
+
+crupest-proxy:
+  ...
+
+crupest-fallback:
+  name: "fallback"
+  type: fallback
+  include-all-proxies: true
+  url: 'https://www.gstatic.com/generate_204'
+  filter: "日本|新加坡|香港|台湾|美国"
+  expected-status: 204
