@@ -3,12 +3,17 @@ language: en
 dictionaries:
   - crupest-words
   - en_US
+  - companies
   - softwareTerms
+  - misc
   - node
   - typescript
   - python
   - html
   - css
+  - cpp
+  - csharp
+  - latex
   - bash
   - fonts
   - filetypes

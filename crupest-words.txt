@@ -1,33 +1,51 @@
-2fauth
-aarch64
-buildpackage
-certbot
-chroot
-confdir
-cpio
-createchroot
+# me
 crupest
+yuqian
+
+# self-hosted services
+2fauth
+forgejo
+rspamd
+certbot
+
+# general
+cheatsheet
+aarch64
+pythonpath
+gerrit
+
+# unix
+cpio
+kmod
+nproc
+sourceware
+
+# hurd
+gnumach
+settrans
+fsysopts
+pfinet
+
+# debian
 debhelper
 debootstrap
 devscripts
 dquilt
-forgejo
-geodata
-geoip
-geosite
-indep
-kmod
-nocheck
-nproc
-PYTHONPATH
+buildpackage
 quiltrc
-rspamd
+nocheck
+chroot
+indep
+confdir
+createchroot
 sbuild
 sbuildrc
 schroot
-sypht
-userid
-ustc
+
+# misc
+geodata
+geoip
+geosite
 vmess
 vnext
-yuqian
+ustc
