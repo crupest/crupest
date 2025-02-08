@@ -55,9 +55,10 @@ rules:
 crupest-proxy:
   ...
 
-crupest-fallback:
-  name: "fallback"
-  type: fallback
+crupest-auto-select:
+  name: "auto-select"
+  type: url-test
+  interval: 1800
   include-all-proxies: true
   url: 'https://www.gstatic.com/generate_204'
   filter: "日本|新加坡|香港|台湾|美国"

@@ -12,10 +12,10 @@ function main(config, profileName) {
   config["proxies"] = [config["crupest-proxy"], ...config["proxies"]]
   delete config["crupest-proxy"]
 
-  select_proxy = { name: "node-select", type: "select", proxies: ["fallback", ...config.proxies.map(p => p.name)] }
-  fallback_proxy = config["crupest-fallback"]
-  config["proxy-groups"] = [ select_proxy, fallback_proxy ]
-  delete config["crupest-fallback"]
+  select_proxy = { name: "node-select", type: "select", proxies: ["auto-select", ...config.proxies.map(p => p.name)] }
+  auto_select_proxy = config["crupest-auto-select"]
+  config["proxy-groups"] = [ select_proxy, auto_select_proxy ]
+  delete config["crupest-auto-select"]
 
   return config;
 }
