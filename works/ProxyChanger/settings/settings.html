@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="settings.css" />
+    <link rel="stylesheet" href="chrome://browser/content/extension.css" />
+  </head>
+
+  <body>
+    <p>
+      If this proxy does not work, go to settings page and allow it to access
+      private windows. That is a must for setting proxy for extensions.
+    </p>
+    <p>
+      Input your custom manual proxy server. Feel free to make a XSS attack. If
+      you succeed to do that, report a bug to me, or maybe mozilla!
+    </p>
+    <p>
+      After input, re-click the button in popup in toolbar to activate it! I bet
+      you don't change this frequently so it's not a pain.
+    </p>
+    <p>Do at your own risk if you input an invalid url!</p>
+    <div class="browser-style proxy-url-div">
+      <label for="proxy_url">http_proxy</label>
+      <input id="proxy_url" type="text" />
+    </div>
+    <script src="settings.js"></script>
+  </body>
+</html>

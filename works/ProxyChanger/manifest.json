@@ -1,0 +1,21 @@
+{
+  "manifest_version": 2,
+  "name": "Proxy Changer",
+  "version": "1.0",
+  "description": "A proxy changer.",
+  "permissions": ["proxy", "storage"],
+  "browser_action": {
+    "default_icon": "icons/black_circle.png",
+    "default_title": "Change proxy.",
+    "default_popup": "popup/popup.html"
+  },
+  "options_ui": {
+    "page": "settings/settings.html",
+    "browser_style": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "proxy-changer@crupest.life"
+    }
+  }
+}
