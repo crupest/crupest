@@ -129,6 +129,7 @@ services:
     image: code.forgejo.org/forgejo/forgejo:10
     pull_policy: always
     container_name: forgejo
+    mem_limit: 800mb
     environment:
       - USER_UID=1000
       - USER_GID=1000
