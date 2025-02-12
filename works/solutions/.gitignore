@@ -1,0 +1,9 @@
+.vscode
+*.exe
+*.pdb
+*.ilk
+*.obj
+*.exp
+*.lib
+
+.DS_Store
