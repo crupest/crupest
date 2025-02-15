@@ -169,8 +169,7 @@ services:
       - APP_TIMEZONE=UTC
       - SITE_OWNER=crupest@crupest.life
       - APP_KEY=${CRUPEST_2FAUTH_APP_KEY}
-      - APP_URL=https://${CRUPEST_DOMAIN}/2fa
-      - APP_SUBDIRECTORY=2fa
+      - APP_URL=https://2fa.${CRUPEST_DOMAIN}
       - MAIL_MAILER=smtp
       - MAIL_HOST=mail.crupest.life
       - MAIL_PORT=465
