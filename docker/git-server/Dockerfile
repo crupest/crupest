@@ -18,5 +18,5 @@ COPY --from=lighttpd-config-generator /user-info /git-server/
 
 ENV GIT_SERVER=${SERVER}
 VOLUME [ "/git" ]
-ENTRYPOINT ["/tini", "--"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD [ "/git-server/lighttpd-wrapper" ]
