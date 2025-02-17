@@ -31,6 +31,8 @@ function backup {
     du -h "$tmp_file" | cut -f1 | xargs echo "Size of $tmp_file:"
 
     des_file_name="$current_time.$backup_file_ext"
+    echo "Upload $des_file_name to COS..."
+    # TODO: check success or fail
     /app/coscli --init-skip \
       --secret-id "${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}" \
       --secret-key "${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}" \
