@@ -8,7 +8,7 @@ RUN htpasswd -cb /user-info ${USERNAME} ${PASSWORD}
 FROM debian:latest
 ARG SERVER
 RUN apt-get update && apt-get install -y \
-    git lighttpd apache2-utils python3-pygments python3-markdown \
+    git cgit lighttpd apache2-utils python3-pygments python3-markdown \
     tar gzip bzip2 zip unzip tini && \
     rm -rf /var/lib/apt/lists/*
 ADD cgitrc /etc/cgitrc
