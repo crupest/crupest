@@ -9,12 +9,14 @@ FROM debian:latest
 ARG SERVER
 RUN apt-get update && apt-get install -y \
     git lighttpd apache2-utils python3-pygments python3-markdown \
-    tar gzip bzip2 zip unzip && \
+    tar gzip bzip2 zip unzip tini && \
     rm -rf /var/lib/apt/lists/*
 ADD cgitrc /etc/cgitrc
-ADD git-lighttpd.conf git-auth.conf /etc/git-server/
-COPY --from=lighttpd-config-generator /user-info /etc/git-server/
+ADD git-lighttpd.conf git-auth.conf /git-server/
+ADD --chmod=755 lighttpd-wrapper /git-server/
+COPY --from=lighttpd-config-generator /user-info /git-server/
 
 ENV GIT_SERVER=${SERVER}
 VOLUME [ "/git" ]
-CMD [ "/usr/sbin/lighttpd", "-D", "-f", "/etc/git-server/git-lighttpd.conf" ]
+ENTRYPOINT ["/tini", "--"]
+CMD [ "/git-server/lighttpd-wrapper" ]
