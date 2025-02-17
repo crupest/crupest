@@ -1,5 +1,5 @@
-css=/cgit/cgit.css
-logo=/cgit/cgit.png
+css=/cgit/static/cgit.css
+logo=/cgit/static/cgit.png
 
 scan-path=/git/
 snapshots=tar.gz tar.bz2 zip
