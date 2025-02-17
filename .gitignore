@@ -11,6 +11,5 @@
 /nginx-config
 /v2ray-config.json
 /v2ray-client-config.json
-/forgejo.app.ini.init
 
 tools/docker-mailserver-setup.sh
