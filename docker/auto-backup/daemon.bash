@@ -9,36 +9,39 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 
-# Check xz, tar and coscmd
-xz --version
+# Check tar, zstd and coscli
 tar --version
+zstd --version
+/app/coscli --version
 
 function backup {
     # Output "Begin backup..." in yellow and restore default
     echo -e "\e[0;103m\e[K\e[1mBegin backup..." "\e[0m"
 
     # Get current time and convert it to YYYY-MM-DDTHH:MM:SSZ
-    current_time=$(date +%Y-%m-%dT%H:%M:%SZ)
-    echo "Current time: $current_time"
+    current_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "Current time UTC: $current_time"
 
-    echo "Create tar.xz for data..."
+    backup_file_ext="tar.zst"
+    tmp_file="/tmp/data.$backup_file_ext"
 
-    # tar and xz /data to tmp
-    tar -cJf /tmp/data.tar.xz -C / data
+    echo "Create $tmp_file for data..."
+    tar -cp --zstd -f "$tmp_file" -C / data
 
-    # Output /tmp/data.tar.xz size
-    du -h /tmp/data.tar.xz | cut -f1 | xargs echo "Size of data.tar.xz:"
+    du -h "$tmp_file" | cut -f1 | xargs echo "Size of $tmp_file:"
 
-    destination="${current_time}.tar.xz"
-
-    # upload to remote
-    dotnet /AutoBackup/AutoBackup.dll /tmp/data.tar.xz "$destination" 
+    des_file_name="$current_time.$backup_file_ext"
+    /app/coscli --init-skip \
+      --secret-id "${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}" \
+      --secret-key "${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}" \
+      --endpoint "cos.${CRUPEST_AUTO_BACKUP_COS_REGION}.myqcloud.com" \
+      cp "$tmp_file" "cos://${CRUPEST_AUTO_BACKUP_BUCKET_NAME}/$des_file_name"
 
     echo "Remove tmp file..."
     # remove tmp
-    rm /tmp/data.tar.xz
+    rm "$tmp_file"
 
-    echo "$destination" >> /data/backup.log
+    echo "$des_file_name" >> /data/backup.log
 
     # echo "Backup finished!" in green and restore default
     echo -e "\e[0;102m\e[K\e[1mFinish backup!\e[0m"
