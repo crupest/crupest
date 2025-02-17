@@ -1,0 +1,13 @@
+css=/cgit/cgit.css
+logo=/cgit/cgit.png
+
+scan-path=/git/
+snapshots=tar.gz tar.bz2 zip
+clone-url=https://$GIT_SERVER_DOMAIN:$GIT_SERVER_PORT/$CGIT_REPO_URL
+
+source-filter=/usr/lib/cgit/filters/syntax-highlighting.py
+about-filter=/usr/lib/cgit/filters/about-formatting.sh
+readme=:README.md
+readme=:README
+
+robots=noindex, nofollow

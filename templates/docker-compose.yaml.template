@@ -139,6 +139,23 @@ services:
       - /etc/localtime:/etc/localtime:ro
     restart: on-failure:3
 
+  git-server:
+    pull_policy: build
+    build:
+      context: ./docker/git-server
+      dockerfile: Dockerfile
+      pull: true
+      args:
+        - USERNAME=${CRUPEST_GIT_SERVER_USERNAME}
+        - PASSWORD=${CRUPEST_GIT_SERVER_PASSWORD}
+        - DOMAIN=${CRUPEST_DOMAIN}
+      tags:
+        - "crupest/git-server:latest"
+    container_name: git-server
+    volumes:
+      - "./data/git:/git"
+    restart: on-failure:3
+
   roundcubemail:
     image: roundcube/roundcubemail:latest
     pull_policy: always
