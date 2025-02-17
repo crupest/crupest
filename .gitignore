@@ -3,14 +3,3 @@
 /tmp
 /backup
 /generated
-
-# old generated files
-/mailserver.env
-/docker-compose.yaml
-/crupest-api-config.json
-/nginx-config
-/v2ray-config.json
-/v2ray-client-config.json
-/forgejo.app.ini.init
-
-tools/docker-mailserver-setup.sh
