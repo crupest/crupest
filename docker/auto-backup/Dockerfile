@@ -1,6 +1,6 @@
 FROM debian
 RUN apt-get update && apt-get install -y \
-    tini coreutils bash tar zstd \
+    tini ca-certificates coreutils bash tar zstd \
     && rm -rf /var/lib/apt/lists/*
 
 ARG CRUPEST_AUTO_BACKUP_INIT_DELAY=0
