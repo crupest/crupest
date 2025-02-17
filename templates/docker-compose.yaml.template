@@ -148,7 +148,7 @@ services:
       args:
         - USERNAME=${CRUPEST_GIT_SERVER_USERNAME}
         - PASSWORD=${CRUPEST_GIT_SERVER_PASSWORD}
-        - DOMAIN=${CRUPEST_DOMAIN}
+        - SERVER=https://${CRUPEST_DOMAIN}
       tags:
         - "crupest/git-server:latest"
     container_name: git-server

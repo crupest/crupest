@@ -1,22 +1,20 @@
-ARG DOMAIN PORT=80 USERNAME PASSWORD
+ARG SERVER USERNAME PASSWORD
 
 FROM debian:latest AS lighttpd-config-generator
-ARG DOMAIN PORT USERNAME PASSWORD
+ARG USERNAME PASSWORD
 RUN apt-get update && apt-get install -y apache2-utils
-ENV USERNAME=${USERNAME} PASSWORD=${PASSWORD} DOMAIN=${DOMAIN} PORT=${PORT}
-ADD git-lighttpd.conf.template git-auth.conf /etc/git-server/
-RUN htpasswd -cb /etc/git-server/user-info ${USERNAME} ${PASSWORD}
-RUN sed "s|@@DOMAIN@@|${DOMAIN}|g;s|@@PORT@@|${PORT}|g;" /etc/git-server/git-lighttpd.conf.template \
-    > /etc/git-server/git-lighttpd.conf
+RUN htpasswd -cb /user-info ${USERNAME} ${PASSWORD}
 
 FROM debian:latest
+ARG SERVER
 RUN apt-get update && apt-get install -y \
     git lighttpd apache2-utils python3-pygments python3-markdown \
     tar gzip bzip2 zip unzip && \
     rm -rf /var/lib/apt/lists/*
 ADD cgitrc /etc/cgitrc
-COPY --from=lighttpd-config-generator /etc/git-server /etc/git-server
+ADD git-lighttpd.conf git-auth.conf /etc/git-server/
+COPY --from=lighttpd-config-generator /user-info /etc/git-server/
 
-ENV GIT_SERVER_DOMAIN=${DOMAIN} GIT_SERVER_PORT=${PORT}
+ENV GIT_SERVER=${SERVER}
 VOLUME [ "/git" ]
 CMD [ "/usr/sbin/lighttpd", "-D", "-f", "/etc/git-server/git-lighttpd.conf" ]

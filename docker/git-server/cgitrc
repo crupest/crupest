@@ -3,7 +3,7 @@ logo=/cgit/cgit.png
 
 scan-path=/git/
 snapshots=tar.gz tar.bz2 zip
-clone-url=https://$GIT_SERVER_DOMAIN:$GIT_SERVER_PORT/$CGIT_REPO_URL
+clone-url=$GIT_SERVER/git/$CGIT_REPO_URL
 
 source-filter=/usr/lib/cgit/filters/syntax-highlighting.py
 about-filter=/usr/lib/cgit/filters/about-formatting.sh
