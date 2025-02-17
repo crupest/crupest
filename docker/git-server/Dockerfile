@@ -1,9 +1,7 @@
-ARG DOMAIN
-ARG PORT=80
-ARG USERNAME
-ARG PASSWORD
+ARG DOMAIN PORT=80 USERNAME PASSWORD
 
 FROM debian:latest AS lighttpd-config-generator
+ARG DOMAIN PORT USERNAME PASSWORD
 RUN apt-get update && apt-get install -y apache2-utils
 ENV USERNAME=${USERNAME} PASSWORD=${PASSWORD} DOMAIN=${DOMAIN} PORT=${PORT}
 ADD git-lighttpd.conf.template git-auth.conf /etc/git-server/
