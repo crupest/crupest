@@ -7,18 +7,23 @@ yuqian
 forgejo
 rspamd
 certbot
+roundcube
+roundcubemail
 
 # general
 cheatsheet
 aarch64
 pythonpath
 gerrit
+esmtp
+tini
 
 # unix
 cpio
 kmod
 nproc
 sourceware
+zstd
 
 # hurd
 gnumach
@@ -41,6 +46,9 @@ createchroot
 sbuild
 sbuildrc
 schroot
+
+# commercial
+myqcloud
 
 # misc
 geodata
