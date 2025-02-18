@@ -6,6 +6,11 @@ server {
         root /srv/www;
     }
 
+    location /2fa/ {
+        include common/proxy-common;
+        proxy_pass http://2fauth:8000/;
+    }
+
     location /_$CRUPEST_V2RAY_PATH {
         if ($http_upgrade != "websocket") {
             return 404;
