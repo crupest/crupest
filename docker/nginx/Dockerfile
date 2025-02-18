@@ -6,3 +6,4 @@ RUN pnpm install --frozen-lockfile && pnpm run build
 
 FROM nginx:mainline
 COPY --from=build-www /sites/www/dist /srv/www
+ADD sites/www/favicon.ico /srv/www/favicon.ico
