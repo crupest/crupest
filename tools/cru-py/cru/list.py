@@ -97,7 +97,7 @@ class CruUniqueKeyList(Generic[_T, _K]):
 
     def get(self, key: _K) -> _T:
         value = self.get_or(key)
-        if value is CruNotFound:
+        if value is CruNotFound.VALUE:
             raise KeyError(f"Key {key} not found!")
         return value  # type: ignore
 

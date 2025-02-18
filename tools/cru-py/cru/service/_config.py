@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from typing import Any, Literal, overload
 
-from cru import CruException
+from cru import CruException, CruNotFound
 from cru.config import Configuration, ConfigItem
 from cru.value import (
     INTEGER_VALUE_TYPE,
@@ -360,14 +360,15 @@ class ConfigManager(AppCommandFeatureProvider):
         error_entries: list[SimpleLineConfigParser.Entry] = []
         errors: list[CruValueTypeError] = []
         for key, entry in entry_dict.items():
-            config_item = self.configuration.get(key)
             try:
                 if entry.value == "":
                     value_dict[key] = None
                 else:
-                    value_dict[key] = config_item.value_type.convert_str_to_value(
-                        entry.value
-                    )
+                    value = entry.value
+                    config_item = self.configuration.get_or(key)
+                    if config_item is not CruNotFound.VALUE:
+                        value = config_item.value_type.convert_str_to_value(value)
+                    value_dict[key] = value
             except CruValueTypeError as e:
                 error_entries.append(entry)
                 errors.append(e)
