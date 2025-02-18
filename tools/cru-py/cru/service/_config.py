@@ -207,6 +207,8 @@ class ConfigManager(AppCommandFeatureProvider):
         _add_random_string("2FAUTH_APP_KEY", "2FAuth App Key")
         _add_text("2FAUTH_MAIL_USERNAME", "2FAuth SMTP user")
         _add_text("2FAUTH_MAIL_PASSWORD", "2FAuth SMTP password")
+        _add_text("GIT_SERVER_USERNAME", "Git server username")
+        _add_text("GIT_SERVER_PASSWORD", "Git server password")
 
     def setup(self) -> None:
         self._config_file_path = self.app.data_dir.add_subpath(
