@@ -16,6 +16,7 @@ pythonpath
 gerrit
 esmtp
 tini
+healthcheck
 
 # unix
 cpio

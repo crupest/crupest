@@ -6,9 +6,6 @@ services:
       context: ./docker/blog
       dockerfile: Dockerfile
       pull: true
-      tags:
-        - "crupest/blog:latest"
-    container_name: blog
     volumes:
       - "blog-public:/public"
     restart: on-failure:3
@@ -19,9 +16,6 @@ services:
       context: ./docker/nginx
       dockerfile: Dockerfile
       pull: true
-      tags:
-        - "crupest/nginx:latest"
-    container_name: nginx
     ports:
       - "80:80"
       - "443:443"
@@ -42,7 +36,7 @@ services:
       pull: true
       tags:
         - "crupest/v2ray:latest"
-    container_name: v2ray
+    hostname: v2ray
     command: [ "run", "-c", "/etc/v2fly/config.json" ]
     volumes:
       - "./generated/v2ray-config.json:/etc/v2fly/config.json:ro"
@@ -63,7 +57,6 @@ services:
         - CRUPEST_AUTO_CERTBOT_POST_HOOK=docker restart nginx
       tags:
         - "crupest/auto-certbot:latest"
-    container_name: auto-certbot
     volumes:
       - "./data/certbot/certs:/etc/letsencrypt"
       - "./data/certbot/data:/var/lib/letsencrypt"
@@ -78,7 +71,6 @@ services:
       context: ./docker/auto-backup
       dockerfile: Dockerfile
       pull: true
-    container_name: auto-backup
     volumes:
       - "./data:/data"
     secrets:
@@ -89,10 +81,7 @@ services:
     image: docker.io/mailserver/docker-mailserver:latest
     pull_policy: always
     container_name: mailserver
-    # If the FQDN for your mail-server is only two labels (eg: example.com),
-    # you can assign this entirely to `hostname` and remove `domainname`.
-    hostname: mail
-    domainname: $CRUPEST_DOMAIN
+    hostname: mail.$CRUPEST_DOMAIN
     env_file: generated/mailserver.env
     # More information about the mail-server ports:
     # https://docker-mailserver.github.io/docker-mailserver/edge/config/security/understanding-the-ports/
@@ -113,8 +102,6 @@ services:
       - /etc/localtime:/etc/localtime:ro
     restart: on-failure:3
     stop_grace_period: 1m
-    cap_add:
-      - NET_ADMIN
     healthcheck:
       test: "ss --listening --tcp | grep -P 'LISTEN.+:smtp' || exit 1"
       timeout: 3s
@@ -132,7 +119,7 @@ services:
         - ROOT_URL=https://${CRUPEST_DOMAIN}/git
       tags:
         - "crupest/git-server:latest"
-    container_name: git-server
+    hostname: git-server
     volumes:
       - "./data/git:/git"
     restart: on-failure:3
@@ -140,7 +127,7 @@ services:
   roundcubemail:
     image: roundcube/roundcubemail:latest
     pull_policy: always
-    container_name: roundcubemail
+    hostname: roundcubemail
     volumes:
       - ./data/secret/gnupg:/gnupg
       - ./data/roundcube/www/html:/var/www/html
@@ -159,7 +146,7 @@ services:
   2fauth:
     image: 2fauth/2fauth
     pull_policy: always
-    container_name: 2fauth
+    hostname: 2fauth
     volumes:
       - ./data/2fauth:/2fauth
     environment:
