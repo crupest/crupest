@@ -139,6 +139,23 @@ services:
       - /etc/localtime:/etc/localtime:ro
     restart: on-failure:3
 
+  git-server:
+    pull_policy: build
+    build:
+      context: ./docker/git-server
+      dockerfile: Dockerfile
+      secrets:
+        - "git-server"
+      pull: true
+      args:
+        - ROOT_URL=https://${CRUPEST_DOMAIN}/git
+      tags:
+        - "crupest/git-server:latest"
+    container_name: git-server
+    volumes:
+      - "./data/git:/git"
+    restart: on-failure:3
+
   roundcubemail:
     image: roundcube/roundcubemail:latest
     pull_policy: always
@@ -184,3 +201,7 @@ services:
 volumes:
   blog-public:
   roundcubemail-temp:
+
+secrets:
+  git-server:
+    file: data/config
