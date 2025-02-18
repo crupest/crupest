@@ -197,14 +197,8 @@ class ConfigManager(AppCommandFeatureProvider):
             "AUTO_BACKUP_COS_BUCKET",
             "bucket name for Tencent COS, used for auto backup",
         )
-        _add_text("GITHUB_USERNAME", "github username for fetching todos")
-        _add_int("GITHUB_PROJECT_NUMBER", "github project number for fetching todos")
-        _add_text("GITHUB_TOKEN", "github token for fetching todos")
-        _add_text("GITHUB_TODO_COUNT", "github todo count")
         _add_uuid("V2RAY_TOKEN", "v2ray user id")
         _add_uuid("V2RAY_PATH", "v2ray path, which will be prefixed by _")
-        _add_text("FORGEJO_MAILER_USER", "Forgejo SMTP user")
-        _add_text("FORGEJO_MAILER_PASSWD", "Forgejo SMTP password")
         _add_random_string("2FAUTH_APP_KEY", "2FAuth App Key")
         _add_text("2FAUTH_MAIL_USERNAME", "2FAuth SMTP user")
         _add_text("2FAUTH_MAIL_PASSWORD", "2FAuth SMTP password")

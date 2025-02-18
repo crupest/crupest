@@ -28,17 +28,5 @@ services:
     volumes:
       - ./data/timeline:/root/timeline
 
-  crupest-api:
-    pull_policy: build
-    build:
-      context: ./docker/crupest-api
-      dockerfile: Dockerfile
-      pull: true
-      tags:
-        - "crupest/crupest-api:latest"
-    container_name: crupest-api
-    volumes:
-      - "./crupest-api-config.json:/crupest-api-config.json:ro"
-
 volumes:
   debian-dev-home:

@@ -4,7 +4,6 @@ yuqian
 
 # self-hosted services
 2fauth
-forgejo
 rspamd
 certbot
 roundcube

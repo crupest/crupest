@@ -120,20 +120,6 @@ services:
       timeout: 3s
       retries: 0
 
-  forgejo:
-    image: code.forgejo.org/forgejo/forgejo:10
-    pull_policy: always
-    container_name: forgejo
-    mem_limit: 800mb
-    environment:
-      - USER_UID=1000
-      - USER_GID=1000
-    volumes:
-      - ./data/forgejo:/data
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-    restart: on-failure:3
-
   git-server:
     pull_policy: build
     build:
