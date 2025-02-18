@@ -1,24 +1,15 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
-COPY AutoBackup /AutoBackup
-WORKDIR /AutoBackup
-RUN dotnet publish AutoBackup.csproj --configuration Release --output ./publish/ -r linux-x64 --self-contained false
+FROM debian
+RUN apt-get update && apt-get install -y \
+    tini ca-certificates coreutils bash tar zstd \
+    && rm -rf /var/lib/apt/lists/*
 
-FROM mcr.microsoft.com/dotnet/runtime:9.0-alpine
-RUN apk add --no-cache tini coreutils bash tar xz
-ARG CRUPEST_AUTO_BACKUP_INIT_DELAY=0
-ARG CRUPEST_AUTO_BACKUP_INTERVAL=1d
-ARG CRUPEST_AUTO_BACKUP_COS_SECRET_ID
-ARG CRUPEST_AUTO_BACKUP_COS_SECRET_KEY
-ARG CRUPEST_AUTO_BACKUP_COS_REGION
-ARG CRUPEST_AUTO_BACKUP_BUCKET_NAME
-ENV CRUPEST_AUTO_BACKUP_INIT_DELAY=${CRUPEST_AUTO_BACKUP_INIT_DELAY}
-ENV CRUPEST_AUTO_BACKUP_INTERVAL=${CRUPEST_AUTO_BACKUP_INTERVAL}
-ENV CRUPEST_AUTO_BACKUP_COS_SECRET_ID=${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}
-ENV CRUPEST_AUTO_BACKUP_COS_SECRET_KEY=${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}
-ENV CRUPEST_AUTO_BACKUP_COS_REGION=${CRUPEST_AUTO_BACKUP_COS_REGION}
-ENV CRUPEST_AUTO_BACKUP_BUCKET_NAME=${CRUPEST_AUTO_BACKUP_BUCKET_NAME}
+ENV CRUPEST_AUTO_BACKUP_INIT_DELAY=
+ENV CRUPEST_AUTO_BACKUP_INTERVAL=1d
+
+ADD --chmod=755 https://github.com/tencentyun/coscli/releases/download/v1.0.3/coscli-v1.0.3-linux-amd64 /app/coscli
+ADD --chmod=755 daemon.bash /app/
+
 VOLUME [ "/data" ]
-COPY daemon.bash /daemon.bash
-COPY --from=build /AutoBackup/publish /AutoBackup
+
 ENTRYPOINT ["tini", "--"]
-CMD [ "/daemon.bash" ]
+CMD [ "/app/daemon.bash" ]
