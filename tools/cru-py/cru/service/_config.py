@@ -190,10 +190,11 @@ class ConfigManager(AppCommandFeatureProvider):
             "access key secret for Tencent COS, used for auto backup",
         )
         _add_text(
-            "AUTO_BACKUP_COS_REGION", "region for Tencent COS, used for auto backup"
+            "AUTO_BACKUP_COS_ENDPOINT",
+            "endpoint (cos.*.myqcloud.com) for Tencent COS, used for auto backup",
         )
         _add_text(
-            "AUTO_BACKUP_BUCKET_NAME",
+            "AUTO_BACKUP_COS_BUCKET",
             "bucket name for Tencent COS, used for auto backup",
         )
         _add_text("GITHUB_USERNAME", "github username for fetching todos")
