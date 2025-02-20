@@ -23,8 +23,10 @@ services:
     volumes:
       - "./generated/nginx/conf.d:/etc/nginx/conf.d:ro"
       - "./generated/nginx/common:/etc/nginx/common:ro"
-      - "./data/certbot/certs:/etc/letsencrypt:ro"
+      - "./data/certbot/certs:/etc/letsencrypt"
       - "./data/certbot/webroot:/srv/acme:ro"
+      - "./data/certbot/data:/var/lib/letsencrypt"
+      - "./data/certbot/webroot:/var/www/certbot"
       - "blog-public:/srv/www/blog:ro"
     restart: on-failure:3
 
@@ -40,29 +42,6 @@ services:
     command: [ "run", "-c", "/etc/v2fly/config.json" ]
     volumes:
       - "./generated/v2ray-config.json:/etc/v2fly/config.json:ro"
-    restart: on-failure:3
-
-  auto-certbot:
-    pull_policy: build
-    depends_on:
-      - nginx
-    build:
-      context: ./docker/auto-certbot
-      dockerfile: Dockerfile
-      pull: true
-      args:
-        - CRUPEST_DOMAIN=@@CRUPEST_DOMAIN@@
-        - CRUPEST_EMAIL=@@CRUPEST_EMAIL@@
-        - CRUPEST_AUTO_CERTBOT_ADDITIONAL_PACKAGES=docker-cli
-        - CRUPEST_AUTO_CERTBOT_POST_HOOK=docker restart nginx
-      tags:
-        - "crupest/auto-certbot:latest"
-    volumes:
-      - "./data/certbot/certs:/etc/letsencrypt"
-      - "./data/certbot/data:/var/lib/letsencrypt"
-      - "./data/certbot/webroot:/var/www/certbot"
-      # map docker socket to allow auto-certbot to restart nginx
-      - "/var/run/docker.sock:/var/run/docker.sock"
     restart: on-failure:3
 
   auto-backup:
