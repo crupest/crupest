@@ -7,7 +7,7 @@
             "settings": {
                 "clients": [
                     {
-                        "id": "$CRUPEST_V2RAY_TOKEN",
+                        "id": "@@CRUPEST_V2RAY_TOKEN@@",
                         "alterId": 0
                     }
                 ]
@@ -15,7 +15,7 @@
             "streamSettings": {
                 "network": "ws",
                 "wsSettings": {
-                    "path": "/_$CRUPEST_V2RAY_PATH"
+                    "path": "/_@@CRUPEST_V2RAY_PATH@@"
                 }
             }
         }

@@ -6,7 +6,7 @@ RUN --mount=type=secret,id=git-server,required=true \
   htpasswd -cb /user-info ${CRUPEST_GIT_SERVER_USERNAME} ${CRUPEST_GIT_SERVER_PASSWORD}
 ARG ROOT_URL
 ADD cgitrc.template /cgitrc.template
-RUN sed "s|@@ROOT_URL@@|${ROOT_URL}|g" /cgitrc.template > /cgitrc
+RUN sed "s|@@CRUPEST_ROOT_URL@@|${ROOT_URL}|g" /cgitrc.template > /cgitrc
 
 FROM debian:latest
 RUN apt-get update && apt-get install -y \

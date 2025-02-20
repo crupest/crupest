@@ -51,8 +51,8 @@ services:
       dockerfile: Dockerfile
       pull: true
       args:
-        - CRUPEST_DOMAIN=$CRUPEST_DOMAIN
-        - CRUPEST_EMAIL=$CRUPEST_EMAIL
+        - CRUPEST_DOMAIN=@@CRUPEST_DOMAIN@@
+        - CRUPEST_EMAIL=@@CRUPEST_EMAIL@@
         - CRUPEST_AUTO_CERTBOT_ADDITIONAL_PACKAGES=docker-cli
         - CRUPEST_AUTO_CERTBOT_POST_HOOK=docker restart nginx
       tags:
@@ -81,7 +81,7 @@ services:
     image: docker.io/mailserver/docker-mailserver:latest
     pull_policy: always
     container_name: mailserver
-    hostname: mail.$CRUPEST_DOMAIN
+    hostname: mail.@@CRUPEST_DOMAIN@@
     env_file: generated/mailserver.env
     # More information about the mail-server ports:
     # https://docker-mailserver.github.io/docker-mailserver/edge/config/security/understanding-the-ports/
@@ -116,7 +116,7 @@ services:
         - "git-server"
       pull: true
       args:
-        - ROOT_URL=https://${CRUPEST_DOMAIN}/git
+        - ROOT_URL=https://@@CRUPEST_DOMAIN@@/git
       tags:
         - "crupest/git-server:latest"
     hostname: git-server
@@ -153,17 +153,17 @@ services:
       - APP_NAME=2FAuth-crupest
       - APP_TIMEZONE=UTC
       - SITE_OWNER=crupest@crupest.life
-      - APP_KEY=${CRUPEST_2FAUTH_APP_KEY}
-      - APP_URL=https://${CRUPEST_DOMAIN}/2fa
+      - APP_KEY=@@CRUPEST_2FAUTH_APP_KEY@@
+      - APP_URL=https://@@CRUPEST_DOMAIN@@/2fa
       - APP_SUBDIRECTORY=2fa
       - MAIL_MAILER=smtp
       - MAIL_HOST=mail.crupest.life
       - MAIL_PORT=465
-      - MAIL_USERNAME=${CRUPEST_2FAUTH_MAIL_USERNAME}
-      - MAIL_PASSWORD=${CRUPEST_2FAUTH_MAIL_PASSWORD}
+      - MAIL_USERNAME=@@CRUPEST_2FAUTH_MAIL_USERNAME@@
+      - MAIL_PASSWORD=@@CRUPEST_2FAUTH_MAIL_PASSWORD@@
       - MAIL_ENCRYPTION=ssl
       - MAIL_FROM_NAME=2FAuth-crupest
-      - MAIL_FROM_ADDRESS=${CRUPEST_2FAUTH_MAIL_USERNAME}
+      - MAIL_FROM_ADDRESS=@@CRUPEST_2FAUTH_MAIL_USERNAME@@
       - TRUSTED_PROXIES=*
 
 volumes:
