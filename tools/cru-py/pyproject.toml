@@ -17,6 +17,7 @@ python = "^3.11"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.13.0"
+ruff = "^0.9.6"
 
 [tool.ruff.lint]
 select = ["E", "F", "B"]

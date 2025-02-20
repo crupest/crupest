@@ -445,6 +445,9 @@ class CruIterator(Generic[_T]):
 
         return result
 
+    def join_str(self: CruIterator[str], separator: str) -> str:
+        return separator.join(self)
+
 
 class CruIterMixin(Generic[_T]):
     def cru_iter(self: Iterable[_T]) -> CruIterator[_T]:

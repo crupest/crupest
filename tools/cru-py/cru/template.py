@@ -1,59 +1,49 @@
-from collections.abc import Mapping
-import os
-import os.path
+from abc import ABCMeta, abstractmethod
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from string import Template
+from typing import Generic, TypeVar
 
 from ._iter import CruIterator
 from ._error import CruException
+
+from .parsing import StrWrapperVarParser
 
 
 class CruTemplateError(CruException):
     pass
 
 
-class CruTemplate:
-    def __init__(self, prefix: str, text: str):
-        self._prefix = prefix
-        self._template = Template(text)
-        self._variables = (
-            CruIterator(self._template.get_identifiers())
-            .filter(lambda i: i.startswith(self._prefix))
-            .to_set()
-        )
-        self._all_variables = set(self._template.get_identifiers())
+class CruTemplateBase(metaclass=ABCMeta):
+    def __init__(self, text: str):
+        self._text = text
+        self._variables: set[str] | None = None
+
+    @abstractmethod
+    def _get_variables(self) -> set[str]:
+        raise NotImplementedError()
 
     @property
-    def prefix(self) -> str:
-        return self._prefix
-
-    @property
-    def raw_text(self) -> str:
-        return self._template.template
-
-    @property
-    def py_template(self) -> Template:
-        return self._template
+    def text(self) -> str:
+        return self._text
 
     @property
     def variables(self) -> set[str]:
+        if self._variables is None:
+            self._variables = self._get_variables()
         return self._variables
 
     @property
-    def all_variables(self) -> set[str]:
-        return self._all_variables
+    def variable_count(self) -> int:
+        return len(self.variables)
 
     @property
     def has_variables(self) -> bool:
-        """
-        If the template does not has any variables that starts with the given prefix,
-        it returns False. This usually indicates that the template is not a real
-        template and should be copied as is. Otherwise, it returns True.
+        return self.variable_count > 0
 
-        This can be used as a guard to prevent invalid templates created accidentally
-        without notice.
-        """
-        return len(self.variables) > 0
+    @abstractmethod
+    def _do_generate(self, mapping: dict[str, str]) -> str:
+        raise NotImplementedError()
 
     def generate(self, mapping: Mapping[str, str], allow_extra: bool = True) -> str:
         values = dict(mapping)
@@ -61,14 +51,74 @@ class CruTemplate:
             raise CruTemplateError("Missing variables.")
         if not allow_extra and not set(values.keys()) <= self.variables:
             raise CruTemplateError("Extra variables.")
-        return self._template.safe_substitute(values)
+        return self._do_generate(values)
 
 
-class TemplateTree:
+class CruTemplate(CruTemplateBase):
+    def __init__(self, prefix: str, text: str):
+        super().__init__(text)
+        self._prefix = prefix
+        self._template = Template(text)
+
+    def _get_variables(self) -> set[str]:
+        return (
+            CruIterator(self._template.get_identifiers())
+            .filter(lambda i: i.startswith(self.prefix))
+            .to_set()
+        )
+
+    @property
+    def prefix(self) -> str:
+        return self._prefix
+
+    @property
+    def py_template(self) -> Template:
+        return self._template
+
+    @property
+    def all_variables(self) -> set[str]:
+        return set(self._template.get_identifiers())
+
+    def _do_generate(self, mapping: dict[str, str]) -> str:
+        return self._template.safe_substitute(mapping)
+
+
+class CruStrWrapperTemplate(CruTemplateBase):
+    def __init__(self, text: str, wrapper: str = "@@"):
+        super().__init__(text)
+        self._wrapper = wrapper
+        self._tokens: StrWrapperVarParser.Result
+
+    @property
+    def wrapper(self) -> str:
+        return self._wrapper
+
+    def _get_variables(self):
+        self._tokens = StrWrapperVarParser(self.wrapper).parse(self.text)
+        return (
+            self._tokens.cru_iter()
+            .filter(lambda t: t.is_var)
+            .map(lambda t: t.value)
+            .to_set()
+        )
+
+    def _do_generate(self, mapping):
+        return (
+            self._tokens.cru_iter()
+            .map(lambda t: mapping[t.value] if t.is_var else t.value)
+            .join_str("")
+        )
+
+
+_Template = TypeVar("_Template", bound=CruTemplateBase)
+
+
+class TemplateTree(Generic[_Template]):
     def __init__(
         self,
-        prefix: str,
+        template_generator: Callable[[str], _Template],
         source: str,
+        *,
         template_file_suffix: str | None = ".template",
     ):
         """
@@ -80,18 +130,14 @@ class TemplateTree:
         If either case is false, it generally means whether the file is a template is
         wrongly handled.
         """
-        self._prefix = prefix
-        self._files: list[tuple[Path, CruTemplate]] = []
+        self._template_generator = template_generator
+        self._files: list[tuple[Path, _Template]] = []
         self._source = source
         self._template_file_suffix = template_file_suffix
         self._load()
 
     @property
-    def prefix(self) -> str:
-        return self._prefix
-
-    @property
-    def templates(self) -> list[tuple[Path, CruTemplate]]:
+    def templates(self) -> list[tuple[Path, _Template]]:
         return self._files
 
     @property
@@ -103,13 +149,14 @@ class TemplateTree:
         return self._template_file_suffix
 
     @staticmethod
-    def _scan_files(root_path: str) -> list[Path]:
+    def _scan_files(root: str) -> list[Path]:
+        root_path = Path(root)
         result: list[Path] = []
-        for root, _dirs, files in os.walk(root_path):
-            for file in files:
-                path = Path(root, file)
-                path = path.relative_to(root_path)
-                result.append(Path(path))
+        for path in root_path.glob("**/*"):
+            if not path.is_file():
+                continue
+            path = path.relative_to(root_path)
+            result.append(Path(path))
         return result
 
     def _load(self) -> None:
@@ -118,7 +165,7 @@ class TemplateTree:
             template_file = Path(self.source) / file_path
             with open(template_file, "r") as f:
                 content = f.read()
-            template = CruTemplate(self.prefix, content)
+            template = self._template_generator(content)
             if self.template_file_suffix is not None:
                 should_be_template = file_path.name.endswith(self.template_file_suffix)
                 if should_be_template and not template.has_variables:
@@ -136,18 +183,25 @@ class TemplateTree:
             s.update(template.variables)
         return s
 
+    def generate(self, variables: Mapping[str, str]) -> list[tuple[Path, str]]:
+        result: list[tuple[Path, str]] = []
+        for path, template in self.templates:
+            if self.template_file_suffix is not None and path.name.endswith(
+                self.template_file_suffix
+            ):
+                path = path.parent / (path.name[: -len(self.template_file_suffix)])
+
+            text = template.generate(variables)
+            result.append((path, text))
+        return result
+
     def generate_to(
         self, destination: str, variables: Mapping[str, str], dry_run: bool
     ) -> None:
-        for file, template in self.templates:
-            des = Path(destination) / file
-            if self.template_file_suffix is not None and des.name.endswith(
-                self.template_file_suffix
-            ):
-                des = des.parent / (des.name[: -len(self.template_file_suffix)])
-
-            text = template.generate(variables)
-            if not dry_run:
+        generated = self.generate(variables)
+        if not dry_run:
+            for path, text in generated:
+                des = Path(destination) / path
                 des.parent.mkdir(parents=True, exist_ok=True)
                 with open(des, "w") as f:
                     f.write(text)

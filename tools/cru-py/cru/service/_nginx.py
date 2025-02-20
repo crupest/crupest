@@ -54,32 +54,19 @@ class NginxManager(AppCommandFeatureProvider):
     def _get_domains_from_text(self, text: str) -> set[str]:
         domains: set[str] = set()
         regex = re.compile(r"server_name\s+(\S+)\s*;")
-        domain_variable_str = f"${self._domain_config_name}"
-        brace_domain_variable_regex = re.compile(
-            r"\$\{\s*" + self._domain_config_name + r"\s*\}"
-        )
         for match in regex.finditer(text):
-            domain_part = match.group(1)
-            if domain_variable_str in domain_part:
-                domains.add(domain_part.replace(domain_variable_str, self.root_domain))
-                continue
-            m = brace_domain_variable_regex.search(domain_part)
-            if m:
-                domains.add(domain_part.replace(m.group(0), self.root_domain))
-                continue
-            domains.add(domain_part)
+            domains.add(match[1])
         return domains
 
-    def _get_nginx_conf_template_text(self) -> str:
-        template_manager = self.app.get_feature(TemplateManager)
+    def _join_generated_nginx_conf_text(self) -> str:
         text = ""
-        for path, template in template_manager.template_tree.templates:
-            if path.as_posix().startswith("nginx/"):
-                text += template.raw_text
+        template_manager = self.app.get_feature(TemplateManager)
+        for nginx_conf in template_manager.generate():
+            text += nginx_conf[1]
         return text
 
     def _get_domains(self) -> list[str]:
-        text = self._get_nginx_conf_template_text()
+        text = self._join_generated_nginx_conf_text()
         domains = list(self._get_domains_from_text(text))
         domains.remove(self.root_domain)
         return [self.root_domain, *domains]
