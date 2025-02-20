@@ -1,8 +1,8 @@
 from argparse import Namespace
+from pathlib import Path
 import shutil
 
-from cru import CruIterator
-from cru.template import TemplateTree
+from cru.template import TemplateTree, CruStrWrapperTemplate
 
 from ._base import AppCommandFeatureProvider, AppFeaturePath
 from ._config import ConfigManager
@@ -16,7 +16,7 @@ class TemplateManager(AppCommandFeatureProvider):
     def setup(self) -> None:
         self._templates_dir = self.app.add_path("templates", True)
         self._generated_dir = self.app.add_path("generated", True)
-        self._template_tree: TemplateTree | None = None
+        self._template_tree: TemplateTree[CruStrWrapperTemplate] | None = None
 
     @property
     def prefix(self) -> str:
@@ -31,20 +31,24 @@ class TemplateManager(AppCommandFeatureProvider):
         return self._generated_dir
 
     @property
-    def template_tree(self) -> TemplateTree:
+    def template_tree(self) -> TemplateTree[CruStrWrapperTemplate]:
         if self._template_tree is None:
             return self.reload()
         return self._template_tree
 
     def reload(self) -> TemplateTree:
         self._template_tree = TemplateTree(
-            self.prefix, self.templates_dir.full_path_str
+            lambda text: CruStrWrapperTemplate(text), self.templates_dir.full_path_str
         )
         return self._template_tree
 
     def _print_file_lists(self) -> None:
-        for file in CruIterator(self.template_tree.templates).transform(lambda t: t[0]):
-            print(file.as_posix())
+        for path, template in self.template_tree.templates:
+            print(f"[{template.variable_count}]", path.as_posix())
+
+    def generate(self) -> list[tuple[Path, str]]:
+        config_manager = self.app.get_feature(ConfigManager)
+        return self.template_tree.generate(config_manager.get_str_dict())
 
     def _generate_files(self, dry_run: bool) -> None:
         config_manager = self.app.get_feature(ConfigManager)

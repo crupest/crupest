@@ -1,5 +1,5 @@
 server {
-    server_name code.${CRUPEST_DOMAIN};
+    server_name code.@@CRUPEST_DOMAIN@@;
     include common/https-listen;
     
     location / {
@@ -12,7 +12,7 @@ server {
 
 
 server {
-    server_name code.${CRUPEST_DOMAIN};
+    server_name code.@@CRUPEST_DOMAIN@@;
     include common/http-listen;
 
     include common/https-redirect;
