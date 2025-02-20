@@ -36,8 +36,6 @@ services:
       context: ./docker/v2ray
       dockerfile: Dockerfile
       pull: true
-      tags:
-        - "crupest/v2ray:latest"
     hostname: v2ray
     command: [ "run", "-c", "/etc/v2fly/config.json" ]
     volumes:
@@ -96,8 +94,6 @@ services:
       pull: true
       args:
         - ROOT_URL=https://@@CRUPEST_DOMAIN@@/git
-      tags:
-        - "crupest/git-server:latest"
     hostname: git-server
     volumes:
       - "./data/git:/git"
