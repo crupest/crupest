@@ -1,0 +1,6 @@
+server {
+    server_name code.@@CRUPEST_DOMAIN@@;
+    include common/http-listen;
+
+    include common/acme-challenge;
+}

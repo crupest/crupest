@@ -1,0 +1,5 @@
+[v2ray]
+secrets = [
+    "CRUPEST_V2RAY_TOKEN",
+    "CRUPEST_V2RAY_PATH"
+]

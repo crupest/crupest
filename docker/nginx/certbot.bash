@@ -4,6 +4,6 @@ set -e
 
 while true; do
     certbot renew --deploy-hook "nginx -s reload"
-    echo "Sleep one day before next certbot renew."
+    echo -e "\e[33mSleep one day before next certbot renew.\e[39m"
     sleep 1d
 done

@@ -14,15 +14,17 @@ services:
     pull_policy: build
     build:
       context: ./docker/nginx
+      additional_contexts:
+        share: ./docker/share
       dockerfile: Dockerfile
       pull: true
     ports:
       - "80:80"
       - "443:443"
       - "443:443/udp"
+    secrets:
+      - v2ray
     volumes:
-      - "./generated/nginx/conf.d:/etc/nginx/conf.d:ro"
-      - "./generated/nginx/common:/etc/nginx/common:ro"
       - "./data/certbot/certs:/etc/letsencrypt"
       - "./data/certbot/webroot:/srv/acme:ro"
       - "./data/certbot/data:/var/lib/letsencrypt"
@@ -34,18 +36,21 @@ services:
     pull_policy: build
     build:
       context: ./docker/v2ray
+      additional_contexts:
+        share: ./docker/share
       dockerfile: Dockerfile
       pull: true
     hostname: v2ray
-    command: [ "run", "-c", "/etc/v2fly/config.json" ]
-    volumes:
-      - "./generated/v2ray-config.json:/etc/v2fly/config.json:ro"
+    secrets:
+      - v2ray
     restart: on-failure:3
 
   auto-backup:
     pull_policy: build
     build:
       context: ./docker/auto-backup
+      additional_contexts:
+        share: ./docker/share
       dockerfile: Dockerfile
       pull: true
     volumes:
@@ -88,13 +93,13 @@ services:
     pull_policy: build
     build:
       context: ./docker/git-server
+      additional_contexts:
+        share: ./docker/share
       dockerfile: Dockerfile
-      secrets:
-        - "git-server"
       pull: true
-      args:
-        - ROOT_URL=https://@@CRUPEST_DOMAIN@@/git
     hostname: git-server
+    secrets:
+      - "git-server"
     volumes:
       - "./data/git:/git"
     restart: on-failure:3
@@ -110,9 +115,9 @@ services:
       - ./data/roundcube/config:/var/roundcube/config
       - roundcubemail-temp:/tmp/roundcube-temp
     environment:
-      - ROUNDCUBEMAIL_DEFAULT_HOST=ssl://mail.crupest.life
+      - ROUNDCUBEMAIL_DEFAULT_HOST=ssl://@@CRUPEST_MAIL_SERVER_DOMAIN@@
       - ROUNDCUBEMAIL_DEFAULT_PORT=993
-      - ROUNDCUBEMAIL_SMTP_SERVER=ssl://mail.crupest.life
+      - ROUNDCUBEMAIL_SMTP_SERVER=ssl://@@CRUPEST_MAIL_SERVER_DOMAIN@@
       - ROUNDCUBEMAIL_SMTP_PORT=465
       - ROUNDCUBEMAIL_DB_TYPE=sqlite
       - ROUNDCUBEMAIL_PLUGINS=archive,enigma,jqueryui,newmail_notifier,show_additional_headers,userinfo,zipdownload,managesieve
@@ -127,12 +132,12 @@ services:
     environment:
       - APP_NAME=2FAuth-crupest
       - APP_TIMEZONE=UTC
-      - SITE_OWNER=crupest@crupest.life
+      - SITE_OWNER=@@CRUPEST_EMAIL@@
       - APP_KEY=@@CRUPEST_2FAUTH_APP_KEY@@
       - APP_URL=https://@@CRUPEST_DOMAIN@@/2fa
       - APP_SUBDIRECTORY=2fa
       - MAIL_MAILER=smtp
-      - MAIL_HOST=mail.crupest.life
+      - MAIL_HOST=@@CRUPEST_MAIL_SERVER_DOMAIN@@
       - MAIL_PORT=465
       - MAIL_USERNAME=@@CRUPEST_2FAUTH_MAIL_USERNAME@@
       - MAIL_PASSWORD=@@CRUPEST_2FAUTH_MAIL_PASSWORD@@

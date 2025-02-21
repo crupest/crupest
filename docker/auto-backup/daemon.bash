@@ -1,42 +1,19 @@
 #!/usr/bin/env bash
 
 set -e
+set -o pipefail
 
-die() {
-  echo -e "\033[31mError: " "$@" "\033[0m" >&2
-  exit 1
-}
+# shellcheck source=../share/crupest/base.bash
+. base.bash
 
-note() {
-  echo -e "\033[33mNote: " "$@" "\033[0m"
-}
-
-success() {
-  echo -e "\033[32mSuccess: " "$@" "\033[0m"
-}
-
-# Check I'm root.
-if [[ $EUID -ne 0 ]]; then
-  die "This script must be run as root"
-fi
-
-if [[ ! -f /run/secrets/auto-backup ]]; then
-  die "/run/secrets/auto-backup not found, please use docker secrets to set it."
-fi
-
-if [[ -z "$CRUPEST_AUTO_BACKUP_INTERVAL" ]]; then
-  die "Backup interval not set, please set it!"
-fi
-
-# shellcheck source=/dev/null
-. /run/secrets/auto-backup
-
-note "Checking secrets..."
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_ENDPOINT" ]] || die "COS endpoint not set!"
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_BUCKET" ]] || die "COS bucket not set!"
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_SECRET_ID" ]] || die "COS secret ID  not set!"
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_SECRET_KEY" ]] || die "COS secret key not set!"
-success "Secrets check passed."
+secrets=(
+  CRUPEST_AUTO_BACKUP_COS_ENDPOINT
+  CRUPEST_AUTO_BACKUP_COS_BUCKET
+  CRUPEST_AUTO_BACKUP_COS_SECRET_ID
+  CRUPEST_AUTO_BACKUP_COS_SECRET_KEY
+)
+import_docker_secrets auto-backup "${secrets[@]}"
+check_env CRUPEST_AUTO_BACKUP_INTERVAL
 
 note "Checking tools..."
 tar --version
@@ -89,6 +66,6 @@ function backup {
 while true; do
   backup
 
-  echo "Sleep for $CRUPEST_AUTO_BACKUP_INTERVAL for next backup..."
+  note "Sleep for $CRUPEST_AUTO_BACKUP_INTERVAL for next backup..."
   sleep "$CRUPEST_AUTO_BACKUP_INTERVAL"
 done
