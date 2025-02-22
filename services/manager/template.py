@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from string import Template
-from typing import Generic, TypeVar
+from typing import Generic, Self, TypeVar
 
 from ._iter import CruIterator
 from ._error import CruException
@@ -45,13 +45,26 @@ class CruTemplateBase(metaclass=ABCMeta):
     def _do_generate(self, mapping: dict[str, str]) -> str:
         raise NotImplementedError()
 
-    def generate(self, mapping: Mapping[str, str], allow_extra: bool = True) -> str:
+    def _generate_partial(
+        self, mapping: Mapping[str, str], allow_unused: bool = True
+    ) -> str:
         values = dict(mapping)
-        if not self.variables <= set(values.keys()):
-            raise CruTemplateError("Missing variables.")
-        if not allow_extra and not set(values.keys()) <= self.variables:
-            raise CruTemplateError("Extra variables.")
+        if not allow_unused and not len(set(values.keys() - self.variables)) != 0:
+            raise CruTemplateError("Unused variables.")
         return self._do_generate(values)
+
+    def generate_partial(
+        self, mapping: Mapping[str, str], allow_unused: bool = True
+    ) -> Self:
+        return self.__class__(self._generate_partial(mapping, allow_unused))
+
+    def generate(self, mapping: Mapping[str, str], allow_unused: bool = True) -> str:
+        values = dict(mapping)
+        if len(self.variables - values.keys()) != 0:
+            raise CruTemplateError(
+                f"Missing variables: {self.variables - values.keys()} ."
+            )
+        return self._generate_partial(values, allow_unused)
 
 
 class CruTemplate(CruTemplateBase):
@@ -194,14 +207,3 @@ class TemplateTree(Generic[_Template]):
             text = template.generate(variables)
             result.append((path, text))
         return result
-
-    def generate_to(
-        self, destination: str, variables: Mapping[str, str], dry_run: bool
-    ) -> None:
-        generated = self.generate(variables)
-        if not dry_run:
-            for path, text in generated:
-                des = Path(destination) / path
-                des.parent.mkdir(parents=True, exist_ok=True)
-                with open(des, "w") as f:
-                    f.write(text)

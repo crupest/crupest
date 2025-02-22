@@ -1,8 +1,0 @@
-#! /usr/bin/env sh
-
-set -e
-
-cd "$(dirname "$0")/../.."
-
-exec tmux new-session 'cd docker/crupest-nginx/sites/www && pnpm start' \; \
-    split-window -h 'cd docker/crupest-api/CrupestApi/CrupestApi && dotnet run --launch-profile dev'

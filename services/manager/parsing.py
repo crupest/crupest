@@ -154,23 +154,23 @@ class Parser(Generic[_T], metaclass=ABCMeta):
         raise ParseError(f"Parser {self.name} failed{a}.", self, text, line_number)
 
 
-class SimpleLineConfigParserEntry(NamedTuple):
+class _SimpleLineVarParserEntry(NamedTuple):
     key: str
     value: str
     line_number: int | None = None
 
 
-class SimpleLineConfigParserResult(CruIterable.IterList[SimpleLineConfigParserEntry]):
+class _SimpleLineVarParserResult(CruIterable.IterList[_SimpleLineVarParserEntry]):
     pass
 
 
-class SimpleLineConfigParser(Parser[SimpleLineConfigParserResult]):
+class SimpleLineVarParser(Parser[_SimpleLineVarParserResult]):
     """
     The parsing result is a list of tuples (key, value, line number).
     """
 
-    Entry: TypeAlias = SimpleLineConfigParserEntry
-    Result: TypeAlias = SimpleLineConfigParserResult
+    Entry: TypeAlias = _SimpleLineVarParserEntry
+    Result: TypeAlias = _SimpleLineVarParserResult
 
     def __init__(self) -> None:
         super().__init__(type(self).__name__)
@@ -188,10 +188,10 @@ class SimpleLineConfigParser(Parser[SimpleLineConfigParserResult]):
             key, value = line.split("=", 1)
             key = key.strip()
             value = value.strip()
-            callback(SimpleLineConfigParserEntry(key, value, line_number))
+            callback(_SimpleLineVarParserEntry(key, value, line_number))
 
     def parse(self, text: str) -> Result:
-        result = SimpleLineConfigParserResult()
+        result = _SimpleLineVarParserResult()
         self._parse(text, lambda item: result.append(item))
         return result
 

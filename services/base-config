@@ -1,0 +1,4 @@
+CRUPEST_DOMAIN=crupest.life
+CRUPEST_EMAIL=crupest@crupest.life
+CRUPEST_SERVICES_DIR=services
+CRUPEST_DATA_DIR=data
