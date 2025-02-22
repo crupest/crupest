@@ -1,10 +1,8 @@
 from ._base import (
     AppBase,
     CommandDispatcher,
-    AppInitializer,
     PathCommandProvider,
 )
-from ._config import ConfigManager
 from ._template import TemplateManager
 from ._nginx import NginxManager
 from ._external import CliToolCommandProvider
@@ -16,8 +14,6 @@ class App(AppBase):
     def __init__(self):
         super().__init__(APP_ID, f"{APP_ID}-service")
         self.add_feature(PathCommandProvider())
-        self.add_feature(AppInitializer())
-        self.add_feature(ConfigManager())
         self.add_feature(TemplateManager())
         self.add_feature(NginxManager())
         self.add_feature(CliToolCommandProvider())

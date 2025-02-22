@@ -21,5 +21,4 @@ RUN --mount=type=secret,id=code-server-password,required=true,env=CRUPEST_CODE_S
 EXPOSE 4567
 VOLUME [ "/home/${USER}" ]
 
-ENTRYPOINT ["tini", "--"]
-CMD [ "/usr/bin/code-server", "--bind-addr", "0.0.0.0:4567" ]
+CMD [ "tini", "--", "/usr/bin/code-server", "--bind-addr", "0.0.0.0:4567" ]
