@@ -11,5 +11,4 @@ ADD --chmod=755 daemon.bash /app/
 
 VOLUME [ "/data" ]
 
-ENTRYPOINT ["tini", "--"]
-CMD [ "/app/daemon.bash" ]
+CMD [ "tini", "--", "/app/daemon.bash" ]

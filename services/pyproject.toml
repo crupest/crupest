@@ -1,19 +1,11 @@
 [project]
-name = "cru-py"
+name = "cru-service-manager"
 version = "0.1.0"
 requires-python = ">=3.11"
+license = "MIT"
 
 [tool.poetry]
 package-mode = false
-name = "cru"
-version = "0.1.0"
-description = ""
-authors = ["Yuqian Yang <crupest@crupest.life>"]
-license = "MIT"
-readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.11"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.13.0"

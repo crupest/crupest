@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -e
+
+python3 --version > /dev/null 2>&1 || (
+    echo Error: failed to run Python with python3 --version.
+    exit 1
+)
+
+script_dir="$(dirname "$0")"
+. "$script_dir/common.bash"
+
+export PYTHONPATH="$CRUPEST_PROJECT_DIR/$CRUPEST_SERVICES_DIR:$PYTHONPATH"
+python3 -m manager.service "$@"

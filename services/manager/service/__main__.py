@@ -1,4 +1,6 @@
-from cru import CruException
+import sys
+
+from manager import CruException
 
 from ._app import create_app
 
@@ -9,6 +11,11 @@ def main():
 
 
 if __name__ == "__main__":
+    version_info = sys.version_info
+    if not (version_info.major == 3 and version_info.minor >= 11):
+        print("This application requires Python 3.11 or later.", file=sys.stderr)
+        sys.exit(1)
+
     try:
         main()
     except CruException as e:

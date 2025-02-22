@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import TypeVar, overload
 
-from cru import CruException, CruLogicError
+from manager import CruException, CruLogicError
 
 _Feature = TypeVar("_Feature", bound="AppFeatureProvider")
 
@@ -106,6 +106,12 @@ class AppPath(ABC):
                 with open(self.full_path, "w") as f:
                     f.write("")
 
+    def read_text(self) -> str:
+        if self.is_dir:
+            raise AppPathError("Can't read text of a dir.", self.full_path)
+        self.check_self()
+        return self.full_path.read_text()
+
     def add_subpath(
         self,
         name: str,
@@ -114,7 +120,7 @@ class AppPath(ABC):
         id: str | None = None,
         description: str = "",
     ) -> AppFeaturePath:
-        return self.app.add_path(name, is_dir, self, id, description)
+        return self.app._add_path(name, is_dir, self, id, description)
 
     @property
     def app_relative_path(self) -> Path:
@@ -153,10 +159,10 @@ class AppFeaturePath(AppPath):
 
 
 class AppRootPath(AppPath):
-    def __init__(self, app: AppBase):
-        super().__init__("root", True, "Application root path.")
+    def __init__(self, app: AppBase, path: Path):
+        super().__init__(f"/{id}", True, f"Application {id} path.")
         self._app = app
-        self._full_path: Path | None = None
+        self._full_path = path.resolve()
 
     @property
     def parent(self) -> None:
@@ -168,14 +174,7 @@ class AppRootPath(AppPath):
 
     @property
     def full_path(self) -> Path:
-        if self._full_path is None:
-            raise AppError("App root path is not set yet.")
         return self._full_path
-
-    def setup(self, path: os.PathLike) -> None:
-        if self._full_path is not None:
-            raise AppError("App root path is already set.")
-        self._full_path = Path(path).resolve()
 
 
 class AppFeatureProvider(ABC):
@@ -207,9 +206,6 @@ class AppCommandFeatureProvider(AppFeatureProvider):
     def run_command(self, args: Namespace) -> None: ...
 
 
-DATA_DIR_NAME = "data"
-
-
 class PathCommandProvider(AppCommandFeatureProvider):
     def __init__(self) -> None:
         super().__init__("path-command-provider")
@@ -237,33 +233,12 @@ class PathCommandProvider(AppCommandFeatureProvider):
 class CommandDispatcher(AppFeatureProvider):
     def __init__(self) -> None:
         super().__init__("command-dispatcher")
-        self._parsed_args: argparse.Namespace | None = None
 
     def setup_arg_parser(self) -> None:
-        epilog = """
-==> to start,
-./tools/manage init
-./tools/manage config init
-ln -s generated/docker-compose.yaml .
-# Then edit config file.
-
-==> to update
-git pull
-./tools/manage template generate --no-dry-run
-docker compose up
-        """.strip()
-
         self._map: dict[str, AppCommandFeatureProvider] = {}
         arg_parser = argparse.ArgumentParser(
             description="Service management",
             formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog=epilog,
-        )
-        arg_parser.add_argument(
-            "--project-dir",
-            help="The path of the project directory.",
-            required=True,
-            type=str,
         )
         subparsers = arg_parser.add_subparsers(
             dest="command",
@@ -279,54 +254,26 @@ docker compose up
         self._arg_parser = arg_parser
 
     def setup(self):
-        pass
+        self._parsed_args = self.arg_parser.parse_args()
 
     @property
     def arg_parser(self) -> argparse.ArgumentParser:
         return self._arg_parser
 
     @property
-    def map(self) -> dict[str, AppCommandFeatureProvider]:
+    def command_map(self) -> dict[str, AppCommandFeatureProvider]:
         return self._map
 
-    def get_program_parsed_args(self) -> argparse.Namespace:
-        if self._parsed_args is None:
-            self._parsed_args = self.arg_parser.parse_args()
+    @property
+    def program_args(self) -> argparse.Namespace:
         return self._parsed_args
 
-    def run_command(self, args: argparse.Namespace | None = None) -> None:
-        real_args = args or self.get_program_parsed_args()
-        if real_args.command is None:
+    def run_command(self) -> None:
+        args = self.program_args
+        if args.command is None:
             self.arg_parser.print_help()
             return
-        self.map[real_args.command].run_command(real_args)
-
-
-class AppInitializer(AppCommandFeatureProvider):
-    def __init__(self) -> None:
-        super().__init__("app-initializer")
-
-    def _init_app(self) -> bool:
-        if self.app.app_initialized:
-            return False
-        self.app.data_dir.ensure()
-        return True
-
-    def setup(self):
-        pass
-
-    def get_command_info(self):
-        return ("init", "Initialize the app.")
-
-    def setup_arg_parser(self, arg_parser):
-        pass
-
-    def run_command(self, args):
-        init = self._init_app()
-        if init:
-            print("App initialized successfully.")
-        else:
-            print("App is already initialized. Do nothing.")
+        self.command_map[args.command].run_command(args)
 
 
 class AppBase:
@@ -342,16 +289,19 @@ class AppBase:
         AppBase._instance = self
         self._app_id = app_id
         self._name = name
-        self._root = AppRootPath(self)
-        self._paths: list[AppFeaturePath] = []
         self._features: list[AppFeatureProvider] = []
+        self._paths: list[AppFeaturePath] = []
 
     def setup(self) -> None:
         command_dispatcher = self.get_feature(CommandDispatcher)
         command_dispatcher.setup_arg_parser()
-        program_args = command_dispatcher.get_program_parsed_args()
-        self.setup_root(program_args.project_dir)
-        self._data_dir = self.add_path(DATA_DIR_NAME, True, id="data")
+        self._root = AppRootPath(self, Path(self._ensure_env("CRUPEST_PROJECT_DIR")))
+        self._data_dir = self._root.add_subpath(
+            self._ensure_env("CRUPEST_DATA_DIR"), True, id="data"
+        )
+        self._services_dir = self._root.add_subpath(
+            self._ensure_env("CRUPEST_SERVICES_DIR"), True, id="CRUPEST_SERVICES_DIR"
+        )
         for feature in self.features:
             feature.setup()
         for path in self.paths:
@@ -365,28 +315,27 @@ class AppBase:
     def name(self) -> str:
         return self._name
 
+    def _ensure_env(self, env_name: str) -> str:
+        value = os.getenv(env_name)
+        if value is None:
+            raise AppError(f"Environment variable {env_name} not set")
+        return value
+
     @property
     def root(self) -> AppRootPath:
         return self._root
-
-    def setup_root(self, path: os.PathLike) -> None:
-        self._root.setup(path)
 
     @property
     def data_dir(self) -> AppFeaturePath:
         return self._data_dir
 
     @property
+    def services_dir(self) -> AppFeaturePath:
+        return self._services_dir
+
+    @property
     def app_initialized(self) -> bool:
         return self.data_dir.check_self()
-
-    def ensure_app_initialized(self) -> AppRootPath:
-        if not self.app_initialized:
-            raise AppError(
-                user_message="Root directory does not exist. "
-                "Please run 'init' to create one."
-            )
-        return self.root
 
     @property
     def features(self) -> list[AppFeatureProvider]:
@@ -405,7 +354,7 @@ class AppBase:
         self._features.append(feature)
         return feature
 
-    def add_path(
+    def _add_path(
         self,
         name: str,
         is_dir: bool,

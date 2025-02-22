@@ -4,10 +4,9 @@ import re
 import subprocess
 from typing import TypeAlias
 
-from cru import CruInternalError
+from manager import CruInternalError
 
 from ._base import AppCommandFeatureProvider
-from ._config import ConfigManager
 from ._template import TemplateManager
 
 
@@ -29,12 +28,12 @@ class NginxManager(AppCommandFeatureProvider):
         pass
 
     @property
-    def _config_manager(self) -> ConfigManager:
-        return self.app.get_feature(ConfigManager)
+    def _template_manager(self) -> TemplateManager:
+        return self.app.get_feature(TemplateManager)
 
     @property
     def root_domain(self) -> str:
-        return self._config_manager.get_domain_value_str()
+        return self._template_manager.get_domain()
 
     @property
     def domains(self) -> list[str]:
@@ -47,10 +46,6 @@ class NginxManager(AppCommandFeatureProvider):
         suffix = "." + self.root_domain
         return [d[: -len(suffix)] for d in self.domains if d.endswith(suffix)]
 
-    @property
-    def _domain_config_name(self) -> str:
-        return self._config_manager.domain_item_name
-
     def _get_domains_from_text(self, text: str) -> set[str]:
         domains: set[str] = set()
         regex = re.compile(r"server_name\s+(\S+)\s*;")
@@ -59,15 +54,15 @@ class NginxManager(AppCommandFeatureProvider):
         return domains
 
     def _join_generated_nginx_conf_text(self) -> str:
-        text = ""
-        template_manager = self.app.get_feature(TemplateManager)
-        for nginx_conf in template_manager.generate():
-            text += nginx_conf[1]
-        return text
+        result = ""
+        for path, text in self._template_manager.generate():
+            if path.parents[-1] == "nginx":
+                result += text
+        return result
 
     def _get_domains(self) -> list[str]:
         text = self._join_generated_nginx_conf_text()
-        domains = list(self._get_domains_from_text(text))
+        domains = self._get_domains_from_text(text)
         domains.remove(self.root_domain)
         return [self.root_domain, *domains]
 
@@ -155,7 +150,7 @@ class NginxManager(AppCommandFeatureProvider):
             self._certbot_command(
                 CertbotAction.CREATE,
                 test,
-                email=self._config_manager.get_email_value_str_optional(),
+                email=self._template_manager.get_email(),
             )
         )
         print()
@@ -164,7 +159,7 @@ class NginxManager(AppCommandFeatureProvider):
             self._certbot_command(
                 CertbotAction.EXPAND,
                 test,
-                email=self._config_manager.get_email_value_str_optional(),
+                email=self._template_manager.get_email(),
             )
         )
         print()
@@ -173,7 +168,7 @@ class NginxManager(AppCommandFeatureProvider):
             self._certbot_command(
                 CertbotAction.RENEW,
                 test,
-                email=self._config_manager.get_email_value_str_optional(),
+                email=self._template_manager.get_email(),
             )
         )
 
