@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import TypeVar, overload
 
-from manager import CruException, CruLogicError
+from cru import CruException, CruLogicError
 
 _Feature = TypeVar("_Feature", bound="AppFeatureProvider")
 
@@ -160,7 +160,7 @@ class AppFeaturePath(AppPath):
 
 class AppRootPath(AppPath):
     def __init__(self, app: AppBase, path: Path):
-        super().__init__(f"/{id}", True, f"Application {id} path.")
+        super().__init__(f"/{id}", True, f"Application {id} root path.")
         self._app = app
         self._full_path = path.resolve()
 
@@ -218,16 +218,18 @@ class PathCommandProvider(AppCommandFeatureProvider):
 
     def setup_arg_parser(self, arg_parser: ArgumentParser) -> None:
         subparsers = arg_parser.add_subparsers(
-            dest="path_command", required=True, metavar="PATH_COMMAND"
+            dest="path_command", metavar="PATH_COMMAND"
         )
         _list_parser = subparsers.add_parser(
             "list", help="list special paths used by app"
         )
 
     def run_command(self, args: Namespace) -> None:
-        if args.path_command == "list":
+        if args.path_command is None or args.path_command == "list":
             for path in self.app.paths:
-                print(f"{path.app_relative_path.as_posix()}: {path.description}")
+                print(
+                    f"{path.app_relative_path.as_posix()}{'/' if path.is_dir else ''}: {path.description}"
+                )
 
 
 class CommandDispatcher(AppFeatureProvider):

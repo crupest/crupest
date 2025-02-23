@@ -4,7 +4,7 @@ import re
 import subprocess
 from typing import TypeAlias
 
-from manager import CruInternalError
+from cru import CruInternalError
 
 from ._base import AppCommandFeatureProvider
 from ._template import TemplateManager
@@ -56,7 +56,7 @@ class NginxManager(AppCommandFeatureProvider):
     def _join_generated_nginx_conf_text(self) -> str:
         result = ""
         for path, text in self._template_manager.generate():
-            if path.parents[-1] == "nginx":
+            if "nginx" in str(path):
                 result += text
         return result
 

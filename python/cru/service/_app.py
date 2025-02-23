@@ -5,7 +5,7 @@ from ._base import (
 )
 from ._template import TemplateManager
 from ._nginx import NginxManager
-from ._external import CliToolCommandProvider
+from ._gen_cmd import GenCmdProvider
 
 APP_ID = "crupest"
 
@@ -16,7 +16,7 @@ class App(AppBase):
         self.add_feature(PathCommandProvider())
         self.add_feature(TemplateManager())
         self.add_feature(NginxManager())
-        self.add_feature(CliToolCommandProvider())
+        self.add_feature(GenCmdProvider())
         self.add_feature(CommandDispatcher())
 
     def run_command(self):
