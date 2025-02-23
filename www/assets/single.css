@@ -1,0 +1,18 @@
+.post-info {
+  margin-block: 0;
+  font-size: 0.9em;
+  display: flex;
+  flex-wrap: wrap;
+
+  & > .created {
+    margin-inline-end: auto;
+  }
+}
+
+.end-hr {
+  border: none;
+  width: 8em;
+  margin-block-start: 1.5em;
+  margin-inline-start: 0;
+  border-top: 1px dashed black;
+}

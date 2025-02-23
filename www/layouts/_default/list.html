@@ -1,0 +1,12 @@
+{{ define "head"}}
+  {{ partial "css.html" "partials/preview/article.css" }}
+{{ end }}
+
+{{ define "content" }}
+  {{ partial "nav.html" . }}
+  <h1>Posts</h1>
+  {{ partial "preview/posts.html" (dict
+    "h" "h3"
+    "pages" (.RegularPages.ByDate.Reverse.Limit 3))
+  }}
+{{ end }}
