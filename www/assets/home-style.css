@@ -1,0 +1,66 @@
+#slogan {
+  position: sticky;
+  width: 100%;
+  padding: 0.5em 1em;
+  text-align: center;
+  background-color: dodgerblue;
+}
+
+#title-name {
+  font-family: monospace;
+  background-color: black;
+  color: white;
+}
+
+@keyframes avatar-enter {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+#avatar {
+  float: right;
+  animation: avatar-enter 0.8s;
+}
+
+#friends-container {
+  display: flex;
+  gap: 1em;
+}
+
+.friend {
+  flex-grow: 0;
+  text-align: center;
+}
+
+.friend a {
+  font-family: unset;
+}
+
+.friend-avatar {
+  object-fit: cover;
+}
+
+.friend-github {
+  width: 1em;
+  vertical-align: middle;
+  margin-right: -0.5em;
+}
+
+.friend-tag {
+  font-size: 0.8em;
+}
+
+.citation {
+  margin: auto;
+}
+
+.citation figcaption {
+  text-align: right;
+}

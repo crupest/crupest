@@ -1,0 +1,10 @@
+cleanDestinationDir: true
+
+minify:
+  minifyOutput: true
+
+params:
+  jsopts:
+    minify: true
+    sourceMap: "external"
+

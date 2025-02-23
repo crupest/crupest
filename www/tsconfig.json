@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "lib": [
+            "ESNext",
+            "DOM",
+            "DOM.Iterable"
+        ],
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "skipLibCheck": true,
+        "noEmit": true
+    },
+    "include": [ "assets/**/*.ts" ], 
+    "$schema": "https://json.schemastore.org/tsconfig"
+}

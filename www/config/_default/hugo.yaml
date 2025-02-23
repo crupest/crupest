@@ -1,0 +1,28 @@
+baseURL: "https://crupest.life/"
+title: "crupest's life"
+copyright: "CC BY-NC 4.0"
+
+enableGitInfo: true
+
+languageCode: "en"
+defaultContentLanguage: "en"
+hasCJKLanguage: true
+enableEmoji: true
+
+enableRobotsTXT: true
+
+
+frontmatter:
+  lastmod: [ "lastmod", ":git", "date", "publishDate" ]
+
+
+build:
+  noJSConfigInAssets: true
+
+
+params:
+  jsopts:
+    minify: false
+    sourceMap: ""
+
+  timeline: "https://timeline.crupest.life"

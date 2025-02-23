@@ -6,7 +6,7 @@ RUN pnpm install --frozen-lockfile && pnpm run build
 
 FROM nginx:mainline
 COPY --from=build-www /sites/www/dist /srv/www
-ADD sites/www/favicon.ico /srv/www/favicon.ico
+ADD mail-robots.txt /srv/mail/robots.txt
 RUN apt update && apt-get install -y tini certbot && rm -rf /var/lib/apt/lists/*
 ADD --chmod=755 certbot.bash nginx-wrapper.bash /app/
 CMD ["/usr/bin/tini", "--", "/app/nginx-wrapper.bash"]
