@@ -1,0 +1,6 @@
+{{ define "content" }}
+  <h1>Posts</h1>
+  {{ range .Pages }}
+    <h2><a class="nomono" href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+  {{ end }}
+{{ end }}

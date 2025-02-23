@@ -1,0 +1,19 @@
+languageCode: "en"
+baseURL: "https://crupest.life/"
+title: "crupest's life"
+DefaultContentLanguage: "en"
+hasCJKLanguage: true
+enableEmoji: true
+enableGitInfo: true
+copyright: "CC BY-NC 4.0"
+
+frontmatter:
+  lastmod: [ "lastmod", ":git", "date", "publishDate" ]
+
+build:
+  noJSConfigInAssets: true
+
+params:
+  jsopts:
+    minify: false
+    sourceMap: ""

@@ -1,0 +1,100 @@
+{{ define "head"}}
+  {{ with resources.Get "home-style.css" | minify }}
+    <link href="{{ .RelPermalink }}" rel="stylesheet">
+  {{ end }}
+{{ end }}
+
+{{ define "friend" }}
+  {{ $gh_url := printf "https://github.com/%s" .github}}
+  <div class="friend">
+    <a rel="noopener noreferrer" href="{{ or .url $gh_url }}">
+      <img class="friend-avatar" alt="Friend {{.name}}'s avatar" src="{{.avatar}}"
+        width="80" height="80"/><br/>{{.name}}</a>
+    <a rel="noopener noreferrer" href="{{ $gh_url }}">
+      {{- with resources.Get "github-mark.png" -}}
+        <img class="friend-github" src="{{ .RelPermalink }}"/>
+      {{- end -}}
+    </a><br/>
+    {{ if .tag }}
+      <span class="friend-tag">{{ .tag }}</span>
+    {{ end }}
+  </div>
+{{ end }}
+
+{{ define "pre-article" }}
+  <div class="slogan-container">
+    <div class="slogan happy">
+      <span>🙃The world is full of pain, but we can fix it with love!</span>
+    </div>
+    <div class="slogan angry">
+      <span>😡The world is a piece of shit, so let's make it a little better!</span>
+    </div>
+  </div>
+{{ end }}
+
+{{ define "content"}}
+    <img id="avatar" src="/avatar.png" alt="My avatar" width="80" height="80"/>
+    <h1 id="title">Hello! This is <span id="title-name">crupest</span> !</h1>
+    <hr/>
+    <section>
+      <p>Welcome to my home page! Nice to meet you here! 🥰</p>
+      <p>If you have something interesting to share with me, feel free to email me at
+        <a rel="noopener noreferrer" href="mailto:crupest@crupest.life">crupest@crupest.life</a>.</p>
+      <p>You can also create an issue in any of my repos on GitHub to talk anything to me,
+        <a rel="noopener noreferrer" href="https://github.com/crupest">https://github.com/crupest</a>.</p>
+    </section>
+    <section>
+      <h2 id="friends">My Friends <small>(more links are being collected ...)</small></h2>
+      <div id="friends-container">
+        {{ block "friend" dict
+          "name" "wsm"
+          "avatar" "https://avatars.githubusercontent.com/u/74699943?v=4"
+          "github" "wushuming666"
+        }}
+        {{ end }}
+        {{ block "friend" dict
+          "name" "hsz"
+          "url" "https://www.hszsoft.com"
+          "avatar" "https://avatars.githubusercontent.com/u/63097618?v=4"
+          "github" "hszSoft"
+          "tag" "随性の程序员"
+        }}
+        {{ end }}
+      </div>
+    </section>
+    <section>
+      <h2>Other Links</h2>
+      <ul>
+        <li><a rel="noopener noreferrer" href="https://crupest.life">https://crupest.life</a>
+          : home page, aka the one you are reading, built with
+          <a rel="noopener noreferrer" href="https://parceljs.org">Parcel</a>
+          and <a rel="noopener noreferrer" href="https://pnpm.io">pnpm</a>.</li>
+        <li><a rel="noopener noreferrer" href="https://crupest.life/blog">https://crupest.life/blog</a>
+          : blogs, built with <a rel="noopener noreferrer" href="https://gohugo.io">hugo</a>.</li>
+        <li><a rel="noopener noreferrer" href="https://crupest.life/git">https://crupest.life/git</a>
+          : my git repos and <a rel="noopener noreferrer" href="https://git.zx2c4.com/cgit/">cgit</a> for viewing them.</li>
+        <li><del><span class="fake-link">https://timeline.crupest.life</span> : micro-blog with my own web app
+          <a rel="noopener noreferrer" href="https://github.com/crupest/Timeline">Timeline</a>.</del>
+          No longer maintain, so it stops serving due to security concerns.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Always Remember</h2>
+      <figure class="citation">
+        <blockquote>
+          <p>Die Philosophen haben die Welt nur verschieden interpretiert, es kömmt aber darauf an, sie zu verändern.</p>
+          <p><small>Translated from German:</small>
+            The philosophers have only interpreted the world in various ways, the point is to change it.</p>
+        </blockquote>
+        <figcaption>
+          <cite>Karl Marx, Theses on Feuerbach (1845)</cite>
+        </figcaption>
+      </figure>
+    </section>
+{{ end }}
+
+{{ define "scripts" }}
+  {{ with resources.Get "main.ts" | js.Build .Site.Params.jsopts }}
+    <script type="module" src="{{ .RelPermalink }}"></script>
+  {{ end }}
+{{ end }}

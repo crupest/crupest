@@ -1,0 +1,60 @@
+html {
+  width: 100%;
+}
+
+body {
+  width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  font-family: monospace;
+}
+
+a.nomono {
+  font-family: initial;
+}
+
+.fake-link {
+  font-family: monospace;
+}
+
+#main-article {
+  max-width: 880px;
+  margin-top: 1em;
+  padding: 0 1em;
+  align-self: center;
+}
+
+@keyframes content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(100px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#main-article > * {
+  animation: content-enter 0.8s;
+}
+
+#license a {
+  font-family: initial;
+  text-decoration: none;
+}
+
+#license-text {
+  font-family: monospace;
+  text-decoration: initial;
+}
+
+#license-img-container img {
+  height: 1em;
+  vertical-align: middle;
+}
