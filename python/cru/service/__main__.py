@@ -1,6 +1,6 @@
 import sys
 
-from manager import CruException
+from cru import CruException
 
 from ._app import create_app
 

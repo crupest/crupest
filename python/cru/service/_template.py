@@ -4,9 +4,9 @@ import shutil
 from typing import NamedTuple
 import graphlib
 
-from manager import CruException
-from manager.parsing import SimpleLineVarParser
-from manager.template import TemplateTree, CruStrWrapperTemplate
+from cru import CruException
+from cru.parsing import SimpleLineVarParser
+from cru.template import TemplateTree, CruStrWrapperTemplate
 
 from ._base import AppCommandFeatureProvider, AppFeaturePath
 
@@ -125,7 +125,7 @@ class TemplateManager(AppCommandFeatureProvider):
             config
             | {key: template.variables for key, template in entry_templates.items()}
         )
-        
+
         vars: dict[str, str] = config.copy()
         for _ in sorter.static_order():
             del_keys = []
