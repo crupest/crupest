@@ -1,0 +1,93 @@
+{{ define "head"}}
+  {{ partial "css.html" "real-home.css" }}
+  {{ partial "css.html" "partials/preview/article.css" }}
+{{ end }}
+
+{{ define "friend" }}
+  {{ $gh_url := printf "https://github.com/%s" .github}}
+  <div class="friend">
+    <a rel="noopener noreferrer" href="{{ or .url $gh_url }}">
+      <img class="friend-avatar" alt="Friend {{.name}}'s avatar" src="{{.avatar}}" width="80"
+        height="80" /><br />{{.name}}</a>
+    <a rel="noopener noreferrer" href="{{ $gh_url }}">
+      {{- with resources.Get "github-mark.png" -}}
+        <img class="friend-github" src="{{ .RelPermalink }}" />
+      {{- end -}}
+    </a><br />
+    {{ if .tag }}
+      <span class="friend-tag">{{ .tag }}</span>
+    {{ end }}
+  </div>
+{{ end }}
+
+{{ define "content"}}
+  <img id="avatar" src="/avatar.png" alt="My avatar" width="80" height="80" />
+  <h1 id="title">Hello! This is <span id="title-name">crupest</span> !</h1>
+  <hr />
+  <section>
+    <p>Welcome to my home page! Nice to meet you here! 🥰</p>
+    <p>If you have something interesting to share with me, feel free to email me at
+      <a rel="noopener noreferrer" href="mailto:crupest@crupest.life">crupest@crupest.life</a>.
+    </p>
+    <p>You can also create an issue in any of my repos on GitHub to talk anything to me,
+      <a rel="noopener noreferrer" href="https://github.com/crupest">https://github.com/crupest</a>.
+    </p>
+  </section>
+  <hr>
+  {{ with .Site.GetPage "posts" }}
+    <section id="recent-posts">
+      <h2>Recent Posts <a class="mono-link" href="{{ .RelPermalink }}">(all)</a></h2>
+        {{ partial "preview/posts.html" (dict
+          "h" "h3"
+          "pages" (.RegularPages.ByDate.Reverse.Limit 3))
+        }}
+    </section>
+  {{ end }}
+  <hr>
+  <section>
+    <h2 id="friends">My Friends <small>(more links are being collected ...)</small></h2>
+    <div id="friends-container">
+      {{ block "friend" dict
+        "name" "wsm"
+        "avatar" "https://avatars.githubusercontent.com/u/74699943?v=4"
+        "github" "wushuming666"
+      }}
+      {{ end }}
+      {{ block "friend" dict
+        "name" "hsz"
+        "url" "https://www.hszsoft.com"
+        "avatar" "https://avatars.githubusercontent.com/u/63097618?v=4"
+        "github" "hszSoft"
+        "tag" "随性の程序员"
+      }}
+      {{ end }}
+    </div>
+  </section>
+  <section class="mono-link">
+    <h2>Other Links</h2>
+    <ul>
+      <li><a rel="noopener noreferrer" href="{{ .RelPermalink }}">{{ .RelPermalink }}</a>
+        : home page, aka the one you are reading, built with <a rel="noopener noreferrer"
+          href="https://gohugo.io">hugo</a>.</li>
+      <li><a rel="noopener noreferrer" href="{{ absURL "/git/" }}">{{ absURL "/git/" }}</a>
+        : my git repos and <a rel="noopener noreferrer" href="https://git.zx2c4.com/cgit/">cgit</a> for viewing them.</li>
+      <li><del><span class="fake-link">{{ .Site.Params.timeline }}</span> : micro-blog with my own web app
+          <a rel="noopener noreferrer" href="https://github.com/crupest/Timeline">Timeline</a>.</del>
+        No longer maintain, so it stops serving due to security concerns.</li>
+    </ul>
+  </section>
+  <hr>
+  <section>
+    <h2>Always Remember</h2>
+    <figure class="citation">
+      <blockquote>
+        <p>Die Philosophen haben die Welt nur verschieden interpretiert, es kömmt aber darauf an, sie zu verändern.</p>
+        <p><small>Translated from German:</small>
+          The philosophers have only interpreted the world in various ways, the point is to change it.</p>
+      </blockquote>
+      <figcaption>
+        <cite>Karl Marx, Theses on Feuerbach (1845)</cite>
+      </figcaption>
+    </figure>
+  </section>
+{{ end }}

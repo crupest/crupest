@@ -2,6 +2,10 @@ server {
     server_name mail.@@CRUPEST_DOMAIN@@;
     include common/https-listen;
     
+    location = /robots.txt {
+        root /srv/mail;
+    }
+
     location / {
         include common/proxy-common;
         proxy_pass http://roundcubemail:80/;

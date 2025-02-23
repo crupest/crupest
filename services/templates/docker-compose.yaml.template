@@ -1,19 +1,11 @@
 services:
 
-  blog:
-    pull_policy: build
-    build:
-      context: ./@@CRUPEST_DOCKER_DIR@@/blog
-      dockerfile: Dockerfile
-      pull: true
-    volumes:
-      - "blog-public:/public"
-    restart: on-failure:3
-
   nginx:
     pull_policy: build
     build:
       context: ./@@CRUPEST_DOCKER_DIR@@/nginx
+      additional_contexts:
+        - www=./www
       dockerfile: Dockerfile
       pull: true
     ports:
@@ -27,7 +19,6 @@ services:
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/webroot:/srv/acme:ro"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/data:/var/lib/letsencrypt"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/webroot:/var/www/certbot"
-      - "blog-public:/srv/www/blog:ro"
     restart: on-failure:3
 
   v2ray:
@@ -52,7 +43,7 @@ services:
       - "CRUPEST_AUTO_BACKUP_COS_ENDPOINT=@@CRUPEST_AUTO_BACKUP_COS_ENDPOINT@@"
       - "CRUPEST_AUTO_BACKUP_COS_BUCKET=@@CRUPEST_AUTO_BACKUP_COS_BUCKET@@"
       - "CRUPEST_AUTO_BACKUP_COS_SECRET_ID=@@CRUPEST_AUTO_BACKUP_COS_SECRET_ID@@"
-      - "CRUPEST_AUTO_BACKUP_COS_SECRET_KEY=@@CRUPEST_AUTO_BACKUP_COS_SECRET_KEY@@"  
+      - "CRUPEST_AUTO_BACKUP_COS_SECRET_KEY=@@CRUPEST_AUTO_BACKUP_COS_SECRET_KEY@@"
     volumes:
       - "./data:/data"
     restart: on-failure:3
@@ -142,5 +133,4 @@ services:
       - TRUSTED_PROXIES=*
 
 volumes:
-  blog-public:
   roundcubemail-temp:

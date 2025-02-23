@@ -1,0 +1,10 @@
+<section class="article-preview">
+  <span class="date">{{ .date | time.Format ":date_medium" }}</span>
+  {{ (printf `<%[1]s class="title"><a href="%s">%s</a></%[1]s>` .h .link .title) | safeHTML }}
+  <p class="content">
+    {{ range split .content "\n" | first 5 }}
+      {{ . | htmlUnescape }}<br/>
+    {{ end }}
+  </p>
+  <p>... <a class="mono-link" href="{{ .link }}">Read more</a></p>
+</section>

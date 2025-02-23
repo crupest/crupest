@@ -1,0 +1,9 @@
+{{ with resources.Get . | minify }}
+  {{ if hugo.IsProduction }}
+    {{ with . | fingerprint }}
+      <link href="{{ .RelPermalink }}" rel="stylesheet" integrity="{{ .Data.Integrity }}">
+    {{ end }}
+  {{ else }}
+    <link href="{{ .RelPermalink }}" rel="stylesheet">
+  {{ end }}
+{{ end }}

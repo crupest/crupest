@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ block "title" . }}
+      {{ .Site.Title }}
+    {{ end }}</title>
+    {{ with resources.Get "catppuccin-latte.css" | minify | fingerprint  }}
+      <style>{{ printf `@import url(%s);` .RelPermalink | safeCSS  }}</style>
+    {{ end }}
+    {{ with resources.Get "catppuccin-mocha.css" | minify | fingerprint }}
+      <style>{{ printf `@import url(%s) (prefers-color-scheme: dark);` .RelPermalink | safeCSS  }}</style>
+    {{ end }}
+    {{ partial "css.html" "base-style.css" }}
+    {{ block "head" . }}
+    {{ end }}
+  </head>
+  <body>
+    {{ partial "js.html" "color-scheme.ts" }}
+    <div id="slogan">
+      <span>🙃The world is full of pain, but we can fix it with love!</span>
+    </div>
+    {{ block "pre-article" .}}
+    {{ end }}
+    <article id="main-article">
+      {{ block "content" . }}
+      {{ end }}
+      <hr/>
+      <footer class="mono-link">
+        <p id="license">
+          <small>This work is licensed under
+            <a rel="license noopener noreferrer"
+              href="https://creativecommons.org/licenses/by-nc/4.0/"
+              target="_blank">
+              <span id="license-text">CC BY-NC 4.0</span>
+              <span id="license-img-container">
+                <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg"/>
+                <img src="https://mirrors.creativecommons.org/presskit/icons/by.svg"/>
+                <img src="https://mirrors.creativecommons.org/presskit/icons/nc.svg"/>
+              </span>
+            </a>
+          </small>
+        </p>
+      </footer>
+  </article>
+
+  {{ block "scripts" . }}
+  {{ end }}
+</body>
+</html>

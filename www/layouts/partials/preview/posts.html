@@ -1,0 +1,7 @@
+{{ $h := .h }}
+{{ range .pages }}
+  {{ partial "preview/post.html" (dict
+    "h" $h
+    "page" .)
+  }}
+{{ end }}
