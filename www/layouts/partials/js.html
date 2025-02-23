@@ -1,0 +1,9 @@
+{{ with resources.Get . }}
+  {{ if hugo.IsProduction }}
+    {{ with . | js.Build (dict "minify" true "sourceMap" "external")  | fingerprint }}
+      <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}"></script>
+    {{ end }}
+  {{ else }}
+    <script src="{{ (. | js.Build dict) .RelPermalink }}"></script>
+  {{ end }}
+{{ end }}

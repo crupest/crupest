@@ -1,0 +1,61 @@
+#slogan {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+}
+
+#title-name {
+  font-family: monospace;
+  color: var(--bg-color);
+  background-color: var(--fg-color);
+}
+
+#avatar {
+  float: right;
+}
+
+#recent-posts {
+  margin-block-end: 1.5em;
+}
+
+#friends-container {
+  display: flex;
+  gap: 1em;
+}
+
+.friend {
+  flex-grow: 0;
+  text-align: center;
+}
+
+.friend a {
+  font-family: unset;
+}
+
+.friend-avatar {
+  object-fit: cover;
+}
+
+.friend-github {
+  width: 1em;
+  vertical-align: middle;
+  margin-right: -0.5em;
+}
+
+.friend-tag {
+  font-size: 0.8em;
+}
+
+.citation {
+  margin: auto;
+}
+
+.citation figcaption {
+  text-align: right;
+}
+
+body[data-theme="dark"] {
+  & .friend-github {
+    filter: invert(1);
+  }
+}

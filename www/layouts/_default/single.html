@@ -1,0 +1,17 @@
+{{ define "head"}}
+  {{ partial "css.html" "single.css" }}
+{{ end }}
+
+{{ define "title" }}
+  {{ .Title }}
+{{ end }}
+
+{{ define "content" }}
+  {{ partial "nav.html" . }}
+  <h1 class="post-title">{{ .Title }}</h1>
+  <hr/>
+  <p class="post-info"><span class="created">{{ partial "date.html" .Date }}</span> <span class="last-updated">Last updated: {{ partial "date.html" .Lastmod }}</span></p>
+  {{ .Content }}
+  <hr class="end-hr"/>
+  {{ partial "nav.html" . }}
+{{ end }}
