@@ -13,6 +13,7 @@ server {
 
     location /git/ {
         include common/proxy-common;
+        client_max_body_size 5G;
         proxy_pass http://git-server:80;
     }
 
