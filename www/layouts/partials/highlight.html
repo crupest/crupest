@@ -1,0 +1,6 @@
+{{ $light := resources.Get "catppuccin-latte.css" }}
+{{ $dark := resources.Get "catppuccin-mocha.css" }}
+{{ $dark_wrapper_before := resources.FromString "highlight-dark-wapper-before.css" `html[data-theme="dark"] {`}}}
+{{ $dark_wrapper_after := resources.FromString "highlight-dark-wapper-after.css" "}"}}
+{{ $highlight := slice $light $dark_wrapper_before $dark $dark_wrapper_after | resources.Concat "highlight.css" }}
+{{ return $highlight }}

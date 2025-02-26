@@ -7,6 +7,10 @@ defaultContentLanguage: "en"
 hasCJKLanguage: true
 enableEmoji: true
 
+disableKinds:
+  - taxonomy
+  - term
+
 frontmatter:
   lastmod: [ "lastmod", "date", "publishDate" ]
 
@@ -17,7 +21,6 @@ markup:
 
 build:
   noJSConfigInAssets: true
-
 
 params:
   jsopts:

@@ -10,7 +10,13 @@
   {{ partial "nav.html" . }}
   <h1 class="post-title">{{ .Title }}</h1>
   <hr/>
-  <p class="post-info"><span class="created">{{ partial "date.html" .Date }}</span> <span class="last-updated">Last updated: {{ partial "date.html" .Lastmod }}</span></p>
+  <p class="post-info">
+    <span class="created">{{ partial "date.html" .Date }}</span> |
+    <span class="words">{{ .WordCount }} words</span>
+    {{ if ne .Lastmod .Date }}
+      <span class="last-updated">Last updated: {{ partial "date.html" .Lastmod }}</span>
+    {{ end}}
+  </p>
   {{ .Content }}
   <hr class="end-hr"/>
   {{ partial "nav.html" . }}

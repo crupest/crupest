@@ -9,18 +9,13 @@
     <title>{{ block "title" . }}
       {{ .Site.Title }}
     {{ end }}</title>
-    {{ with resources.Get "catppuccin-latte.css" | minify | fingerprint  }}
-      <style>{{ printf `@import url(%s);` .RelPermalink | safeCSS  }}</style>
-    {{ end }}
-    {{ with resources.Get "catppuccin-mocha.css" | minify | fingerprint }}
-      <style>{{ printf `@import url(%s) (prefers-color-scheme: dark);` .RelPermalink | safeCSS  }}</style>
-    {{ end }}
+    {{ partial "js.html" "color-scheme.ts" }}
+    {{ partial "css-res.html" (partial "highlight.html" dict) }}
     {{ partial "css.html" "base-style.css" }}
     {{ block "head" . }}
     {{ end }}
   </head>
   <body>
-    {{ partial "js.html" "color-scheme.ts" }}
     <div id="slogan">
       <span>🙃The world is full of pain, but we can fix it with love!</span>
     </div>

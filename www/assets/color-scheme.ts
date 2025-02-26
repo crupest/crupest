@@ -1,7 +1,3 @@
-const key = "color-scheme"
-
-type scheme = "dark" | "light" | null
-
 function createResetTimer(cleanup: () => void, timeout = 1) {
   let tag = 0
   return () => {
@@ -11,10 +7,6 @@ function createResetTimer(cleanup: () => void, timeout = 1) {
     }, timeout * 1000)
   }
 }
-
-let current = localStorage.getItem(key) as scheme
-
-let inited = false
 
 function createToast(duration: number = 1): (text: string) => void {
   const toast = document.createElement("div")
@@ -33,40 +25,69 @@ function createToast(duration: number = 1): (text: string) => void {
   }
 }
 
-const themeToast = createToast()
+const setToast = createToast()
 
-function setTheme(value: scheme) {
-  let message = ""
-  current = value
+const key = "force-color-scheme"
+const dark = "dark"
+const light = "light"
+type Scheme = typeof dark | typeof light
 
-  if (value == null) {
-    const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-    value = prefersDarkScheme ? "dark" : "light"
-    message = `theme: system(${value})`
-    localStorage.removeItem(key)
+const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+
+function fromMediaQuery(value: boolean | null): Scheme {
+  if (value == null) { value = mediaQuery.matches}
+  return value ? dark : light
+}
+
+function opposite(scheme: Scheme): Scheme {
+  return scheme === dark ? light : dark
+}
+
+function updateScheme(theme: Scheme | null): Scheme {
+  if (theme == null) { theme = fromMediaQuery(null) }
+  document.querySelector("html")!.dataset["theme"] = theme
+  return theme
+}
+
+mediaQuery.addEventListener("change", (e) => updateScheme(current || fromMediaQuery(e.matches)))
+
+let current: Scheme | null = null
+
+{
+  const saved = localStorage.getItem(key)
+  if ([null, dark, light].includes(saved)) {
+    current = saved as never
   } else {
-    message = `theme: force(${value})`
-    localStorage.setItem(key, value)
-  }
-
-  document.body.dataset["theme"] = value
-
-  if (inited) {
-    themeToast(message)
+    console.log(`invalid saved theme: ${saved}`)
+    localStorage.removeItem(key)
   }
 }
 
-setTheme(current)
-inited = true
+updateScheme(current)
 
-function next(scheme: scheme): scheme {
-  switch (scheme) {
-    case "dark":
-      return "light"
-    case "light":
-      return null
-    default:
-      return "dark"
+function saveScheme(value: Scheme | null) {
+  current = value
+
+  if (value == null) {
+    localStorage.removeItem(key)
+  } else {
+    localStorage.setItem(key, value)
+  }
+
+  const real = updateScheme(value)
+  setToast(`theme: ${current == null ? "system" : "force"}(${real})`)
+}
+
+function next(): Scheme | null {
+  const sys = fromMediaQuery(null)
+  if (current == null) {
+    return opposite(sys)
+  } else {
+    if (current === sys) {
+      return null;
+    } else {
+      return opposite(current)
+    }
   }
 }
 
@@ -82,9 +103,8 @@ window.addEventListener("load", () => {
     reset()
     clicks += 1
     if (clicks === 3) {
-      setTheme(next(current))
+      saveScheme(next())
       clicks = 0
     }
   })
 })
-
