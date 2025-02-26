@@ -54,7 +54,7 @@
   text-align: right;
 }
 
-body[data-theme="dark"] {
+html[data-theme="dark"] {
   & .friend-github {
     filter: invert(1);
   }

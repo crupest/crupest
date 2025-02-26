@@ -1,5 +1,7 @@
 html {
   width: 100%;
+  --fg-color: black;
+  --bg-color: white;
 }
 
 * {
@@ -9,8 +11,6 @@ html {
 body {
   width: 100%;
   margin: 0;
-  --fg-color: black;
-  --bg-color: white;
   color: var(--fg-color);
   background-color: var(--bg-color);
 }
@@ -88,7 +88,7 @@ nav {
   vertical-align: middle;
 }
 
-body[data-theme="dark"] {
+html[data-theme="dark"] {
   --fg-color: white;
   --bg-color: black;
 
