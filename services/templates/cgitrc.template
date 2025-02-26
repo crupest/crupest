@@ -17,4 +17,5 @@ about-filter=/usr/lib/cgit/filters/about-formatting.sh
 readme=:README.md
 readme=:README
 
+remove-suffix=1
 scan-path=/git/
