@@ -15,26 +15,14 @@ success() {
   echo -e "\033[32mSuccess: " "$@" "\033[0m"
 }
 
-# Check I'm root.
-if [[ $EUID -ne 0 ]]; then
-  die "This script must be run as root"
-fi
-
-if [[ ! -f /run/secrets/auto-backup ]]; then
-  die "/run/secrets/auto-backup not found, please use docker secrets to set it."
-fi
-
 if [[ -z "$CRUPEST_AUTO_BACKUP_INTERVAL" ]]; then
   die "Backup interval not set, please set it!"
 fi
 
-# shellcheck source=/dev/null
-. /run/secrets/auto-backup
-
 note "Checking secrets..."
 [[ -n "$CRUPEST_AUTO_BACKUP_COS_ENDPOINT" ]] || die "COS endpoint not set!"
 [[ -n "$CRUPEST_AUTO_BACKUP_COS_BUCKET" ]] || die "COS bucket not set!"
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_SECRET_ID" ]] || die "COS secret ID  not set!"
+[[ -n "$CRUPEST_AUTO_BACKUP_COS_SECRET_ID" ]] || die "COS secret ID not set!"
 [[ -n "$CRUPEST_AUTO_BACKUP_COS_SECRET_KEY" ]] || die "COS secret key not set!"
 success "Secrets check passed."
 
