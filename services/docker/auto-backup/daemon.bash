@@ -68,7 +68,7 @@ function backup {
   echo "Remove tmp file..."
   rm "$tmp_file"
 
-  echo "$des_file_name" >>/data/backup.log
+  echo "$des_file_name" >> /data/auto-backup/backup.log
 
   success "Finish backup!"
 }
