@@ -45,7 +45,8 @@ services:
       - "CRUPEST_AUTO_BACKUP_COS_SECRET_ID=@@CRUPEST_AUTO_BACKUP_COS_SECRET_ID@@"
       - "CRUPEST_AUTO_BACKUP_COS_SECRET_KEY=@@CRUPEST_AUTO_BACKUP_COS_SECRET_KEY@@"
     volumes:
-      - "./data:/data"
+      - "./data:/data:ro"
+      - "./data/auto-backup:/data/auto-backup"
     restart: on-failure:3
 
   mailserver:
