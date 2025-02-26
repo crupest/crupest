@@ -4,6 +4,8 @@
       <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}"></script>
     {{ end }}
   {{ else }}
-    <script src="{{ (. | js.Build dict) .RelPermalink }}"></script>
+    {{ with . | js.Build }}
+      <script src="{{ .RelPermalink }}"></script>
+    {{ end }}
   {{ end }}
 {{ end }}
