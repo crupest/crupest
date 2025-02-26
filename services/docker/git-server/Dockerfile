@@ -4,6 +4,10 @@ RUN apt-get update && apt-get install -y \
     tar gzip bzip2 zip unzip tini && \
     rm -rf /var/lib/apt/lists/*
 
+ENV GIT_CONFIG_SYSTEM=/etc/gitconfig GIT_CONFIG_GLOBAL=/git/private/gitconfig
+
+ADD gitconfig /etc/gitconfig
+ADD --chmod=755 hooks/* /etc/git/hooks/
 ADD git-lighttpd.conf git-auth.conf /app/
 ADD --chmod=755 lighttpd-wrapper.bash /app/
 
