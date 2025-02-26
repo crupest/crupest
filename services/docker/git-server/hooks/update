@@ -1,0 +1,38 @@
+#!/usr/bin/bash
+
+set -e -o pipefail
+
+ref="$1"
+old="$2"
+new="$3"
+protected_file="$GIT_DIR/protected"
+
+die() {
+  echo "error: $*" > /dev/stderr
+  exit 1
+}
+
+if [[ -f "$protected_file" ]]; then
+  while read -r line; do
+    if grep -q -E "$line" - <<< "$ref" ; then
+      if grep -q -E "^0+$" <<< "$new"; then
+        die "protected branch $ref (rule: $line) cannot be deleted"
+      fi
+
+      if ! git merge-base --is-ancestor "$old" "$new"; then
+        die "protected branch $ref (rule: $line) is not fast-forward $(expr substr "$old" 1 8) -> $(expr substr "$new" 1 8)"
+      fi
+    fi
+  done <"$protected_file"
+fi
+
+global_hook="/git/private/git/hooks/update"
+local_hook="$GIT_DIR/hooks/update"
+
+if [[ -x "$global_hook" ]]; then
+  "$global_hook" "$ref" "$old" "$new"
+fi
+
+if [[ -x "$local_hook" ]]; then
+  "$local_hook" "$ref" "$old" "$new"
+fi
