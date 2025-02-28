@@ -67,7 +67,7 @@ services:
       - "4190:4190" # manage sieve protocol
     volumes:
       - ./@@CRUPEST_DATA_MAILSERVER_DIR@@/mail-data/:/var/mail/
-      - ./@@CRUPEST_DATA_MAILSERVER_DIR@@/mail-state/:/var/mail-state/
+      - ./@@CRUPEST_SERVICES_STATE_DIR@@/mail-state/:/var/mail-state/
       - ./@@CRUPEST_DATA_MAILSERVER_DIR@@/mail-logs/:/var/log/mail/
       - ./@@CRUPEST_DATA_MAILSERVER_DIR@@/config/:/tmp/docker-mailserver/
       - ./@@CRUPEST_DATA_CERTBOT_DIR@@/certs:/etc/letsencrypt
