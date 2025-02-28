@@ -11,32 +11,32 @@ kernel:
 
     - name: hurd
       git:
-        my: https://git.crupest.life/love-hurd/hurd
+        my: https://crupest.life/git/love-hurd/hurd.git
         upstream: https://git.savannah.gnu.org/git/hurd/hurd.git
         debian: https://salsa.debian.org/hurd-team/hurd
 
     - name: gnumach
       git:
-        my: https://git.crupest.life/love-hurd/gnumach
+        my: https://crupest.life/git/love-hurd/gnumach.git
         upstream: https://git.savannah.gnu.org/git/hurd/gnumach.git
         debian: https://salsa.debian.org/hurd-team/gnumach
 
     - name: mig
       git:
-        my: https://git.crupest.life/love-hurd/mig
+        my: https://crupest.life/git/love-hurd/mig.git
         upstream: https://git.savannah.gnu.org/git/hurd/mig.git
         debian: https://salsa.debian.org/hurd-team/mig
 
     - name: glibc
       git:
-        my: https://git.crupest.life/love-hurd/glibc
+        my: https://crupest.life/git/love-hurd/glibc.git
         upstream:  git://sourceware.org/git/glibc.git
         debian: https://salsa.debian.org/glibc-team/glibc
         mirror: https://mirrors.tuna.tsinghua.edu.cn/git/glibc.git
 
     - name: web
       git:
-        my: https://git.crupest.life/love-hurd/web
+        my: https://crupest.life/git/love-hurd/web.git
         upstream: https://git.savannah.gnu.org/git/hurd/web.git
 
 
@@ -52,7 +52,7 @@ debian-port:
 
     - name: abseil
       git:
-        my: https://git.crupest.life/love-hurd/abseil
+        my: https://crupest.life/git/love-hurd/abseil.git
         debian: https://salsa.debian.org/debian/abseil
         upstream: https://github.com/abseil/abseil-cpp
       mail:
@@ -62,7 +62,7 @@ debian-port:
 
     - name: libgav1
       git:
-        my: https://git.crupest.life/love-hurd/libgav1
+        my: https://crupest.life/git/love-hurd/libgav1.git
         debian: https://salsa.debian.org/multimedia-team/libgav1
         upstream: https://chromium.googlesource.com/codecs/libgav1/
       mail:
@@ -70,8 +70,21 @@ debian-port:
       gerrit:
         - https://chromium-review.googlesource.com/c/codecs/libgav1/+/6239812
 
+    - name: pam
+      git:
+        my: https://crupest.life/git/love-hurd/pam.git
+        debian: https://salsa.debian.org/vorlon/pam
+        upstream: https://github.com/linux-pam/linux-pam
+      mail:
+        - https://lists.debian.org/debian-hurd/2025/02/msg00018.html
 
 cheatsheet:
+  - name: Start Hurd in qemu kvm.
+    tag:
+      - run
+      - setup
+    command:
+      - qemu-system-x86_64 -enable-kvm -m 4G -net nic -net user,hostfwd=tcp::3222-:22 -vga vmware -drive cache=writeback,file=[...]
 
   - name: Configure/Setup network.
     tag:
