@@ -1,0 +1,10 @@
+[user]
+	name = Yuqian Yang
+	email = crupest@crupest.life
+[core]
+	autocrlf = false
+	editor = vim
+[credential]
+	helper = /usr/lib/git-core/git-credential-libsecret
+[alias]
+	lg = log --decorate --oneline --graph

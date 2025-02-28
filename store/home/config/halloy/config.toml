@@ -1,0 +1,20 @@
+tooltips = true
+
+[notifications]
+direct_message = { sound = "peck", show_toast = true }
+connected = { sound = "ring", show_toast = true }
+disconnected = { sound = "ring", show_toast = true }
+
+[notifications.highlight]
+sound = "dong"
+exclude = [ "NickServ" ]
+
+[servers.liberachat]
+nickname = "crupest"
+server = "irc.libera.chat"
+channels = [ "#hurd" ]
+use_tls = true
+
+[servers.liberachat.sasl.plain]
+username = "crupest"
+password = ...
