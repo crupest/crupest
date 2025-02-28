@@ -14,7 +14,7 @@ server {
     location /git/ {
         include common/proxy-common;
         client_max_body_size 5G;
-        proxy_pass http://git-server:80;
+        proxy_pass http://git-server:3636;
     }
 
     location = /github {

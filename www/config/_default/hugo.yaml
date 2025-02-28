@@ -2,6 +2,8 @@ baseURL: "https://crupest.life/"
 title: "crupest's life"
 copyright: "CC BY-NC 4.0"
 
+enableRobotsTXT: true
+
 languageCode: "en"
 defaultContentLanguage: "en"
 hasCJKLanguage: true
