@@ -14,6 +14,24 @@
   float: right;
 }
 
+#links {
+  font-family: monospace;
+
+  margin-block-end: 1rem;
+
+  > ul {
+    display: inline;
+    padding-inline-start: 0.5em;
+    >li {
+      display: inline;
+
+      &::after {
+        content: " | ";
+      }
+    }
+  }
+}
+
 #recent-posts {
   margin-block-end: 1.5em;
 }
