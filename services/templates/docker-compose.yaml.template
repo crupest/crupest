@@ -35,15 +35,11 @@ services:
 
   auto-backup:
     pull_policy: build
+    env_file: ./@@CRUPEST_GENERATED_DIR@@/envs/auto-backup.env
     build:
       context: ./@@CRUPEST_DOCKER_DIR@@/auto-backup
       dockerfile: Dockerfile
       pull: true
-    environment:
-      - "CRUPEST_AUTO_BACKUP_COS_ENDPOINT=@@CRUPEST_AUTO_BACKUP_COS_ENDPOINT@@"
-      - "CRUPEST_AUTO_BACKUP_COS_BUCKET=@@CRUPEST_AUTO_BACKUP_COS_BUCKET@@"
-      - "CRUPEST_AUTO_BACKUP_COS_SECRET_ID=@@CRUPEST_AUTO_BACKUP_COS_SECRET_ID@@"
-      - "CRUPEST_AUTO_BACKUP_COS_SECRET_KEY=@@CRUPEST_AUTO_BACKUP_COS_SECRET_KEY@@"
     volumes:
       - "./data:/data:ro"
       - "./data/auto-backup:/data/auto-backup"
@@ -54,7 +50,7 @@ services:
     pull_policy: always
     container_name: mailserver
     hostname: mail.@@CRUPEST_DOMAIN@@
-    env_file: ./@@CRUPEST_GENERATED_DIR@@/mailserver.env
+    env_file: ./@@CRUPEST_GENERATED_DIR@@/envs/mailserver.env
     # More information about the mail-server ports:
     # https://docker-mailserver.github.io/docker-mailserver/edge/config/security/understanding-the-ports/
     # To avoid conflicts with yaml base-60 float, DO NOT remove the quotation marks.
@@ -95,43 +91,22 @@ services:
     image: roundcube/roundcubemail:latest
     pull_policy: always
     hostname: roundcubemail
+    env_file: ./@@CRUPEST_GENERATED_DIR@@/envs/roundcubemail.env
     volumes:
       - ./@@CRUPEST_DATA_SECRET_DIR@@/gnupg:/gnupg
       - ./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/www/html:/var/www/html
       - ./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/db:/var/roundcube/db
       - ./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/config:/var/roundcube/config
       - roundcubemail-temp:/tmp/roundcube-temp
-    environment:
-      - ROUNDCUBEMAIL_DEFAULT_HOST=ssl://@@CRUPEST_MAIL_SERVER_DOMAIN@@
-      - ROUNDCUBEMAIL_DEFAULT_PORT=993
-      - ROUNDCUBEMAIL_SMTP_SERVER=ssl://@@CRUPEST_MAIL_SERVER_DOMAIN@@
-      - ROUNDCUBEMAIL_SMTP_PORT=465
-      - ROUNDCUBEMAIL_DB_TYPE=sqlite
-      - ROUNDCUBEMAIL_PLUGINS=archive,enigma,jqueryui,newmail_notifier,show_additional_headers,userinfo,zipdownload,managesieve
     restart: on-failure:3
 
   2fauth:
     image: 2fauth/2fauth
     pull_policy: always
     hostname: 2fauth
+    env_file: ./@@CRUPEST_GENERATED_DIR@@/envs/2fauth.env
     volumes:
       - ./data/2fauth:/2fauth
-    environment:
-      - APP_NAME=2FAuth-crupest
-      - APP_TIMEZONE=UTC
-      - SITE_OWNER=@@CRUPEST_EMAIL@@
-      - APP_KEY=@@CRUPEST_2FAUTH_APP_KEY@@
-      - APP_URL=@@CRUPEST_ROOT_URL@@2fa
-      - APP_SUBDIRECTORY=2fa
-      - MAIL_MAILER=smtp
-      - MAIL_HOST=@@CRUPEST_MAIL_SERVER_DOMAIN@@
-      - MAIL_PORT=465
-      - MAIL_USERNAME=@@CRUPEST_2FAUTH_MAIL_USERNAME@@
-      - MAIL_PASSWORD=@@CRUPEST_2FAUTH_MAIL_PASSWORD@@
-      - MAIL_ENCRYPTION=ssl
-      - MAIL_FROM_NAME=2FAuth-crupest
-      - MAIL_FROM_ADDRESS=@@CRUPEST_2FAUTH_MAIL_USERNAME@@
-      - TRUSTED_PROXIES=*
 
 volumes:
   roundcubemail-temp:
