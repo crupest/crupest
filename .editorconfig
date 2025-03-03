@@ -11,10 +11,13 @@ trim_trailing_whitespace = true
 indent_style = tab
 tab_width = 8
 
+[*.{html,css,js,ts}]
+indent_size = 2
+
 [*.{c,cpp,h}]
 indent_size = 2
 
-[*.{yaml,yml}]
+[*.{json,yaml,yml}]
 indent_size = 2
 
 [*.py]
