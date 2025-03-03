@@ -1,0 +1,25 @@
+<div class="mono link-group">
+  {{ $self := . }}
+  {{ $lines := slice }}
+  {{ range split .Inner "\n" }}
+    {{ if strings.ContainsNonSpace . }}
+      {{ $lines = $lines | append (strings.TrimSpace .) }}
+    {{ end }}
+  {{ end }}
+  {{ $notitle := false }}
+  {{ if .IsNamedParams }}
+    {{ $notitle = .Get "notitle" }}
+  {{ else }}
+    {{ $notitle = in .Params "notitle" }}
+  {{ end }}
+  {{ if not $notitle }}
+    {{ $title := index $lines 0 }}
+      <div class="link-group-title">{{ $title | $self.Page.RenderString }}</div>
+      {{ $lines = $lines | after 1 }}
+  {{ end }}
+  <div class="link-group-list">
+    {{ range $lines }}
+      <div class="link-group-item">{{ . | $self.Page.RenderString }}</div>
+    {{ end }}
+  </div>
+</div>

@@ -1,7 +1,7 @@
 version: "0.2"
 language: en
 dictionaries:
-  - crupest-words
+  - crupest-dict
   - en_US
   - companies
   - softwareTerms
@@ -20,8 +20,8 @@ dictionaries:
   - npm
 
 dictionaryDefinitions:
-  - name: crupest-words
-    path: './crupest-words.txt'
+  - name: crupest-dict
+    path: './dictionary.txt'
 
 patterns:
   - name: libs
@@ -29,3 +29,6 @@ patterns:
 
 ignoreRegExpList:
   - libs
+
+ignorePaths:
+  - www/layouts/index.html
