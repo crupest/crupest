@@ -1,5 +1,5 @@
 {{ define "head"}}
-  {{ partial "css.html" "real-home.css" }}
+  {{ partial "css.html" "home.css" }}
   {{ partial "css.html" "partials/preview/article.css" }}
 {{ end }}
 
@@ -28,13 +28,25 @@
     <p>Welcome to my home page! Nice to meet you here! 🥰</p>
     <p>If you have something interesting to share with me, feel free to email me at
       <a rel="noopener noreferrer" href="mailto:crupest@crupest.life">crupest@crupest.life</a>.
+      You can also create an issue in any of my repos on GitHub to talk anything to me.
     </p>
-    <p>You can also create an issue in any of my repos on GitHub to talk anything to me,
-      <a rel="noopener noreferrer" href="https://github.com/crupest">https://github.com/crupest</a>.
-    </p>
+    <div id="links" class="mono-link">
+      links:
+      <ul>
+        <li><a href="{{ .RelPermalink }}">home</a></li>
+        <li><a href="{{ absURL "/git/" }}">git</a></li>
+        {{ with .GetPage "/hurd" }}
+          <li><a href="{{ .RelPermalink }}">hurd</a></li>
+        {{ end }}
+        {{ with .GetPage "/todos" }}
+          <li><a href="{{ .RelPermalink }}">todos</a></li>
+        {{ end }}
+          <li><a rel="noopener noreferrer" href="https://github.com/crupest">github</a></li>
+        </ul>
+    </div>
   </section>
   <hr>
-  {{ with .Site.GetPage "posts" }}
+  {{ with .GetPage "/posts" }}
     <section id="recent-posts">
       <h2>Recent Posts <a class="mono-link" href="{{ .RelPermalink }}">(all)</a></h2>
         {{ partial "preview/posts.html" (dict
@@ -62,19 +74,6 @@
       }}
       {{ end }}
     </div>
-  </section>
-  <section class="mono-link">
-    <h2>Other Links</h2>
-    <ul>
-      <li><a rel="noopener noreferrer" href="{{ .RelPermalink }}">{{ .Permalink }}</a>
-        : home page, aka the one you are reading, built with <a rel="noopener noreferrer"
-          href="https://gohugo.io">hugo</a>.</li>
-      <li><a rel="noopener noreferrer" href="{{ absURL "/git/" }}">{{ absURL "/git/" }}</a>
-        : my git repos and <a rel="noopener noreferrer" href="https://git.zx2c4.com/cgit/">cgit</a> for viewing them.</li>
-      <li><del><span class="fake-link">{{ .Site.Params.timeline }}</span> : micro-blog with my own web app
-          <a rel="noopener noreferrer" href="https://github.com/crupest/Timeline">Timeline</a>.</del>
-        No longer maintain, so it stops serving due to security concerns.</li>
-    </ul>
   </section>
   <hr>
   <section>
