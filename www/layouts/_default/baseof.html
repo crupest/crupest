@@ -9,10 +9,13 @@
     <title>{{ block "title" . }}
       {{ .Site.Title }}
     {{ end }}</title>
-    {{ partial "js.html" "color-scheme.ts" }}
+    {{ partial "js.html" "res/js/color-scheme.ts" }}
     {{ partial "css-res.html" (partial "highlight.html" dict) }}
-    {{ partial "css.html" "base-style.css" }}
+    {{ partial "css.html" "res/css/base.css" }}
     {{ block "head" . }}
+    {{ end }}
+    {{ range .Params.css }}
+      {{ partial "css.html" (printf "res/css/%s.css" .) }}
     {{ end }}
   </head>
   <body>

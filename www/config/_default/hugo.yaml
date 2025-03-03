@@ -17,6 +17,9 @@ frontmatter:
   lastmod: [ "lastmod", "date", "publishDate" ]
 
 markup:
+  goldmark:
+    extensions:
+      table: true
   highlight:
     lineNos: true
     noClasses: false

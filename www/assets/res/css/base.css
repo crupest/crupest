@@ -25,6 +25,11 @@ a.mono-link,
   font-family: monospace;
 }
 
+div.mono-container {
+  font-family: monospace;
+  margin-block: 1rem;
+}
+
 .toast {
   font-size: large;
   font-family: monospace;
@@ -88,6 +93,24 @@ nav {
   vertical-align: middle;
 }
 
+.link-group {
+  margin-block-end: 1em;
+
+  > .link-group-title {
+    font-size: 1.1em;
+    margin-block-end: 5px;
+  }
+
+  > .link-group-list {
+    border-inline-start: solid 1px hsl(0, 0%, 25%);
+    padding-inline-start: 8px;
+
+    > .link-group-item::before {
+      content: "- ";
+    }
+  }
+}
+
 html[data-theme="dark"] {
   --fg-color: white;
   --bg-color: black;
@@ -110,6 +133,15 @@ html[data-theme="dark"] {
 
     & .n {
       color: var(--fg-color);
+    }
+  }
+
+  table  {
+    border-collapse: collapse;
+
+    &, :is(td,th) {
+      padding: 0.5em;
+      border: 1px solid hsl(0, 0%, 25%);
     }
   }
 }

@@ -8,6 +8,7 @@ rspamd
 certbot
 roundcube
 roundcubemail
+gohugoio
 
 # general
 cheatsheet

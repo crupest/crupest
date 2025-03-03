@@ -1,6 +1,6 @@
 {{ define "head"}}
-  {{ partial "css.html" "home.css" }}
-  {{ partial "css.html" "partials/preview/article.css" }}
+  {{ partial "css.html" "res/css/home.css" }}
+  {{ partial "css.html" "res/css/article.css" }}
 {{ end }}
 
 {{ define "friend" }}
@@ -10,7 +10,7 @@
       <img class="friend-avatar" alt="Friend {{.name}}'s avatar" src="{{.avatar}}" width="80"
         height="80" /><br />{{.name}}</a>
     <a rel="noopener noreferrer" href="{{ $gh_url }}">
-      {{- with resources.Get "github-mark.png" -}}
+      {{- with resources.Get "res/img/gh.png" -}}
         <img class="friend-github" src="{{ .RelPermalink }}" />
       {{- end -}}
     </a><br />

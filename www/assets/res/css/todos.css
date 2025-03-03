@@ -1,0 +1,14 @@
+.todo {
+
+  &::before {
+    font-family: monospace;
+  }
+
+  &.working::before {
+    content: "* ";
+  }
+
+  &.done::before {
+    content: "✓ ";
+  }
+}
