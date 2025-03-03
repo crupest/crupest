@@ -30,6 +30,17 @@ div.mono-container {
   margin-block: 1rem;
 }
 
+table  {
+  --border-color: black;
+
+  border-collapse: collapse;
+
+  &, :is(td,th) {
+    padding: 0.4em;
+    border: 1px solid var(--border-color);
+  }
+}
+
 .toast {
   font-size: large;
   font-family: monospace;
@@ -137,11 +148,6 @@ html[data-theme="dark"] {
   }
 
   table  {
-    border-collapse: collapse;
-
-    &, :is(td,th) {
-      padding: 0.5em;
-      border: 1px solid hsl(0, 0%, 25%);
-    }
+    --border-color: hsl(0, 0%, 25%);
   }
 }
