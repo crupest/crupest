@@ -21,6 +21,7 @@ gerrit
 esmtp
 tini
 healthcheck
+nspawn
 
 # vim/nvim
 nvim
