@@ -1,9 +1,9 @@
 ---
 title: "Pattern in C++"
 date: 2022-01-24T15:57:34+08:00
-categories: Coding
+categories: coding
 tags:
-  - C++
+  - c++
 description: The secret ingredient of secret ingredient soup is ...
 ---
 

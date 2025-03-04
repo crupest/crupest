@@ -2,6 +2,7 @@
 crupest
 Yuqian
 Yang
+fxxking
 
 # self-hosted services
 2fauth
@@ -21,6 +22,7 @@ gerrit
 esmtp
 tini
 healthcheck
+nspawn
 
 # vim/nvim
 nvim
@@ -46,6 +48,8 @@ kmod
 nproc
 sourceware
 zstd
+btrfs
+pacman
 
 # hurd
 gnumach
