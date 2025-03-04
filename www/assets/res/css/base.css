@@ -57,10 +57,10 @@ table  {
 }
 
 .chroma {
-  overflow-x: scroll;
+  overflow-x: auto;
   padding-left: 1px;
   padding-right: 4px;
-  border-radius: 3px;
+  border-radius: 6px;
 }
 
 nav {
@@ -140,7 +140,7 @@ html[data-theme="dark"] {
   }
 
   & :is(.chroma,.chroma *) {
-    background-color: hsl(0, 0%, 1.5%);
+    background-color: hsl(0, 0%, 3%);
 
     & .n {
       color: var(--fg-color);

@@ -8,3 +8,4 @@
 	helper = /usr/lib/git-core/git-credential-libsecret
 [alias]
 	lg = log --decorate --oneline --graph
+	pap = push --all --prune
