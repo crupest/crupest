@@ -18,6 +18,7 @@ gerrit
 esmtp
 tini
 healthcheck
+nspawn
 
 # unix
 cpio
