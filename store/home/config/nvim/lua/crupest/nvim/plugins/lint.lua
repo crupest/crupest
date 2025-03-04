@@ -48,6 +48,7 @@ local function run(opt)
     for _, linter in ipairs(linters) do
         table.insert(linter_names, linter.name)
         require('lint.linters.' .. linter.name).cmd = linter.exe_path
+        vim.diagnostic.config({ virtual_text = true }, lint.get_namespace(linter.name))
     end
 
     lint.try_lint(linter_names)
