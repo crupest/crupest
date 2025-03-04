@@ -32,4 +32,3 @@ params:
     minify: false
     sourceMap: ""
 
-  timeline: "https://timeline.crupest.life"

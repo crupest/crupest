@@ -34,7 +34,7 @@ debian: <https://salsa.debian.org/debian/abseil>
 
 {{< link-group >}}
 mail
-<https://lists.debian.org/debian-hurd/2025/02/msg00011.html>\
+<https://lists.debian.org/debian-hurd/2025/02/msg00011.html>
 <https://lists.debian.org/debian-hurd/2025/02/msg00035.html>
 {{< /link-group >}}
 
