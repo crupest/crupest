@@ -13,7 +13,7 @@ local function setup()
     lspconfig.clangd.setup {
         cmd = { clangd },
         on_attach = function(_, bufnr)
-            vim.keymap.set('n', '<space>s', "<cmd>ClangdSwitchSourceHeader<cr>", {
+            vim.keymap.set('n', 'grs', "<cmd>ClangdSwitchSourceHeader<cr>", {
                 buffer = bufnr
             })
         end
