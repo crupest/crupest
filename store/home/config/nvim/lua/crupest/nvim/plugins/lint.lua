@@ -30,7 +30,7 @@ local function cru_lint(linter, opt)
         opt.buf = 0
     end
 
-    if 0 ~= vim.fs.find(linter.config_patterns, {
+    if 0 ~= #vim.fs.find(linter.config_patterns, {
             path = vim.api.nvim_buf_get_name(opt.buf), upward = true }) then
         if not linter.initialized then
             vim.diagnostic.config({ virtual_text = true }, lint.get_namespace(linter.name))
@@ -59,11 +59,14 @@ local function cru_lint_all(opt, fast)
 end
 
 local function cru_lint_all_fast(opt)
-    cru_lint_all(opt, true)
+    local buf = opt.buf
+    if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "" then
+        cru_lint_all(opt, true)
+    end
 end
 
 local function setup()
-    vim.api.nvim_create_autocmd({ "InsertLeave", "TextChanged" }, { callback = cru_lint_all_fast })
+    vim.api.nvim_create_autocmd({ "BufReadPost", "InsertLeave", "TextChanged" }, { callback = cru_lint_all_fast })
 
     local function cru_lint_cmd(opt)
         if #opt.args == 0 then
