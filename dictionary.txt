@@ -1,6 +1,7 @@
 # me
 crupest
-yuqian
+Yuqian
+Yang
 
 # self-hosted services
 2fauth
@@ -11,6 +12,8 @@ roundcubemail
 gohugoio
 
 # general
+catppuccin
+macchiato
 cheatsheet
 aarch64
 pythonpath
@@ -18,6 +21,24 @@ gerrit
 esmtp
 tini
 healthcheck
+
+# vim/nvim
+nvim
+neovide
+vimruntime
+
+autobrief
+autopairs
+bashls
+bufhidden
+bufnr
+clangd
+devicons
+exepath
+gitsigns
+lspconfig
+lualine
+luasnip
 
 # unix
 cpio
