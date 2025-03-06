@@ -2,7 +2,7 @@
 
 set -e
 
-touch -a /git/private/user-info
+touch -a /git/user-info
 
 exec 3>&1
 exec lighttpd -D -f /app/git-lighttpd.conf
