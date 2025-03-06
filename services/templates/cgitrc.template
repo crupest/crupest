@@ -1,6 +1,8 @@
 css=/git/static/cgit.css
 logo=/git/static/cgit.png
 root-title=crupest Git Repos
+source-filter=/usr/lib/cgit/filters/syntax-highlighting.py
+about-filter=/usr/lib/cgit/filters/about-formatting.sh
 
 enable-http-clone=0
 enable-commit-graph=1
@@ -8,13 +10,12 @@ enable-index-links=1
 enable-index-owner=0
 enable-log-filecount=1
 enable-log-linecount=1
-section-from-path=1
-
-clone-url=@@CRUPEST_ROOT_URL@@git/$CGIT_REPO_URL
+enable-git-config=1
 snapshots=tar.gz tar.bz2 zip
-source-filter=/usr/lib/cgit/filters/syntax-highlighting.py
-about-filter=/usr/lib/cgit/filters/about-formatting.sh
+
 readme=:README.md
 readme=:README
 
-scan-path=/git/
+clone-prefix=@@CRUPEST_ROOT_URL@@git/
+section-from-path=1
+scan-path=/git/repos/
