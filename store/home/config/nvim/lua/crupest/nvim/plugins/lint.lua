@@ -1,81 +1,80 @@
 local lint = require("lint")
 
-local find = require('crupest.utils.find')
-local is_win = vim.fn.has("win32") ~= 0
-
-local cspell_config_patterns = {
-    ".cspell.json",
-    "cspell.json",
-    ".cSpell.json",
-    "cSpell.json",
-    "cspell.config.js",
-    "cspell.config.cjs",
-    "cspell.config.json",
-    "cspell.config.yaml",
-    "cspell.config.yml",
-    "cspell.yaml",
-    "cspell.yml",
-}
-
---- @type FindExeForBufOpts[]
-local my_linters = {
-    {
-        name = "cspell",
-        places = { "node_modules", "global" },
-        config_files = cspell_config_patterns,
+local cspell = {
+    name = "cspell",
+    config_patterns = {
+        ".cspell.json",
+        "cspell.json",
+        ".cSpell.json",
+        "cSpell.json",
+        "cspell.config.js",
+        "cspell.config.cjs",
+        "cspell.config.json",
+        "cspell.config.yaml",
+        "cspell.config.yml",
+        "cspell.yaml",
+        "cspell.yml",
     },
+    fast = true,
+    initialized = false
 }
 
-local function run(opt)
-    if not opt then
-        opt = {}
-    end
+local linters = { cspell }
+
+local linter_names = vim.tbl_map(function(l) return l.name end, linters)
+
+local function cru_lint(linter, opt)
+    opt = opt or {}
 
     if not opt.buf then
         opt.buf = 0
     end
 
-    local linters = {}
-
-    for _, l in ipairs(my_linters) do
-        local linter = find.find_exe_for_buf(opt.buf, l)
-        if linter then table.insert(linters, linter) end
+    if 0 ~= vim.fs.find(linter.config_patterns, {
+            path = vim.api.nvim_buf_get_name(opt.buf), upward = true }) then
+        if not linter.initialized then
+            vim.diagnostic.config({ virtual_text = true }, lint.get_namespace(linter.name))
+            linter.initialized = true
+        end
+        lint.try_lint(linter.name)
     end
+end
 
-
-    local linter_names = {}
-
+local function cru_lint_one(name, opt)
     for _, linter in ipairs(linters) do
-        table.insert(linter_names, linter.name)
-        require('lint.linters.' .. linter.name).cmd = linter.exe_path
-        vim.diagnostic.config({ virtual_text = true }, lint.get_namespace(linter.name))
+        if linter.name == name then
+            cru_lint(linter, opt)
+            return
+        end
     end
+    vim.notify("No linter named " .. name .. " is configured.", vim.log.levels.ERROR, {})
+end
 
-    lint.try_lint(linter_names)
+local function cru_lint_all(opt, fast)
+    for _, linter in ipairs(linters) do
+        if not fast or linter.fast then
+            cru_lint(linter, opt)
+        end
+    end
+end
+
+local function cru_lint_all_fast(opt)
+    cru_lint_all(opt, true)
 end
 
 local function setup()
-    if is_win then
-        for _, l in ipairs(my_linters) do
-            local name = l.name
-            local linter = require('lint.linters.' .. name)
-            if linter.cmd == 'cmd.exe' then
-                linter.cmd = linter.args[2]
-            end
-            table.remove(linter.args, 1)
-            table.remove(linter.args, 1)
+    vim.api.nvim_create_autocmd({ "InsertLeave", "TextChanged" }, { callback = cru_lint_all_fast })
+
+    local function cru_lint_cmd(opt)
+        if #opt.args == 0 then
+            cru_lint_all(opt, false)
+        else
+            cru_lint_one(opt.args, opt)
         end
     end
 
-    vim.api.nvim_create_autocmd({ "BufWritePost" }, {
-        callback = function(opt)
-            run({
-                buf = opt.buffer
-            })
-        end,
-    })
-
-    vim.keymap.set('n', '<leader>lr', run)
+    vim.api.nvim_create_user_command("CruLint", cru_lint_cmd,
+        { nargs = '?', complete = function() return linter_names end })
 end
 
 return {
