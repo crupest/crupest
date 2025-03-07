@@ -16,6 +16,11 @@ snapshots=tar.gz tar.bz2 zip
 readme=:README.md
 readme=:README
 
-clone-prefix=@@CRUPEST_ROOT_URL@@git/
+clone-prefix=@@CRUPEST_ROOT_URL@@git
 section-from-path=1
 scan-path=/git/repos/public
+
+strict-export=cgit-export
+section-from-path=-1
+project-list=/app/cgit/private-list
+scan-path=/git/repos

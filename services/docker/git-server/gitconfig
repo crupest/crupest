@@ -1,6 +1,0 @@
-[core]
-	autocrlf = false
-	hooksPath = /etc/git/hooks/
-
-[receive]
-	advertisePushOptions = true
