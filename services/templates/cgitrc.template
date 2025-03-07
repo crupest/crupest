@@ -18,4 +18,4 @@ readme=:README
 
 clone-prefix=@@CRUPEST_ROOT_URL@@git/
 section-from-path=1
-scan-path=/git/repos/
+scan-path=/git/repos/public
