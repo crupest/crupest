@@ -84,7 +84,7 @@ services:
     hostname: git-server
     volumes:
       - "./@@CRUPEST_DATA_GIT_DIR@@:/git"
-      - "./@@CRUPEST_GENERATED_DIR@@/cgitrc:/etc/cgitrc:ro"
+      - "./@@CRUPEST_GENERATED_DIR@@/cgit:/app/cgit"
     restart: on-failure:3
 
   roundcubemail:

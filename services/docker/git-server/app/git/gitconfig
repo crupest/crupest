@@ -1,0 +1,3 @@
+[core]
+	autocrlf = false
+	hooksPath = /app/git/hooks/
