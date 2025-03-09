@@ -1,0 +1,4 @@
+cache-root=/var/cache/cgit/public
+include=/app/cgit/common
+clone-url=$CRUPEST_ROOT_URL/git$CGIT_REPO_URL
+scan-path=/git/repos/public

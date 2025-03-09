@@ -4,8 +4,8 @@
 # the up-to-date file that you will need to refer to when manually updating
 # this file. Contents are based on https://ssl-config.mozilla.org
 
-ssl_certificate /etc/letsencrypt/live/@@CRUPEST_DOMAIN@@/fullchain.pem;
-ssl_certificate_key /etc/letsencrypt/live/@@CRUPEST_DOMAIN@@/privkey.pem;
+ssl_certificate /etc/letsencrypt/live/${CRUPEST_DOMAIN}/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/${CRUPEST_DOMAIN}/privkey.pem;
 
 ssl_session_cache shared:le_nginx_SSL:10m;
 ssl_session_timeout 1440m;
