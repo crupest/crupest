@@ -12,12 +12,13 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"
+    env_file:
+      - ./@@CRUPEST_GENERATED_DIR@@/envs/nginx.env
+      - ./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env
     volumes:
-      - "./@@CRUPEST_GENERATED_NGINX_DIR@@/conf.d:/etc/nginx/conf.d:ro"
-      - "./@@CRUPEST_GENERATED_NGINX_DIR@@/common:/etc/nginx/common:ro"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/certs:/etc/letsencrypt"
-      - "./@@CRUPEST_DATA_CERTBOT_DIR@@/webroot:/srv/acme:ro"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/data:/var/lib/letsencrypt"
+      - "./@@CRUPEST_DATA_CERTBOT_DIR@@/webroot:/srv/acme:ro"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/webroot:/var/www/certbot"
     restart: on-failure:3
 
@@ -28,9 +29,9 @@ services:
       dockerfile: Dockerfile
       pull: true
     hostname: v2ray
-    command: [ "run", "-c", "/etc/v2fly/config.json" ]
-    volumes:
-      - "./@@CRUPEST_GENERATED_DIR@@/v2ray-config.json:/etc/v2fly/config.json:ro"
+    env_file:
+      - ./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env
+      - ./@@CRUPEST_GENERATED_DIR@@/envs/v2ray.env
     restart: on-failure:3
 
   auto-backup:
@@ -82,9 +83,10 @@ services:
       dockerfile: Dockerfile
       pull: true
     hostname: git-server
+    environment:
+      - CRUPEST_ROOT_URL=@@CRUPEST_ROOT_URL@@
     volumes:
       - "./@@CRUPEST_DATA_GIT_DIR@@:/git"
-      - "./@@CRUPEST_GENERATED_DIR@@/cgit:/app/cgit"
     restart: on-failure:3
 
   roundcubemail:

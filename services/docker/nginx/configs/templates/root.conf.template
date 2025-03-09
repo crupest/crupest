@@ -1,5 +1,5 @@
 server {
-    server_name @@CRUPEST_DOMAIN@@;
+    server_name ${CRUPEST_DOMAIN};
     include common/https-listen;
 
     location / {
@@ -18,14 +18,14 @@ server {
     }
 
     location = /github {
-        return 301 @@CRUPEST_GITHUB@@;
+        return 301 ${CRUPEST_GITHUB};
     }
 
     location = /github/ {
-        return 301 @@CRUPEST_GITHUB@@;
+        return 301 ${CRUPEST_GITHUB};
     }
 
-    location /_@@CRUPEST_V2RAY_PATH@@ {
+    location /_${CRUPEST_V2RAY_PATH} {
         if ($http_upgrade != "websocket") {
             return 404;
         }
@@ -37,7 +37,7 @@ server {
 }
 
 server {
-    server_name @@CRUPEST_DOMAIN@@;
+    server_name ${CRUPEST_DOMAIN};
     include common/http-listen;
 
     include common/https-redirect;
