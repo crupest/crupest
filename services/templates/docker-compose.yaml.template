@@ -34,17 +34,17 @@ services:
       - ./@@MY_GENERATED_DIR@@/envs/v2ray.env
     restart: on-failure:3
 
-  auto-backup:
-    pull_policy: build
-    env_file: ./@@MY_GENERATED_DIR@@/envs/auto-backup.env
-    build:
-      context: ./@@MY_DOCKER_DIR@@/auto-backup
-      dockerfile: Dockerfile
-      pull: true
-    volumes:
-      - "./data:/data:ro"
-      - "./data/auto-backup:/data/auto-backup"
-    restart: on-failure:3
+  # auto-backup:
+  #   pull_policy: build
+  #   env_file: ./@@MY_GENERATED_DIR@@/envs/auto-backup.env
+  #   build:
+  #     context: ./@@MY_DOCKER_DIR@@/auto-backup
+  #     dockerfile: Dockerfile
+  #     pull: true
+  #   volumes:
+  #     - "./data:/data:ro"
+  #     - "./data/auto-backup:/data/auto-backup"
+  #   restart: on-failure:3
 
   mailserver:
     image: docker.io/mailserver/docker-mailserver:latest
