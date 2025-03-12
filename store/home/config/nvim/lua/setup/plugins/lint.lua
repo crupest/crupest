@@ -16,7 +16,6 @@ local cspell = {
         "cspell.yml",
     },
     fast = true,
-    initialized = false
 }
 
 local linters = { cspell }
@@ -32,10 +31,6 @@ local function cru_lint(linter, opt)
 
     if 0 ~= #vim.fs.find(linter.config_patterns, {
             path = vim.api.nvim_buf_get_name(opt.buf), upward = true }) then
-        if not linter.initialized then
-            vim.diagnostic.config({ virtual_text = true }, lint.get_namespace(linter.name))
-            linter.initialized = true
-        end
         lint.try_lint(linter.name)
     end
 end

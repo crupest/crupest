@@ -15,8 +15,8 @@ lspconfig.util.default_config = vim.tbl_extend(
 local function setup()
     lspconfig.cmake.setup {}
     lspconfig.bashls.setup {}
-    require("crupest.nvim.lsp.c").setup()
-    require("crupest.nvim.lsp.lua").setup()
+    require("setup.lsp.clangd").setup()
+    require("setup.lsp.lua_ls").setup()
 end
 
 

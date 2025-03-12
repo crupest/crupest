@@ -1,11 +1,10 @@
 local function setup()
     local cmp = require("cmp")
-    local luasnip = require("luasnip")
 
     cmp.setup {
         snippet = {
             expand = function(args)
-                luasnip.lsp_expand(args.body)
+                vim.snippet.expand(args.body)
             end,
         },
         window = {
@@ -22,7 +21,7 @@ local function setup()
         }),
         sources = cmp.config.sources({
             { name = 'nvim_lsp' },
-            { name = 'luasnip' },
+            { name = 'path' },
         }, {
             { name = 'buffer' },
         })
