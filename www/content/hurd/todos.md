@@ -13,7 +13,7 @@ params:
 
 {{< link-group >}}
 git
-cru: <https://crupest.life/git/love-hurd/pam.git>
+my: <https://yyqemo.com/git/love-hurd/pam.git>
 debian: <https://salsa.debian.org/vorlon/pam>
 upstream: <https://github.com/linux-pam/linux-pam>
 {{< /link-group >}}
@@ -27,7 +27,7 @@ mail
 
 {{< link-group >}}
 git
-cru: <https://crupest.life/git/cru-hurd/abseil.git>
+my: <https://yyqemo.com/git/hurd/abseil.git>
 upstream: <https://github.com/abseil/abseil-cpp>
 debian: <https://salsa.debian.org/debian/abseil>
 {{< /link-group >}}
@@ -42,7 +42,7 @@ mail
 
 {{< link-group >}}
 git
-my: <https://crupest.life/git/love-hurd/libgav1.git>
+my: <https://yyqemo.com/git/love-hurd/libgav1.git>
 debian: <https://salsa.debian.org/multimedia-team/libgav1>
 upstream: <https://chromium.googlesource.com/codecs/libgav1/>
 {{< /link-group >}}

@@ -26,7 +26,7 @@ fi
 echo "Copy the new one ..."
 cp "$script_dir/official.sources" "$new_one"
 
-if [[ -n "$CRUPEST_DEBIAN_DEV_IN_CHINA" ]]; then
+if [[ -n "$MY_DEBIAN_DEV_IN_CHINA" ]]; then
     echo "Replace with China mirror ..."
     china_mirror="mirrors.ustc.edu.cn"
     sed -i "s|deb.debian.org|${china_mirror}|" "$new_one"

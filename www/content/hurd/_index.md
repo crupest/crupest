@@ -113,28 +113,28 @@ static inline char *xgetcwd() {
 
 {{< link-group >}}
 hurd
-cru: <https://crupest.life/git/cru-hurd/hurd.git>
+my: <https://yyqemo.com/git/hurd/hurd.git>
 upstream: <https://git.savannah.gnu.org/git/hurd/hurd.git>
 debian: <https://salsa.debian.org/hurd-team/hurd>
 {{< /link-group >}}
 
 {{< link-group >}}
 gnumach
-cru: <https://crupest.life/git/cru-hurd/gnumach.git>
+my: <https://yyqemo.com/git/hurd/gnumach.git>
 upstream: <https://git.savannah.gnu.org/git/hurd/gnumach.git>
 debian: <https://salsa.debian.org/hurd-team/gnumach>
 {{< /link-group >}}
 
 {{< link-group >}}
 mig
-cru: <https://crupest.life/git/cru-hurd/mig.git>
+my: <https://yyqemo.com/git/hurd/mig.git>
 upstream: <https://git.savannah.gnu.org/git/hurd/mig.git>
 debian: <https://salsa.debian.org/hurd-team/mig>
 {{< /link-group >}}
 
 {{< link-group >}}
 glibc
-cru: <https://crupest.life/git/cru-hurd/glibc.git>
+my: <https://yyqemo.com/git/hurd/glibc.git>
 upstream: <git://sourceware.org/git/glibc.git>
 debian: <https://salsa.debian.org/glibc-team/glibc>
 mirror: <https://mirrors.tuna.tsinghua.edu.cn/git/glibc.git>
@@ -142,7 +142,7 @@ mirror: <https://mirrors.tuna.tsinghua.edu.cn/git/glibc.git>
 
 {{< link-group >}}
 web
-cru: <https://crupest.life/git/cru-hurd/web.git>
+my: <https://yyqemo.com/git/hurd/web.git>
 upstream: <https://git.savannah.gnu.org/git/hurd/web.git>
 {{< /link-group >}}
 

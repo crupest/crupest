@@ -44,8 +44,8 @@ localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 echo "Setting up sudo..."
 sed -i.bak 's|%sudo[[:space:]]\+ALL=(ALL:ALL)[[:space:]]\+ALL|%sudo ALL=(ALL:ALL) NOPASSWD: ALL|' /etc/sudoers
 
-echo "Creating user $CRUPEST_DEBIAN_DEV_USER ..."
-useradd -m -G sudo -s /usr/bin/bash "$CRUPEST_DEBIAN_DEV_USER"
+echo "Creating user $MY_DEBIAN_DEV_USER ..."
+useradd -m -G sudo -s /usr/bin/bash "$MY_DEBIAN_DEV_USER"
 
 echo "Setting up code-server..."
 curl -fsSL https://code-server.dev/install.sh | sh

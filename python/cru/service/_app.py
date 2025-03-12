@@ -7,7 +7,7 @@ from ._template import TemplateManager
 from ._nginx import NginxManager
 from ._gen_cmd import GenCmdProvider
 
-APP_ID = "crupest"
+APP_ID = "yyqemo"
 
 
 class App(AppBase):

@@ -1,6 +1,6 @@
 css=/git/static/cgit.css
 logo=/git/static/cgit.png
-root-title=crupest Git Repos
+root-title=yyqemo Git Repos
 source-filter=/usr/lib/cgit/filters/syntax-highlighting.py
 about-filter=/usr/lib/cgit/filters/about-formatting.sh
 

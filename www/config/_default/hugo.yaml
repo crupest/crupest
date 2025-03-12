@@ -1,5 +1,5 @@
-baseURL: "https://crupest.life/"
-title: "crupest's life"
+baseURL: "https://yyqemo.com/"
+title: "yyqemo's life"
 copyright: "CC BY-NC 4.0"
 
 enableRobotsTXT: true
@@ -31,5 +31,3 @@ params:
   jsopts:
     minify: false
     sourceMap: ""
-
-  timeline: "https://timeline.crupest.life"

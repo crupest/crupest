@@ -1,7 +1,7 @@
 version: "0.2"
 language: en
 dictionaries:
-  - crupest-dict
+  - my-dict
   - en_US
   - companies
   - softwareTerms
@@ -20,7 +20,7 @@ dictionaries:
   - npm
 
 dictionaryDefinitions:
-  - name: crupest-dict
+  - name: my-dict
     path: './dictionary.txt'
 
 patterns:

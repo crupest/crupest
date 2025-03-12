@@ -1,5 +1,5 @@
-CRUPEST_DOMAIN=crupest.life
-CRUPEST_EMAIL=crupest@crupest.life
-CRUPEST_GITHUB=https://github.com/crupest
-CRUPEST_SERVICES_DIR=services
-CRUPEST_DATA_DIR=data
+MY_DOMAIN=yyqemo.com
+MY_EMAIL=me@yyqemo.com
+MY_GITHUB=https://github.com/yyqemo
+MY_SERVICES_DIR=services
+MY_DATA_DIR=data

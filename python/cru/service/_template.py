@@ -111,10 +111,10 @@ class TemplateManager(AppCommandFeatureProvider):
         return self._generated_dir
 
     def get_domain(self) -> str:
-        return self._preconfig.config["CRUPEST_DOMAIN"]
+        return self._preconfig.config["MY_DOMAIN"]
 
     def get_email(self) -> str:
-        return self._preconfig.config["CRUPEST_EMAIL"]
+        return self._preconfig.config["MY_EMAIL"]
 
     def _generate_template_config(self, config: dict[str, str]) -> dict[str, str]:
         entry_templates = {

@@ -12,10 +12,10 @@ script_dir="$(dirname "$0")"
 # shellcheck disable=SC2046
 export $(xargs <"${script_dir:?}/base-config")
 
-CRUPEST_PROJECT_DIR="$(realpath "$script_dir/..")"
-export CRUPEST_PROJECT_DIR
+MY_PROJECT_DIR="$(realpath "$script_dir/..")"
+export MY_PROJECT_DIR
 
-export PYTHONPATH="$CRUPEST_PROJECT_DIR/python:$PYTHONPATH"
+export PYTHONPATH="$MY_PROJECT_DIR/python:$PYTHONPATH"
 
 if [[ "$#" != "0" ]] && [[ "$1" == "gen-tmpl" ]]; then
     python3 -m cru.service template generate "${@:2}"

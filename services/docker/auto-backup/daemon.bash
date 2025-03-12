@@ -15,15 +15,15 @@ success() {
   echo -e "\033[32mSuccess: " "$@" "\033[0m"
 }
 
-if [[ -z "$CRUPEST_AUTO_BACKUP_INTERVAL" ]]; then
+if [[ -z "$MY_AUTO_BACKUP_INTERVAL" ]]; then
   die "Backup interval not set, please set it!"
 fi
 
 note "Checking secrets..."
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_ENDPOINT" ]] || die "COS endpoint not set!"
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_BUCKET" ]] || die "COS bucket not set!"
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_SECRET_ID" ]] || die "COS secret ID not set!"
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_SECRET_KEY" ]] || die "COS secret key not set!"
+[[ -n "$MY_AUTO_BACKUP_COS_ENDPOINT" ]] || die "COS endpoint not set!"
+[[ -n "$MY_AUTO_BACKUP_COS_BUCKET" ]] || die "COS bucket not set!"
+[[ -n "$MY_AUTO_BACKUP_COS_SECRET_ID" ]] || die "COS secret ID not set!"
+[[ -n "$MY_AUTO_BACKUP_COS_SECRET_KEY" ]] || die "COS secret key not set!"
 success "Secrets check passed."
 
 note "Checking tools..."
@@ -32,13 +32,13 @@ zstd --version
 /app/coscli --version
 success "Tools check passed."
 
-echo "Backup interval set to $CRUPEST_AUTO_BACKUP_INTERVAL..."
+echo "Backup interval set to $MY_AUTO_BACKUP_INTERVAL..."
 
-if [[ -z "$CRUPEST_AUTO_BACKUP_INIT_DELAY" ]]; then
+if [[ -z "$MY_AUTO_BACKUP_INIT_DELAY" ]]; then
   echo "Initial delay not set, will do a backup immediately!"
 else
-  echo "Initial delay set to $CRUPEST_AUTO_BACKUP_INIT_DELAY ..."
-  sleep "$CRUPEST_AUTO_BACKUP_INIT_DELAY"
+  echo "Initial delay set to $MY_AUTO_BACKUP_INIT_DELAY ..."
+  sleep "$MY_AUTO_BACKUP_INIT_DELAY"
 fi
 
 function backup {
@@ -60,10 +60,10 @@ function backup {
   echo "Upload $des_file_name to COS..."
 
   /app/coscli --init-skip \
-    --secret-id "${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}" \
-    --secret-key "${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}" \
-    --endpoint "${CRUPEST_AUTO_BACKUP_COS_ENDPOINT}" \
-    cp "$tmp_file" "cos://${CRUPEST_AUTO_BACKUP_COS_BUCKET}/$des_file_name"
+    --secret-id "${MY_AUTO_BACKUP_COS_SECRET_ID}" \
+    --secret-key "${MY_AUTO_BACKUP_COS_SECRET_KEY}" \
+    --endpoint "${MY_AUTO_BACKUP_COS_ENDPOINT}" \
+    cp "$tmp_file" "cos://${MY_AUTO_BACKUP_COS_BUCKET}/$des_file_name"
 
   echo "Remove tmp file..."
   rm "$tmp_file"
@@ -77,6 +77,6 @@ function backup {
 while true; do
   backup
 
-  echo "Sleep for $CRUPEST_AUTO_BACKUP_INTERVAL for next backup..."
-  sleep "$CRUPEST_AUTO_BACKUP_INTERVAL"
+  echo "Sleep for $MY_AUTO_BACKUP_INTERVAL for next backup..."
+  sleep "$MY_AUTO_BACKUP_INTERVAL"
 done

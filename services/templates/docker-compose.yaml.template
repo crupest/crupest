@@ -3,7 +3,7 @@ services:
   nginx:
     pull_policy: build
     build:
-      context: ./@@CRUPEST_DOCKER_DIR@@/nginx
+      context: ./@@MY_DOCKER_DIR@@/nginx
       additional_contexts:
         - www=./www
       dockerfile: Dockerfile
@@ -13,32 +13,32 @@ services:
       - "443:443"
       - "443:443/udp"
     env_file:
-      - ./@@CRUPEST_GENERATED_DIR@@/envs/nginx.env
-      - ./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env
+      - ./@@MY_GENERATED_DIR@@/envs/nginx.env
+      - ./@@MY_GENERATED_DIR@@/envs/v2ray-common.env
     volumes:
-      - "./@@CRUPEST_DATA_CERTBOT_DIR@@/certs:/etc/letsencrypt"
-      - "./@@CRUPEST_DATA_CERTBOT_DIR@@/data:/var/lib/letsencrypt"
-      - "./@@CRUPEST_DATA_CERTBOT_DIR@@/webroot:/srv/acme:ro"
-      - "./@@CRUPEST_DATA_CERTBOT_DIR@@/webroot:/var/www/certbot"
+      - "./@@MY_DATA_CERTBOT_DIR@@/certs:/etc/letsencrypt"
+      - "./@@MY_DATA_CERTBOT_DIR@@/data:/var/lib/letsencrypt"
+      - "./@@MY_DATA_CERTBOT_DIR@@/webroot:/srv/acme:ro"
+      - "./@@MY_DATA_CERTBOT_DIR@@/webroot:/var/www/certbot"
     restart: on-failure:3
 
   v2ray:
     pull_policy: build
     build:
-      context: ./@@CRUPEST_DOCKER_DIR@@/v2ray
+      context: ./@@MY_DOCKER_DIR@@/v2ray
       dockerfile: Dockerfile
       pull: true
     hostname: v2ray
     env_file:
-      - ./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env
-      - ./@@CRUPEST_GENERATED_DIR@@/envs/v2ray.env
+      - ./@@MY_GENERATED_DIR@@/envs/v2ray-common.env
+      - ./@@MY_GENERATED_DIR@@/envs/v2ray.env
     restart: on-failure:3
 
   auto-backup:
     pull_policy: build
-    env_file: ./@@CRUPEST_GENERATED_DIR@@/envs/auto-backup.env
+    env_file: ./@@MY_GENERATED_DIR@@/envs/auto-backup.env
     build:
-      context: ./@@CRUPEST_DOCKER_DIR@@/auto-backup
+      context: ./@@MY_DOCKER_DIR@@/auto-backup
       dockerfile: Dockerfile
       pull: true
     volumes:
@@ -50,8 +50,8 @@ services:
     image: docker.io/mailserver/docker-mailserver:latest
     pull_policy: always
     container_name: mailserver
-    hostname: mail.@@CRUPEST_DOMAIN@@
-    env_file: ./@@CRUPEST_GENERATED_DIR@@/envs/mailserver.env
+    hostname: mail.@@MY_DOMAIN@@
+    env_file: ./@@MY_GENERATED_DIR@@/envs/mailserver.env
     # More information about the mail-server ports:
     # https://docker-mailserver.github.io/docker-mailserver/edge/config/security/understanding-the-ports/
     # To avoid conflicts with yaml base-60 float, DO NOT remove the quotation marks.
@@ -63,11 +63,11 @@ services:
       - "993:993" # IMAP4 (implicit TLS)
       - "4190:4190" # manage sieve protocol
     volumes:
-      - ./@@CRUPEST_DATA_MAILSERVER_DIR@@/mail-data/:/var/mail/
-      - ./@@CRUPEST_SERVICES_STATE_DIR@@/mail-state/:/var/mail-state/
-      - ./@@CRUPEST_DATA_MAILSERVER_DIR@@/mail-logs/:/var/log/mail/
-      - ./@@CRUPEST_DATA_MAILSERVER_DIR@@/config/:/tmp/docker-mailserver/
-      - ./@@CRUPEST_DATA_CERTBOT_DIR@@/certs:/etc/letsencrypt
+      - ./@@MY_DATA_MAILSERVER_DIR@@/mail-data/:/var/mail/
+      - ./@@MY_SERVICES_STATE_DIR@@/mail-state/:/var/mail-state/
+      - ./@@MY_DATA_MAILSERVER_DIR@@/mail-logs/:/var/log/mail/
+      - ./@@MY_DATA_MAILSERVER_DIR@@/config/:/tmp/docker-mailserver/
+      - ./@@MY_DATA_CERTBOT_DIR@@/certs:/etc/letsencrypt
       - /etc/localtime:/etc/localtime:ro
     restart: on-failure:3
     stop_grace_period: 1m
@@ -79,26 +79,26 @@ services:
   git-server:
     pull_policy: build
     build:
-      context: ./@@CRUPEST_DOCKER_DIR@@/git-server
+      context: ./@@MY_DOCKER_DIR@@/git-server
       dockerfile: Dockerfile
       pull: true
     hostname: git-server
     environment:
-      - CRUPEST_ROOT_URL=@@CRUPEST_ROOT_URL@@
+      - MY_ROOT_URL=@@MY_ROOT_URL@@
     volumes:
-      - "./@@CRUPEST_DATA_GIT_DIR@@:/git"
+      - "./@@MY_DATA_GIT_DIR@@:/git"
     restart: on-failure:3
 
   roundcubemail:
     image: roundcube/roundcubemail:latest
     pull_policy: always
     hostname: roundcubemail
-    env_file: ./@@CRUPEST_GENERATED_DIR@@/envs/roundcubemail.env
+    env_file: ./@@MY_GENERATED_DIR@@/envs/roundcubemail.env
     volumes:
-      - ./@@CRUPEST_DATA_SECRET_DIR@@/gnupg:/gnupg
-      - ./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/www/html:/var/www/html
-      - ./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/db:/var/roundcube/db
-      - ./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/config:/var/roundcube/config
+      - ./@@MY_DATA_SECRET_DIR@@/gnupg:/gnupg
+      - ./@@MY_DATA_ROUNDCUBE_DIR@@/www/html:/var/www/html
+      - ./@@MY_DATA_ROUNDCUBE_DIR@@/db:/var/roundcube/db
+      - ./@@MY_DATA_ROUNDCUBE_DIR@@/config:/var/roundcube/config
       - roundcubemail-temp:/tmp/roundcube-temp
     restart: on-failure:3
 
@@ -106,7 +106,7 @@ services:
     image: 2fauth/2fauth
     pull_policy: always
     hostname: 2fauth
-    env_file: ./@@CRUPEST_GENERATED_DIR@@/envs/2fauth.env
+    env_file: ./@@MY_GENERATED_DIR@@/envs/2fauth.env
     volumes:
       - ./data/2fauth:/2fauth
 

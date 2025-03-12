@@ -6,7 +6,7 @@ LLVM_VERSION=18
 
 . /bootstrap/func.bash
 
-if is_true "$CRUPEST_DEBIAN_DEV_IN_CHINA"; then
+if is_true "$MY_DEBIAN_DEV_IN_CHINA"; then
     base_url=https://mirrors.tuna.tsinghua.edu.cn/llvm-apt
 else
     base_url=https://apt.llvm.org

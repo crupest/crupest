@@ -297,12 +297,12 @@ class AppBase:
     def setup(self) -> None:
         command_dispatcher = self.get_feature(CommandDispatcher)
         command_dispatcher.setup_arg_parser()
-        self._root = AppRootPath(self, Path(self._ensure_env("CRUPEST_PROJECT_DIR")))
+        self._root = AppRootPath(self, Path(self._ensure_env("MY_PROJECT_DIR")))
         self._data_dir = self._root.add_subpath(
-            self._ensure_env("CRUPEST_DATA_DIR"), True, id="data"
+            self._ensure_env("MY_DATA_DIR"), True, id="data"
         )
         self._services_dir = self._root.add_subpath(
-            self._ensure_env("CRUPEST_SERVICES_DIR"), True, id="CRUPEST_SERVICES_DIR"
+            self._ensure_env("MY_SERVICES_DIR"), True, id="MY_SERVICES_DIR"
         )
         for feature in self.features:
             feature.setup()
