@@ -18,7 +18,19 @@ local cspell = {
     fast = true,
 }
 
-local linters = { cspell }
+local markdownlint = {
+    name = "markdownlint",
+    config_patterns = {
+        ".markdownlint.jsonc",
+        ".markdownlint.json",
+        ".markdownlint.yaml",
+        ".markdownlint.yml",
+        ".markdownlintrc",
+    },
+    fast = true,
+}
+
+local linters = { cspell, markdownlint }
 
 local linter_names = vim.tbl_map(function(l) return l.name end, linters)
 
