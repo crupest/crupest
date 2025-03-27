@@ -163,10 +163,10 @@ has to be added.
 ```plain
 /etc/apt/sources.list
 ---
-deb https://mirrors.ustc.edu.cn/ubuntu focal main
-deb https://mirrors.ustc.edu.cn/ubuntu/ focal-updates main
-deb https://mirrors.ustc.edu.cn/ubuntu/ focal-backports main
-deb https://mirrors.ustc.edu.cn/ubuntu/ focal-security main
+deb https://mirrors.ustc.edu.cn/ubuntu focal main restricted universe multiverse
+deb https://mirrors.ustc.edu.cn/ubuntu/ focal-updates main restricted universe multiverse
+deb https://mirrors.ustc.edu.cn/ubuntu/ focal-backports main restricted universe multiverse
+deb https://mirrors.ustc.edu.cn/ubuntu/ focal-security main restricted universe multiverse
 ```
 
 ### Use
