@@ -27,6 +27,7 @@ local markdownlint = {
         ".markdownlint.yml",
         ".markdownlintrc",
     },
+    filetypes = { "markdown" },
     fast = true,
 }
 
@@ -37,8 +38,13 @@ local linter_names = vim.tbl_map(function(l) return l.name end, linters)
 local function cru_lint(linter, opt)
     opt = opt or {}
 
-    if not opt.buf then
-        opt.buf = 0
+    local buf = opt.buf or 0
+
+    if linter.filetypes then
+        local filetype = vim.api.nvim_get_option_value("filetype", { buf = buf })
+        if not vim.list_contains(linter.filetypes, filetype) then
+            return
+        end
     end
 
     if 0 ~= #vim.fs.find(linter.config_patterns, {

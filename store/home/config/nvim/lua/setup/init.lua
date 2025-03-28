@@ -35,6 +35,7 @@ local function setup()
     vim.cmd("autocmd FileType gitcommit,gitrebase,gitconfig set bufhidden=delete")
 
     vim.diagnostic.config({ virtual_text = true })
+    vim.keymap.set("n", "grl", vim.diagnostic.open_float)
 
     require("setup.lsp").setup()
     require("setup.plugins").setup()
