@@ -1,5 +1,5 @@
 cache-root=/var/cache/cgit/private
 include=/app/cgit/common
 strict-export=cgit-export
-clone-url=$CRUPEST_ROOT_URL/git/private$CGIT_REPO_URL
+clone-url=$CRUPEST_ROOT_URL/git/private/$CGIT_REPO_URL
 scan-path=/git/repos/private
