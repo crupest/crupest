@@ -7,6 +7,10 @@ return {
     "hrsh7th/cmp-buffer",
     "hrsh7th/cmp-path",
     {
+        "nvim-treesitter/nvim-treesitter",
+        build = ":TSUpdate"
+    },
+    {
         "nvim-tree/nvim-tree.lua",
         lazy = false,
         dependencies = {
