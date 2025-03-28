@@ -3,6 +3,7 @@ local function setup()
     require("setup.plugins.cmp").setup()
     require("setup.plugins.telescope").setup()
     require("setup.plugins.gitsigns").setup()
+    require("setup.plugins.tree-sitter").setup()
 
     require('lualine').setup {}
     require("nvim-tree").setup {}
