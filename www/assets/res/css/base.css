@@ -1,7 +1,12 @@
 html {
   width: 100%;
-  --fg-color: black;
-  --bg-color: white;
+  --body-fg-color: unset;
+  --body-bg-color: unset;
+  --table-border-color: black;
+  --toast-fg-color: white;
+  --toast-bg-color: black;
+  --code-fg-color: var(--body-fg-color);
+  --code-bg-color: #eff1f5;
 }
 
 * {
@@ -11,8 +16,8 @@ html {
 body {
   width: 100%;
   margin: 0;
-  color: var(--fg-color);
-  background-color: var(--bg-color);
+  color: var(--body-fg-color);
+  background-color: var(--body-bg-color);
 }
 
 .mono {
@@ -31,21 +36,19 @@ div.mono-container {
 }
 
 table  {
-  --border-color: black;
-
   border-collapse: collapse;
 
   &, :is(td,th) {
     padding: 0.4em;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--table-border-color);
   }
 }
 
 .toast {
   font-size: large;
   font-family: monospace;
-  color: var(--bg-color);
-  background-color: var(--fg-color);
+  color: var(--toast-fg-color);
+  background-color: var(--toast-bg-color);
   padding: 0.5em 0.3em;
   border-radius: 6px;
 
@@ -87,6 +90,13 @@ nav {
   max-width: 880px;
   padding: 0 1em;
   margin-top: 1em;
+
+  code:not(.chroma code) {
+    border-radius: 4px;
+    color: var(--code-fg-color);
+    background-color: var(--code-bg-color);
+    padding-inline: 0.4em;
+  }
 }
 
 #license a {
@@ -123,8 +133,12 @@ nav {
 }
 
 html[data-theme="dark"] {
-  --fg-color: white;
-  --bg-color: black;
+  --body-fg-color: white;
+  --body-bg-color: black;
+  --table-border-color: hsl(0, 0%, 25%);
+  --toast-fg-color: var(--body-bg-color);
+  --toast-bg-color: var(--body-fg-color);
+  --code-bg-color: #1e1e2e;
 
   & a:link {
     color:#34ffd9;
@@ -135,19 +149,7 @@ html[data-theme="dark"] {
   }
 
   & #slogan {
-    color: var(--fg-color);
+    color: var(--body-fg-color);
     background-color: midnightblue;
-  }
-
-  & :is(.chroma,.chroma *) {
-    background-color: hsl(0, 0%, 3%);
-
-    & .n {
-      color: var(--fg-color);
-    }
-  }
-
-  table  {
-    --border-color: hsl(0, 0%, 25%);
   }
 }
