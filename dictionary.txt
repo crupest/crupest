@@ -50,6 +50,7 @@ sourceware
 zstd
 btrfs
 pacman
+rclone
 
 # hurd
 gnumach
@@ -72,9 +73,6 @@ createchroot
 sbuild
 sbuildrc
 schroot
-
-# commercial
-myqcloud
 
 # misc
 geodata
