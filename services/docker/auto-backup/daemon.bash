@@ -20,16 +20,17 @@ if [[ -z "$CRUPEST_AUTO_BACKUP_INTERVAL" ]]; then
 fi
 
 note "Checking secrets..."
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_ENDPOINT" ]] || die "COS endpoint not set!"
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_BUCKET" ]] || die "COS bucket not set!"
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_SECRET_ID" ]] || die "COS secret ID not set!"
-[[ -n "$CRUPEST_AUTO_BACKUP_COS_SECRET_KEY" ]] || die "COS secret key not set!"
+[[ -n "$RCLONE_S3_PROVIDER" ]] || die "S3 provider not set!"
+[[ -n "$RCLONE_S3_ENDPOINT" ]] || die "S3 endpoint not set!"
+[[ -n "$RCLONE_S3_ACCESS_KEY_ID" ]] || die "S3 AccessKey ID not set!"
+[[ -n "$RCLONE_S3_SECRET_ACCESS_KEY" ]] || die "S3 AccessKey Secret not set!"
+[[ -n "$CRUPEST_AUTO_BACKUP_S3_BUCKET" ]] || die "S3 bucket not set!"
 success "Secrets check passed."
 
 note "Checking tools..."
 tar --version
 zstd --version
-/app/coscli --version
+rclone --version
 success "Tools check passed."
 
 echo "Backup interval set to $CRUPEST_AUTO_BACKUP_INTERVAL..."
@@ -57,13 +58,10 @@ function backup {
   du -h "$tmp_file" | cut -f1 | xargs echo "Size of $tmp_file:"
 
   des_file_name="$current_time.$backup_file_ext"
-  echo "Upload $des_file_name to COS..."
+  echo "Upload $des_file_name to S3..."
 
-  /app/coscli --init-skip \
-    --secret-id "${CRUPEST_AUTO_BACKUP_COS_SECRET_ID}" \
-    --secret-key "${CRUPEST_AUTO_BACKUP_COS_SECRET_KEY}" \
-    --endpoint "${CRUPEST_AUTO_BACKUP_COS_ENDPOINT}" \
-    cp "$tmp_file" "cos://${CRUPEST_AUTO_BACKUP_COS_BUCKET}/$des_file_name"
+  rclone --config=/app/rclone.conf copyto \
+    "$tmp_file" "remote://${CRUPEST_AUTO_BACKUP_S3_BUCKET}/$des_file_name"
 
   echo "Remove tmp file..."
   rm "$tmp_file"
