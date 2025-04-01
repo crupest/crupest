@@ -4,9 +4,14 @@
 
 {{ define "content" }}
   {{ partial "nav.html" . }}
-  <h1>Posts</h1>
+  <h1>{{ .Title }}</h1>
+  {{ $pages := .RegularPages }}
+  {{ if .Param "recursive" }}
+    {{ $pages = .RegularPagesRecursive }}
+  {{ end }}
   {{ partial "preview/posts.html" (dict
-    "h" "h3"
-    "pages" (.RegularPages.ByDate.Reverse.Limit 3))
+      "h" "h3"
+      "pages" $pages
+    )
   }}
 {{ end }}

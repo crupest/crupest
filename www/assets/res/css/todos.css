@@ -1,14 +1,24 @@
 .todo {
-
-  &::before {
+  h3::before {
     font-family: monospace;
   }
 
-  &.working::before {
+  &.working h3::before {
     content: "* ";
   }
 
-  &.done::before {
+  &.done h3::before {
     content: "✓ ";
   }
+
+  &.give-up  {
+    &, a:link, a:visited {
+      color: grey;
+    }
+
+    h3:before {
+      content: "orz ✖ ";
+    }
+  }
 }
+
