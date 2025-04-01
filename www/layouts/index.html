@@ -26,23 +26,26 @@
   <hr />
   <section>
     <p>Welcome to my home page! Nice to meet you here! 🥰</p>
-    <p>If you have something interesting to share with me, feel free to email me at
-      <a rel="noopener noreferrer" href="mailto:crupest@crupest.life">crupest@crupest.life</a>.
-      You can also create an issue in any of my repos on GitHub to talk anything to me.
+    <p>If you have something interesting to share with me, feel free to email me
+      at <a rel="noopener noreferrer" href="mailto:crupest@crupest.life">crupest@crupest.life</a>.
+      You can also create an issue in any of my repos
+      on <a rel="noopener noreferrer" href="https://github.com/crupest">GitHub</a> to talk
+      anything to me.
     </p>
     <div id="links" class="mono-link">
-      links:
+      jump-to:
       <ul>
-        <li><a href="{{ .RelPermalink }}">home</a></li>
         <li><a href="{{ absURL "/git/" }}">git</a></li>
-        {{ with .GetPage "/hurd" }}
+        {{ with .GetPage "/notes/hurd" }}
           <li><a href="{{ .RelPermalink }}">hurd</a></li>
         {{ end }}
-        {{ with .GetPage "/todos" }}
+        {{ with .GetPage "/notes/todos" }}
           <li><a href="{{ .RelPermalink }}">todos</a></li>
         {{ end }}
-          <li><a rel="noopener noreferrer" href="https://github.com/crupest">github</a></li>
-        </ul>
+        {{ with .GetPage "/notes/cheat-sheet" }}
+          <li><a href="{{ .RelPermalink }}">cheat-sheet</a></li>
+        {{ end }}
+      </ul>
     </div>
   </section>
   <hr>
