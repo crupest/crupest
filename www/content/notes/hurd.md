@@ -44,30 +44,44 @@ See [this](posts/c-func-ext.md)
 
 ## git repos
 
+Clone all at once:
+
+```sh
+# glibc is too big, so not clone here.
+for repo in hurd gnumach mig web; do
+  if [ ! -d $repo ]; then
+    git clone "https://crupest.life/git/hurd/$repo.git"
+    pushd $repo
+    git remote add upstream "https://git.savannah.gnu.org/git/hurd/$repo.git"
+    popd
+  fi
+done
+```
+
 {{< link-group >}}
 hurd
-cru: <https://crupest.life/git/cru-hurd/hurd.git>
+cru: <https://crupest.life/git/hurd/hurd.git>
 upstream: <https://git.savannah.gnu.org/git/hurd/hurd.git>
 debian: <https://salsa.debian.org/hurd-team/hurd>
 {{< /link-group >}}
 
 {{< link-group >}}
 gnumach
-cru: <https://crupest.life/git/cru-hurd/gnumach.git>
+cru: <https://crupest.life/git/hurd/gnumach.git>
 upstream: <https://git.savannah.gnu.org/git/hurd/gnumach.git>
 debian: <https://salsa.debian.org/hurd-team/gnumach>
 {{< /link-group >}}
 
 {{< link-group >}}
 mig
-cru: <https://crupest.life/git/cru-hurd/mig.git>
+cru: <https://crupest.life/git/hurd/mig.git>
 upstream: <https://git.savannah.gnu.org/git/hurd/mig.git>
 debian: <https://salsa.debian.org/hurd-team/mig>
 {{< /link-group >}}
 
 {{< link-group >}}
 glibc
-cru: <https://crupest.life/git/cru-hurd/glibc.git>
+cru: <https://crupest.life/git/hurd/glibc.git>
 upstream: <git://sourceware.org/git/glibc.git>
 debian: <https://salsa.debian.org/glibc-team/glibc>
 mirror: <https://mirrors.tuna.tsinghua.edu.cn/git/glibc.git>
@@ -75,7 +89,7 @@ mirror: <https://mirrors.tuna.tsinghua.edu.cn/git/glibc.git>
 
 {{< link-group >}}
 web
-cru: <https://crupest.life/git/cru-hurd/web.git>
+cru: <https://crupest.life/git/hurd/web.git>
 upstream: <https://git.savannah.gnu.org/git/hurd/web.git>
 {{< /link-group >}}
 
