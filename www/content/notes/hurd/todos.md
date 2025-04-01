@@ -9,7 +9,7 @@ params:
 
 ## Porting
 
-### {{< todo name=pam state=working >}}
+{{< todo name=pam state=give-up >}}
 
 {{< link-group >}}
 git
@@ -23,7 +23,9 @@ mail
 <https://lists.debian.org/debian-hurd/2025/02/msg00018.html>
 {{< /link-group >}}
 
-### {{< todo name=abseil state=working >}}
+{{< /todo >}}
+
+{{< todo name=abseil state=working >}}
 
 {{< link-group >}}
 git
@@ -38,7 +40,9 @@ mail
 <https://lists.debian.org/debian-hurd/2025/02/msg00035.html>
 {{< /link-group >}}
 
-### {{< todo name=libgav1 state=done >}}
+{{< /todo >}}
+
+{{< todo name=libgav1 state=done >}}
 
 {{< link-group >}}
 git
@@ -52,3 +56,7 @@ misc
 mail: <https://lists.debian.org/debian-hurd/2025/02/msg00016.html>
 gerrit: <https://chromium-review.googlesource.com/c/codecs/libgav1/+/6239812>
 {{< /link-group >}}
+
+{{< /todo >}}
+
+

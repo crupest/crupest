@@ -19,9 +19,11 @@ reusable code snippets here to help *fix `*_MAX` bugs*.
 <!--more-->
 
 ```c
-#include <errno.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
 
 static inline char *xreadlink(const char *restrict path) {
   char *buffer;
@@ -29,24 +31,18 @@ static inline char *xreadlink(const char *restrict path) {
   ssize_t len;
 
   while (1) {
-    buffer = (char *)malloc(allocated);
-    if (!buffer) {
-      return NULL;
-    }
+    buffer = (char*) malloc(allocated);
+    if (!buffer) { return NULL; }
     len = readlink(path, buffer, allocated);
-    if (len < (ssize_t)allocated) {
-      return buffer;
-    }
+    if (len < (ssize_t) allocated) { return buffer; }
     free(buffer);
-    if (len >= (ssize_t)allocated) {
-      allocated *= 2;
-      continue;
-    }
+    if (len >= (ssize_t) allocated) { allocated *= 2; continue; }
     return NULL;
   }
-}
+ }
 
-static inline char *xgethostname() {
+
+static inline char *xgethostname(void) {
   long max_host_name;
   char *buffer;
 
@@ -62,24 +58,42 @@ static inline char *xgethostname() {
   return buffer;
 }
 
-static inline char *xgetcwd() {
+static inline char *xgetcwd(void) {
   char *buffer;
   size_t allocated = 128;
 
   while (1) {
-    buffer = (char *)malloc(allocated);
-    if (!buffer) {
-      return NULL;
-    }
+    buffer = (char*) malloc(allocated);
+    if (!buffer) { return NULL; }
     getcwd(buffer, allocated);
-    if (buffer)
-      return buffer;
+    if (buffer) return buffer;
     free(buffer);
-    if (errno == ERANGE) {
-      allocated *= 2;
-      continue;
-    }
+    if (errno == ERANGE) { allocated *= 2; continue; }
     return NULL;
   }
+}
+
+static inline __attribute__((__format__(__printf__, 2, 3))) int
+xsprintf(char **buf_ptr, const char *restrict format, ...) {
+  char *buffer;
+  int ret;
+
+  va_list args;
+  va_start(args, format);
+
+  ret = snprintf(NULL, 0,  format, args);
+  if (ret < 0) { goto out; }
+
+  buffer = malloc(ret + 1);
+  if (!buffer) { ret = -1; goto out; }
+
+  ret = snprintf(NULL, 0,  format, args);
+  if (ret < 0) { free(buffer); goto out; }
+
+  *buf_ptr = buffer;
+
+out:
+  va_end(args);
+  return ret;
 }
 ```
