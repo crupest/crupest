@@ -7,7 +7,7 @@ layout: single
 
 {{< mono >}}
 
-[TODOS](/hurd/todos)
+[TODOS](/notes/hurd/todos)
 
 {{< /mono >}}
 
