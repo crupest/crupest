@@ -15,6 +15,7 @@ services:
     env_file:
       - ./@@CRUPEST_GENERATED_DIR@@/envs/nginx.env
       - ./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env
+      - ./@@CRUPEST_GENERATED_DIR@@/envs/mail-server-common.env
     volumes:
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/certs:/etc/letsencrypt"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/data:/var/lib/letsencrypt"
@@ -46,35 +47,31 @@ services:
       - "./data/auto-backup:/data/auto-backup"
     restart: on-failure:3
 
-  mailserver:
-    image: ghcr.io/docker-mailserver/docker-mailserver:latest
-    pull_policy: always
-    container_name: mailserver
-    hostname: mail.@@CRUPEST_DOMAIN@@
-    env_file: ./@@CRUPEST_GENERATED_DIR@@/envs/mailserver.env
-    # More information about the mail-server ports:
-    # https://docker-mailserver.github.io/docker-mailserver/edge/config/security/understanding-the-ports/
-    # To avoid conflicts with yaml base-60 float, DO NOT remove the quotation marks.
+  mail-server:
+    pull_policy: build
+    build:
+      context: ./@@CRUPEST_DOCKER_DIR@@/mail-server
+      dockerfile: Dockerfile
+      pull: true
+    container_name: mail-server
+    hostname: mail
+    domainname: "@@CRUPEST_DOMAIN@@"
+    env_file:
+      - "./@@CRUPEST_GENERATED_DIR@@/envs/mail-server-common.env"
+      - "./@@CRUPEST_GENERATED_DIR@@/envs/mail-server.env"
     ports:
-      - "25:25" # SMTP  (explicit TLS => STARTTLS)
       - "143:143" # IMAP4 (explicit TLS => STARTTLS)
-      - "465:465" # ESMTP (implicit TLS)
-      - "587:587" # ESMTP (explicit TLS => STARTTLS)
       - "993:993" # IMAP4 (implicit TLS)
+      - "587:587" # ESMTP (explicit TLS => STARTTLS)
+      - "465:465" # ESMTP (implicit TLS)
       - "4190:4190" # manage sieve protocol
     volumes:
-      - ./@@CRUPEST_DATA_MAILSERVER_DIR@@/mail-data/:/var/mail/
-      - ./@@CRUPEST_SERVICES_STATE_DIR@@/mail-state/:/var/mail-state/
-      - ./@@CRUPEST_DATA_MAILSERVER_DIR@@/mail-logs/:/var/log/mail/
-      - ./@@CRUPEST_DATA_MAILSERVER_DIR@@/config/:/tmp/docker-mailserver/
-      - ./@@CRUPEST_DATA_CERTBOT_DIR@@/certs:/etc/letsencrypt
-      - /etc/localtime:/etc/localtime:ro
+      - "./@@CRUPEST_DATA_MAIL_SERVER_DIR@@:/data"
+      - "./@@CRUPEST_SSL_FULLCHAIN_FILE@@:/etc/dovecot/ssl/tls.crt"
+      - "./@@CRUPEST_SSL_PRIVATE_KEY_FILE@@:/etc/dovecot/ssl/tls.key"
+      - "/etc/localtime:/etc/localtime:ro"
     restart: on-failure:3
     stop_grace_period: 1m
-    healthcheck:
-      test: "ss --listening --tcp | grep -P 'LISTEN.+:smtp' || exit 1"
-      timeout: 3s
-      retries: 0
 
   git-server:
     pull_policy: build

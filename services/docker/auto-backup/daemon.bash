@@ -15,9 +15,7 @@ success() {
   echo -e "\033[32mSuccess: " "$@" "\033[0m"
 }
 
-if [[ -z "$CRUPEST_AUTO_BACKUP_INTERVAL" ]]; then
-  die "Backup interval not set, please set it!"
-fi
+[[ -n "$CRUPEST_AUTO_BACKUP_INTERVAL" ]] || die "Backup interval not set, please set it!"
 
 note "Checking secrets..."
 [[ -n "$RCLONE_S3_PROVIDER" ]] || die "S3 provider not set!"

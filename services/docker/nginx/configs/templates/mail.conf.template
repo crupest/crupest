@@ -6,14 +6,14 @@ server {
         root /srv/mail;
     }
 
+    location = /${CRUPEST_MAIL_SERVER_AWS_INBOUND_PATH} {
+        include common/proxy-common;
+        proxy_pass http://mail-server:2345/${CRUPEST_MAIL_SERVER_AWS_INBOUND_PATH};
+    }
+
     location / {
         include common/proxy-common;
         proxy_pass http://roundcubemail:80/;
-    }
-
-    location /rspamd/ {
-        include common/proxy-common;
-        proxy_pass http://mailserver:11334/;
     }
 
     client_max_body_size 5G;
