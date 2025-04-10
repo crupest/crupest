@@ -1,4 +1,3 @@
 out
 .env.local
 db.sqlite
-test-mail.txt

@@ -6,7 +6,11 @@ import log from "../log.ts";
 import config from "../config.ts";
 import { AppBase } from "../app.ts";
 import { AwsContext } from "./context.ts";
-import { AwsMailDeliverer } from "./deliver.ts";
+import {
+  AwsMailDeliverer,
+  AwsMailMessageIdRewriteHook,
+  AwsMailMessageIdSaveHook,
+} from "./deliver.ts";
 import { AwsMailRetriever } from "./retriever.ts";
 
 export class AwsRelayApp extends AppBase {
@@ -17,6 +21,13 @@ export class AwsRelayApp extends AppBase {
   constructor() {
     super();
     this.#retriever = new AwsMailRetriever(this.#aws, this.inboundDeliverer);
+
+    this.outboundDeliverer.preHooks.push(
+      new AwsMailMessageIdRewriteHook(this.db),
+    );
+    this.outboundDeliverer.postHooks.push(
+      new AwsMailMessageIdSaveHook(this.db),
+    );
 
     this.hono.post(
       `/${config.get("awsInboundPath")}`,
@@ -31,7 +42,7 @@ export class AwsRelayApp extends AppBase {
         "json",
         z.object({
           key: z.string(),
-          recipients: z.array(z.string()).optional(),
+          recipients: z.optional(z.array(z.string())),
         }),
       ),
       async (ctx) => {
@@ -114,6 +125,7 @@ if (import.meta.main) {
   }
 
   const app = new AwsRelayApp();
+  await app.setup();
   if (command in app.cli) {
     log.info(`Run command ${command}.`);
     await app.cli[command as keyof AwsRelayApp["cli"]](args);

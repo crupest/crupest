@@ -5,8 +5,8 @@ declare global {
 }
 
 Object.defineProperty(Date.prototype, "toFileNameString", {
-  value: function (dateOnly?: boolean) {
-    const str = (this as Date).toISOString();
+  value: function (this: Date, dateOnly?: boolean) {
+    const str = this.toISOString();
     return dateOnly === true
       ? str.slice(0, str.indexOf("T"))
       : str.replaceAll(/:|\./g, "-");

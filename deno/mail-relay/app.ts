@@ -10,9 +10,9 @@ import {
   FallbackRecipientHook,
   MailDeliverer,
 } from "./mail.ts";
-import { DovecotMailDeliverer } from "./dovecot.ts";
+import { DovecotMailDeliverer } from "./dovecot/deliver.ts";
 import { CronTask, CronTaskConfig } from "./cron.ts";
-import { DumbSMTPServer as DumbSmtpServer } from "./dumb-smtp-server.ts";
+import { DumbSmtpServer } from "./dumb-smtp-server.ts";
 
 export abstract class AppBase {
   protected readonly db: DbService;
@@ -45,12 +45,11 @@ export abstract class AppBase {
     this.hono.post("/send/raw", async (context) => {
       const body = await context.req.text();
       if (body.trim().length === 0) {
-        return context.json({ msg: "Can't send an empty mail" }, 400);
+        return context.json({ msg: "Can't send an empty mail." }, 400);
       } else {
-        const mail = await this.outboundDeliverer.deliverRaw(body);
+        const result = await this.outboundDeliverer.deliverRaw(body);
         return context.json({
-          messageId: mail.messageId,
-          awsMessageId: mail.awsMessageId,
+          awsMessageId: result.awsMessageId,
         });
       }
     });
@@ -64,6 +63,10 @@ export abstract class AppBase {
     const cron = new CronTask(config);
     this.crons.push(cron);
     return cron;
+  }
+
+  async setup() {
+    await this.db.migrate()
   }
 
   serve(): { smtp: DumbSmtpServer; http: Deno.HttpServer } {

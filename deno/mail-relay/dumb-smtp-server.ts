@@ -16,18 +16,11 @@ const RESPONSES = {
   "INVALID": "500 5.5.1 Error: command not recognized",
 } as const;
 
-export class DumbSMTPServer {
+export class DumbSmtpServer {
   #deliverer: MailDeliverer;
 
   constructor(deliverer: MailDeliverer) {
     this.#deliverer = deliverer;
-  }
-
-  async #send(rawMail: string): Promise<{ message: string }> {
-    const mail = await this.#deliverer.deliverRaw(rawMail);
-    return {
-      message: mail.deliverMessage ?? "Success",
-    };
   }
 
   async #handleConnection(conn: Deno.Conn) {
@@ -88,8 +81,8 @@ export class DumbSMTPServer {
         } else {
           if (line === ".") {
             try {
-              log.info("Done receiving mail data...");
-              const { message } = await this.#send(rawMail);
+              log.info("Done receiving mail data, begin to relay...");
+              const { message } = await this.#deliverer.deliverRaw(rawMail);
               await send(`250 2.6.0 ${message}`);
               rawMail = null;
               log.info("Done SMTP mail session.");
@@ -113,10 +106,14 @@ export class DumbSMTPServer {
       port: config.SMTP_PORT,
     });
     listener.unref();
-    log.info(`Dumb SMTP server running on port ${config.SMTP_PORT}.`);
+    log.info(`Dumb SMTP server starts running on port ${config.SMTP_PORT}.`);
 
     for await (const conn of listener) {
-      await this.#handleConnection(conn);
+      try {
+        await this.#handleConnection(conn);
+      } catch (cause) {
+        log.error("One smtp connection session throws an error " + cause);
+      }
     }
   }
 }

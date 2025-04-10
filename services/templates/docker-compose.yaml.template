@@ -51,6 +51,8 @@ services:
     pull_policy: build
     build:
       context: ./@@CRUPEST_DOCKER_DIR@@/mail-server
+      additional_contexts:
+        - deno=./deno
       dockerfile: Dockerfile
       pull: true
     container_name: mail-server
