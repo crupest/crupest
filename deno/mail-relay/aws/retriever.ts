@@ -80,7 +80,7 @@ export class AwsMailRetriever {
     await this.inboundDeliverer.deliver({ mail, recipients: recipients });
     log.info(`Done delivering s3 mail ${s3Key}.`);
 
-    const date = mail.date ?? mail.simpleParseDate();
+    const date = mail.startSimpleParse().sections().headers().date();
     const dateString = date?.toFileNameString(true) ?? "invalid-date";
     const newPath = `${this.archiveMailPrefix}${dateString}/${s3Key}`;
 

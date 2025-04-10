@@ -55,29 +55,14 @@ class SqliteDatabaseAdapter implements SqliteDatabase {
 export class DbError extends Error {
 }
 
-const NAMES = {
-  mail: {
-    table: "mail",
-    columns: {
-      id: "id",
-      messageId: "message_id",
-      awsMessageId: "aws_message_id",
-      date: "date",
-      raw: "raw",
-    },
-  },
-} as const;
-
-interface MailTable {
-  [NAMES.mail.columns.id]: Generated<number>;
-  [NAMES.mail.columns.messageId]: string;
-  [NAMES.mail.columns.awsMessageId]: string | null;
-  [NAMES.mail.columns.date]: string | null;
-  [NAMES.mail.columns.raw]: string;
+interface AwsMessageIdMapTable {
+  id: Generated<number>;
+  message_id: string;
+  aws_message_id: string;
 }
 
 interface Database {
-  [NAMES.mail.table]: MailTable;
+  aws_message_id_map: AwsMessageIdMapTable;
 }
 
 const migrations: Record<string, Migration> = {
@@ -85,35 +70,16 @@ const migrations: Record<string, Migration> = {
     // deno-lint-ignore no-explicit-any
     async up(db: Kysely<any>): Promise<void> {
       await db.schema
-        .createTable(NAMES.mail.table)
-        .addColumn(
-          NAMES.mail.columns.id,
-          "integer",
-          (col) => col.primaryKey().autoIncrement(),
-        )
-        .addColumn(
-          NAMES.mail.columns.messageId,
-          "text",
-          (col) => col.notNull().unique(),
-        )
-        .addColumn(
-          NAMES.mail.columns.awsMessageId,
-          "text",
-          (col) => col.unique(),
-        )
-        .addColumn(NAMES.mail.columns.date, "text")
-        .addColumn(NAMES.mail.columns.raw, "text", (col) => col.notNull())
+        .createTable("aws_message_id_map")
+        .addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
+        .addColumn("message_id", "text", (col) => col.notNull().unique())
+        .addColumn("aws_message_id", "text", (col) => col.notNull().unique())
         .execute();
 
-      for (
-        const column of [
-          NAMES.mail.columns.messageId,
-          NAMES.mail.columns.awsMessageId,
-        ]
-      ) {
+      for (const column of ["message_id", "aws_message_id"]) {
         await db.schema
-          .createIndex(`${NAMES.mail.table}_${column}`)
-          .on(NAMES.mail.table)
+          .createIndex(`aws_message_id_map_${column}`)
+          .on("aws_message_id_map")
           .column(column)
           .execute();
       }
@@ -121,7 +87,7 @@ const migrations: Record<string, Migration> = {
 
     // deno-lint-ignore no-explicit-any
     async down(db: Kysely<any>): Promise<void> {
-      await db.schema.dropTable(NAMES.mail.table).execute();
+      await db.schema.dropTable("aws_message_id_map").execute();
     },
   },
 };
@@ -152,28 +118,28 @@ export class DbService {
     await this.#migrator.migrateToLatest();
   }
 
-  async addMail(mail: Insertable<MailTable>): Promise<number> {
-    const inserted = await this.#kysely.insertInto(NAMES.mail.table).values(
+  async addMessageIdMap(
+    mail: Insertable<AwsMessageIdMapTable>,
+  ): Promise<number> {
+    const inserted = await this.#kysely.insertInto("aws_message_id_map").values(
       mail,
     ).executeTakeFirstOrThrow();
     return Number(inserted.insertId!);
   }
 
   async messageIdToAws(messageId: string): Promise<string | null> {
-    const row = await this.#kysely.selectFrom(NAMES.mail.table).where(
-      NAMES.mail.columns.messageId,
+    const row = await this.#kysely.selectFrom("aws_message_id_map").where(
+      "message_id",
       "=",
       messageId,
-    ).select(NAMES.mail.columns.awsMessageId).executeTakeFirst();
+    ).select("aws_message_id").executeTakeFirst();
     return row?.aws_message_id ?? null;
   }
 
   async messageIdFromAws(awsMessageId: string): Promise<string | null> {
-    const row = await this.#kysely.selectFrom(NAMES.mail.table).where(
-      NAMES.mail.columns.awsMessageId,
-      "=",
-      awsMessageId,
-    ).select(NAMES.mail.columns.messageId).executeTakeFirst();
+    const row = await this.#kysely.selectFrom("aws_message_id_map")
+      .where("aws_message_id", "=", awsMessageId).select("message_id")
+      .executeTakeFirst();
     return row?.message_id ?? null;
   }
 }

@@ -1,0 +1,6 @@
+{
+  "workspace": [ "./mail-relay" ],
+  "tasks": {
+    "compile:mail-relay": "deno task --cwd=mail-relay compile"
+  }
+}

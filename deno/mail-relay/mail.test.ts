@@ -1,11 +1,15 @@
 import { describe, it } from "@std/testing/bdd";
 import { expect, fn } from "@std/expect";
 
-import { Mail, MailDeliverer } from "./mail.ts";
+import { Mail, MailDeliverContext, MailDeliverer } from "./mail.ts";
 
 const mockDate = "Fri, 02 May 2025 08:33:02 +0000";
+const mockMessageId = "mock-message-id@from.mock";
+const mockMessageId2 = "mock-message-id-2@from.mock";
+const mockFromAddress = "mock@from.mock";
+const mockCcAddress = "mock@cc.mock";
 const mockBodyStr = `This is body content.
-Line 2
+Line 2 ${mockMessageId2}
 
 Line 4`;
 const mockHeaders = [
@@ -14,7 +18,7 @@ const mockHeaders = [
   ["MIME-Version", "1.0"],
   ["X-Mailer", "MIME-tools 5.509 (Entity 5.509)"],
   ["Content-Type", "text/plain; charset=utf-8"],
-  ["From", '"Mock From" <mock@from.mock>'],
+  ["From", `"Mock From" <${mockFromAddress}>`],
   [
     "To",
     `"John \\"Big\\" Doe" <john@example.com>, "Alice (Work)" <alice+work@example.com>,
@@ -25,9 +29,9 @@ const mockHeaders = [
  "Non-ASCII 用户" <user@例子.中国>,
  admin@[192.168.1.1]`,
   ],
-  ["CC", "Mock CC <mock@cc.mock>"],
+  ["CC", `Mock CC <${mockCcAddress}>`],
   ["Subject", "A very long mock\n subject"],
-  ["Message-ID", "<abcdef@from.mock>"],
+  ["Message-ID", `<${mockMessageId}>`],
   ["Date", mockDate],
 ];
 const mockHeaderStr = mockHeaders.map((h) => h[0] + ": " + h[1]).join("\n");
@@ -44,30 +48,30 @@ const mockToAddresses = [
   "user@例子.中国",
   "admin@[192.168.1.1]",
 ];
-const mockCcAddresses = ["mock@cc.mock"];
 
 describe("Mail", () => {
   it("simple parse", () => {
-    const parsed = new Mail(mockMailStr).simpleParse();
-    expect(parsed.sections.header).toEqual(mockHeaderStr);
-    expect(parsed.sections.body).toEqual(mockBodyStr);
+    const parsed = new Mail(mockMailStr).startSimpleParse().sections();
+    expect(parsed.header).toEqual(mockHeaderStr);
+    expect(parsed.body).toEqual(mockBodyStr);
     expect(parsed.sep).toBe("\n");
     expect(parsed.eol).toBe("\n");
   });
 
   it("simple parse crlf", () => {
-    const parsed = new Mail(mockCrlfMailStr).simpleParse();
+    const parsed = new Mail(mockCrlfMailStr).startSimpleParse().sections();
     expect(parsed.sep).toBe("\r\n");
     expect(parsed.eol).toBe("\r\n");
   });
 
   it("simple parse date", () => {
-    expect(new Mail(mockMailStr).simpleParseDate()).toEqual(new Date(mockDate));
+    expect(new Mail(mockMailStr).startSimpleParse().sections().headers().date())
+      .toEqual(new Date(mockDate));
   });
 
   it("simple parse headers", () => {
     expect(
-      new Mail(mockMailStr).simpleParseHeaders(),
+      new Mail(mockMailStr).startSimpleParse().sections().headers(),
     ).toEqual(mockHeaders.map(
       (h) => [h[0], " " + h[1].replaceAll("\n", "")],
     ));
@@ -90,21 +94,45 @@ describe("Mail", () => {
 
   it("parse recipients", () => {
     const mail = new Mail(mockMailStr);
-    expect(mail.simpleParseRecipients()).toEqual([
+    expect([...mail.startSimpleParse().sections().headers().recipients()])
+      .toEqual([
+        ...mockToAddresses,
+        mockCcAddress,
+      ]);
+    expect([
+      ...mail.startSimpleParse().sections().headers().recipients({
+        domain: "example.com",
+      }),
+    ]).toEqual([
       ...mockToAddresses,
-      ...mockCcAddresses,
+      mockCcAddress,
+    ].filter((a) => a.endsWith("example.com")));
+  });
+
+  it("find all addresses", () => {
+    const mail = new Mail(mockMailStr);
+    expect(mail.simpleFindAllAddresses()).toEqual([
+      "mock@from.mock",
+      "john@example.com",
+      "alice+work@example.com",
+      "team@company.com",
+      "escape@test.com",
+      "just@email.com",
+      "comment@domain.net",
+      "mock@cc.mock",
+      "mock-message-id@from.mock",
+      "mock-message-id-2@from.mock",
     ]);
-    expect(mail.simpleParseRecipients({domain: "example.com"})).toEqual([
-      ...mockToAddresses,
-      ...mockCcAddresses,
-    ].filter(a => a.endsWith("example.com")));
   });
 });
 
 describe("MailDeliverer", () => {
   class MockMailDeliverer extends MailDeliverer {
     name = "mock";
-    override doDeliver = fn() as MailDeliverer["doDeliver"];
+    override doDeliver = fn((_: Mail, ctx: MailDeliverContext) => {
+      ctx.result.recipients.set("*", { kind: "done", message: "success" });
+      return Promise.resolve();
+    }) as MailDeliverer["doDeliver"];
   }
   const mockDeliverer = new MockMailDeliverer();
 

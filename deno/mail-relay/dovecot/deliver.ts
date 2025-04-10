@@ -1,14 +1,13 @@
 import { basename } from "@std/path";
 
-import config from "./config.ts";
-import log from "./log.ts";
+import config from "../config.ts";
+import log from "../log.ts";
 import {
   Mail,
   MailDeliverContext,
   MailDeliverer,
-  MailDeliverRecipientResult,
   RecipientFromHeadersHook,
-} from "./mail.ts";
+} from "../mail.ts";
 
 export class DovecotMailDeliverer extends MailDeliverer {
   readonly name = "dovecot";
@@ -29,23 +28,24 @@ export class DovecotMailDeliverer extends MailDeliverer {
     const utf8Stream = mail.toUtf8Bytes();
 
     const recipients = [...context.recipients];
+
     if (recipients.length === 0) {
-      throw new Error("No recipients found.");
+      context.result.message =
+        "Failed to deliver to dovecot, no recipients are specified.";
+      return;
     }
 
-    log.info(`Deliver to ${recipients.join(", ")}.`);
+    log.info(`Deliver to dovecot users: ${recipients.join(", ")}.`);
 
     for (const recipient of recipients) {
-      log.info(`Call ${ldaBinName} for ${recipient}...`);
-
-      const result: MailDeliverRecipientResult = {
-        kind: "done",
-        message: `${ldaBinName} exited with success.`,
-      };
-
       try {
+        const commandArgs = ["-d", recipient];
+        log.info(
+          `Run ${ldaBinName} ${commandArgs.join(" ")}...`,
+        );
+
         const ldaCommand = new Deno.Command(ldaPath, {
-          args: ["-d", recipient],
+          args: commandArgs,
           stdin: "piped",
           stdout: "piped",
           stderr: "piped",
@@ -62,33 +62,41 @@ export class DovecotMailDeliverer extends MailDeliverer {
 
         const status = await ldaProcess.status;
 
-        if (!status.success) {
-          result.kind = "fail";
-          result.message =
-            `${ldaBinName} exited with error code ${status.code}`;
+        if (status.success) {
+          context.result.recipients.set(recipient, {
+            kind: "done",
+            message: `${ldaBinName} exited with success.`,
+          });
+        } else {
+          let message = `${ldaBinName} exited with error code ${status.code}`;
 
           if (status.signal != null) {
-            result.message += ` (signal ${status.signal})`;
+            message += ` (signal ${status.signal})`;
           }
 
           // https://doc.dovecot.org/main/core/man/dovecot-lda.1.html
           switch (status.code) {
             case 67:
-              result.message += ", recipient user not known";
+              message += ", recipient user not known";
               break;
             case 75:
-              result.kind = "retry";
+              message += ", temporary error";
               break;
           }
 
-          result.message += ".";
+          message += ".";
+
+          context.result.recipients.set(recipient, { kind: "fail", message });
         }
-      } catch (e) {
-        result.kind = "fail";
-        result.message = "An error was thrown when running lda process: " + e;
-        result.cause = e;
+      } catch (cause) {
+        context.result.recipients.set(recipient, {
+          kind: "fail",
+          message: "An error is thrown when running lda: " + cause,
+          cause,
+        });
       }
-      context.result.set(recipient, result);
     }
+
+    log.info("Done handling all recipients.");
   }
 }

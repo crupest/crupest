@@ -5,10 +5,10 @@ import emailAddresses from "email-addresses";
 import log from "./log.ts";
 import config from "./config.ts";
 
-class MailParseError extends Error {
+class MailSimpleParseError extends Error {
   constructor(
     message: string,
-    public readonly mail: Mail,
+    public readonly text: string,
     public readonly lineNumber?: number,
     options?: ErrorOptions,
   ) {
@@ -17,40 +17,70 @@ class MailParseError extends Error {
   }
 }
 
-interface ParsedMail {
-  sections: {
-    header: string;
-    body: string;
-  };
-  /**
-   * The empty line between headers and body.
-   */
-  sep: string;
-  eol: string;
+class MailSimpleParsedHeaders extends Array<[key: string, value: string]> {
+  getFirst(fieldKey: string): string | undefined {
+    for (const [key, value] of this) {
+      if (key.toLowerCase() === fieldKey.toLowerCase()) return value;
+    }
+    return undefined;
+  }
+
+  messageId(): string | undefined {
+    const messageIdField = this.getFirst("message-id");
+    if (messageIdField == null) return undefined;
+
+    const match = messageIdField.match(/\<(.*?)\>/);
+    if (match != null) {
+      return match[1];
+    } else {
+      console.warn("Invalid message-id header of mail: ", messageIdField);
+      return undefined;
+    }
+  }
+
+  date(invalidToUndefined: boolean = true): Date | undefined {
+    const dateField = this.getFirst("date");
+    if (dateField == null) return undefined;
+
+    const date = new Date(dateField);
+    if (invalidToUndefined && isNaN(date.getTime())) {
+      log.warn(`Invalid date string (${dateField}) found in header.`);
+      return undefined;
+    }
+    return date;
+  }
+
+  recipients(options?: { domain?: string; headers?: string[] }): Set<string> {
+    const domain = options?.domain;
+    const headers = options?.headers ?? ["to", "cc", "bcc", "x-original-to"];
+    const recipients = new Set<string>();
+    for (const [key, value] of this) {
+      if (headers.includes(key.toLowerCase())) {
+        emailAddresses.parseAddressList(value)?.flatMap((a) =>
+          a.type === "mailbox" ? a : a.addresses
+        )?.forEach(({ address }) => {
+          if (domain == null || address.endsWith(domain)) {
+            recipients.add(address);
+          }
+        });
+      }
+    }
+    return recipients;
+  }
 }
 
-export class Mail {
-  date?: Date;
-  messageId?: string;
-  deliverMessage?: string;
+class MailSimpleParsedSections {
+  header: string;
+  body: string;
+  eol: string;
+  sep: string;
 
-  constructor(public raw: string) {}
-
-  toUtf8Bytes(): Uint8Array {
-    const utf8Encoder = new TextEncoder();
-    return utf8Encoder.encode(this.raw);
-  }
-
-  toBase64(): string {
-    return encodeBase64(this.raw);
-  }
-
-  simpleParse(): ParsedMail {
-    const twoEolMatch = this.raw.match(/(\r?\n)(\r?\n)/);
+  constructor(raw: string) {
+    const twoEolMatch = raw.match(/(\r?\n)(\r?\n)/);
     if (twoEolMatch == null) {
-      throw new MailParseError(
+      throw new MailSimpleParseError(
         "No header/body section separator (2 successive EOLs) found.",
-        this,
+        raw,
       );
     }
 
@@ -60,19 +90,14 @@ export class Mail {
       log.warn("Different EOLs (\\r\\n, \\n) found.");
     }
 
-    return {
-      sections: {
-        header: this.raw.slice(0, twoEolMatch.index!),
-        body: this.raw.slice(twoEolMatch.index! + eol.length + sep.length),
-      },
-      sep,
-      eol,
-    };
+    this.header = raw.slice(0, twoEolMatch.index!);
+    this.body = raw.slice(twoEolMatch.index! + eol.length + sep.length);
+    this.eol = eol;
+    this.sep = sep;
   }
 
-  simpleParseHeaders(): [key: string, value: string][] {
-    const { sections } = this.simpleParse();
-    const headers: [string, string][] = [];
+  headers(): MailSimpleParsedHeaders {
+    const headers = new MailSimpleParsedHeaders();
 
     let field: string | null = null;
     let lineNumber = 1;
@@ -81,9 +106,9 @@ export class Mail {
       if (field == null) return;
       const sepPos = field.indexOf(":");
       if (sepPos === -1) {
-        throw new MailParseError(
+        throw new MailSimpleParseError(
           "No ':' in the header field.",
-          this,
+          this.header,
           lineNumber,
         );
       }
@@ -91,12 +116,12 @@ export class Mail {
       field = null;
     };
 
-    for (const line of sections.header.trimEnd().split(/\r?\n|\r/)) {
+    for (const line of this.header.trimEnd().split(/\r?\n|\r/)) {
       if (line.match(/^\s/)) {
         if (field == null) {
-          throw new MailParseError(
+          throw new MailSimpleParseError(
             "Header field starts with a space.",
-            this,
+            this.header,
             lineNumber,
           );
         }
@@ -112,55 +137,40 @@ export class Mail {
 
     return headers;
   }
+}
 
-  simpleParseDate<T = undefined>(
-    invalidValue: T | undefined = undefined,
-  ): Date | T | undefined {
-    const headers = this.simpleParseHeaders();
-    for (const [key, value] of headers) {
-      if (key.toLowerCase() === "date") {
-        const date = new Date(value);
-        if (isNaN(date.getTime())) {
-          log.warn(`Invalid date string (${value}) found in header.`);
-          return invalidValue;
-        }
-        return date;
-      }
-    }
-    return undefined;
+export class Mail {
+  constructor(public raw: string) {}
+
+  toUtf8Bytes(): Uint8Array {
+    const utf8Encoder = new TextEncoder();
+    return utf8Encoder.encode(this.raw);
   }
 
-  simpleParseRecipients(
-    options?: { domain?: string; headers?: string[] },
-  ): Set<string> {
-    const domain = options?.domain;
-    const headers = options?.headers ?? ["to", "cc", "bcc", "x-original-to"];
-    const recipients = new Set<string>();
-    for (const [key, value] of this.simpleParseHeaders()) {
-      if (headers.includes(key.toLowerCase())) {
-        emailAddresses.parseAddressList(value)?.flatMap((a) =>
-          a.type === "mailbox" ? a.address : a.addresses.map((a) => a.address)
-        )?.forEach((a) => {
-          if (domain == null || a.endsWith(domain)) {
-            recipients.add(a);
-          }
-        });
-      }
-    }
-    return recipients;
+  toBase64(): string {
+    return encodeBase64(this.raw);
+  }
+
+  startSimpleParse() {
+    return { sections: () => new MailSimpleParsedSections(this.raw) };
+  }
+
+  simpleFindAllAddresses(): string[] {
+    const re = /,?\<?([a-z0-9_'+\-\.]+\@[a-z0-9_'+\-\.]+)\>?,?/ig
+    return [...this.raw.matchAll(re)].map(m => m[1])
   }
 
   // TODO: Add folding.
   appendHeaders(headers: [key: string, value: string][]) {
-    const { sections, sep, eol } = this.simpleParse();
+    const { header, body, sep, eol } = this.startSimpleParse().sections();
 
-    this.raw = sections.header + eol +
+    this.raw = header + eol +
       headers.map(([k, v]) => `${k}: ${v}`).join(eol) + eol + sep +
-      sections.body;
+      body;
   }
 }
 
-export type MailDeliverResultKind = "done" | "fail" | "retry";
+export type MailDeliverResultKind = "done" | "fail";
 
 export interface MailDeliverRecipientResult {
   kind: MailDeliverResultKind;
@@ -169,23 +179,19 @@ export interface MailDeliverRecipientResult {
 }
 
 export class MailDeliverResult {
-  readonly recipients: Map<string, MailDeliverRecipientResult> = new Map();
+  message: string = "";
+  recipients: Map<string, MailDeliverRecipientResult> = new Map();
 
-  add(
-    recipient: string,
-    kind: MailDeliverResultKind,
-    message: string,
-    cause?: unknown,
-  ) {
-    this.recipients.set(recipient, { kind, message, cause });
-  }
+  constructor(public mail: Mail) {}
 
-  set(recipient: string, result: MailDeliverRecipientResult) {
-    this.recipients.set(recipient, result);
+  hasError(): boolean {
+    return this.recipients.size === 0 ||
+      this.recipients.values().some((r) => r.kind !== "done");
   }
 
   [Symbol.for("Deno.customInspect")]() {
     return [
+      `message: ${this.message}`,
       ...this.recipients.entries().map(([recipient, result]) =>
         `${recipient} [${result.kind}]: ${result.message}`
       ),
@@ -195,9 +201,11 @@ export class MailDeliverResult {
 
 export class MailDeliverContext {
   readonly recipients: Set<string> = new Set();
-  readonly result: MailDeliverResult = new MailDeliverResult();
+  readonly result;
 
-  constructor(public mail: Mail) {}
+  constructor(public mail: Mail) {
+    this.result = new MailDeliverResult(this.mail);
+  }
 }
 
 export interface MailDeliverHook {
@@ -214,10 +222,8 @@ export abstract class MailDeliverer {
     context: MailDeliverContext,
   ): Promise<void>;
 
-  async deliverRaw(rawMail: string): Promise<Mail> {
-    const mail = new Mail(rawMail);
-    await this.deliver({ mail });
-    return mail;
+  async deliverRaw(rawMail: string) {
+    return await this.deliver({ mail: new Mail(rawMail) });
   }
 
   async deliver(
@@ -241,11 +247,25 @@ export abstract class MailDeliverer {
     log.info("Deliver result:");
     log.info(context.result);
 
-    if (context.result.recipients.values().some((r) => r.kind !== "done")) {
+    if (context.result.hasError()) {
       throw new Error("Mail failed to deliver.");
     }
 
     return context.result;
+  }
+}
+
+export abstract class SyncMailDeliverer extends MailDeliverer {
+  #last: Promise<void> = Promise.resolve();
+
+  override async deliver(
+    options: { mail: Mail; recipients?: string[] },
+  ): Promise<MailDeliverResult> {
+    log.info("The mail deliverer is sync. Wait for last delivering done...");
+    await this.#last;
+    const result = super.deliver(options);
+    this.#last = result.then(() => {}, () => {});
+    return result;
   }
 }
 
@@ -256,7 +276,7 @@ export class RecipientFromHeadersHook implements MailDeliverHook {
         "Recipients are already filled. Won't set them with ones in headers.",
       );
     } else {
-      context.mail.simpleParseRecipients({
+      context.mail.startSimpleParse().sections().headers().recipients({
         domain: config.get("mailDomain"),
       }).forEach((r) => context.recipients.add(r));
 
@@ -309,7 +329,9 @@ export class AliasRecipientMailHook implements MailDeliverHook {
     for (const recipient of [...context.recipients]) {
       const realRecipients = aliases.get(recipient);
       if (realRecipients != null) {
-        log.info(`Recipient alias resolved: ${recipient} => ${realRecipients}.`);
+        log.info(
+          `Recipient alias resolved: ${recipient} => ${realRecipients}.`,
+        );
         context.recipients.delete(recipient);
         context.recipients.add(realRecipients);
       }
