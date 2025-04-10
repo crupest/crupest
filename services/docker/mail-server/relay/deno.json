@@ -1,0 +1,26 @@
+{
+  "unstable": [ "cron" ],
+  "tasks": {
+    "run": "deno run -A aws/app.ts",
+    "test": "deno test -A",
+    "compile": "deno compile -o out/crupest-relay -A aws/app.ts"
+  },
+  "imports": {
+    "@aws-sdk/client-s3": "npm:@aws-sdk/client-s3@^3.797.0",
+    "@aws-sdk/client-sesv2": "npm:@aws-sdk/client-sesv2@^3.782.0",
+    "@db/sqlite": "jsr:@db/sqlite@^0.12.0",
+    "@hono/zod-validator": "npm:@hono/zod-validator@^0.5.0",
+    "@smithy/fetch-http-handler": "npm:@smithy/fetch-http-handler@^5.0.4",
+    "@std/cli": "jsr:@std/cli@^1.0.17",
+    "@std/csv": "jsr:@std/csv@^1.0.6",
+    "@std/encoding": "jsr:@std/encoding@^1.0.10",
+    "@std/expect": "jsr:@std/expect@^1.0.16",
+    "@std/io": "jsr:@std/io@^0.225.2",
+    "@std/path": "jsr:@std/path@^1.0.9",
+    "@std/testing": "jsr:@std/testing@^1.0.12",
+    "email-addresses": "npm:email-addresses@^5.0.0",
+    "hono": "npm:hono@^4.7.10",
+    "kysely": "npm:kysely@^0.28.2",
+    "zod": "npm:zod@^3.25.20"
+  }
+}

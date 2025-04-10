@@ -24,7 +24,7 @@ indent_size = 2
 [*.{c,cpp,h}]
 indent_size = 2
 
-[*.{json,yaml,yml}]
+[*.{json,yaml,yml,yaml.template}]
 indent_size = 2
 
 [*.py]

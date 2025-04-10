@@ -5,7 +5,7 @@ external-controller: 127.0.0.1:9090
 profile:
   store-selected: true
 
-external-ui: /usr/share/metacubexd
+external-ui: ui/metacubexd
 external-ui-name: metacubexd
 external-ui-url: https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip
 
@@ -74,6 +74,8 @@ rules:
   - DOMAIN-SUFFIX,ietf.org,node-select
   - DOMAIN-SUFFIX,packagist.org,node-select
   - DOMAIN-SUFFIX,metacubex.one,node-select
+  - DOMAIN-SUFFIX,winehq.org,node-select
+  - DOMAIN-SUFFIX,postfix.org,node-select
   - MATCH,DIRECT
 
 proxy-groups:
