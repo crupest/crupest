@@ -1,3 +1,5 @@
+-- spellchecker: words termguicolors
+
 local function close_float()
     local wins = vim.api.nvim_list_wins()
     for _, v in ipairs(wins) do
@@ -12,7 +14,6 @@ local function setup()
         require("setup.win").setup()
     end
 
-    -- spellchecker: ignore termguicolors
     vim.opt.termguicolors = true;
     vim.opt.fileformats = "unix,dos";
     vim.opt.number = true;
