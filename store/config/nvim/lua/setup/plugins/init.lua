@@ -1,6 +1,14 @@
 local function setup()
-    require("neo-tree").setup {}
     require('lualine').setup {}
+    require("neo-tree").setup {
+        filesystem = {
+            filtered_items = {
+                hide_dotfiles = false,
+                hide_gitignored = false,
+                hide_hidden = false,
+            }
+        }
+    }
 
     require("setup.plugins.telescope").setup()
     require("setup.plugins.gitsigns").setup()
