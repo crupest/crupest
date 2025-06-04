@@ -15,19 +15,21 @@ local function setup_clangd()
         clangd = brew_clangd_path
     end
 
-    vim.lsp.config("clangd", {
-        cmd = { clangd }
+    vim.lsp.config("clangd", { cmd = { clangd } })
+
+    vim.api.nvim_create_autocmd('LspAttach', {
+        callback = function(ev)
+            local client = vim.lsp.get_client_by_id(ev.data.client_id)
+            if client and client.name == "clangd" then
+                vim.keymap.set('n', 'grs', "<cmd>ClangdSwitchSourceHeader<cr>", {
+                    buffer = ev.buf
+                })
+            end
+        end
     })
-    local old_on_attach = vim.lsp.config.clangd.on_attach
-    vim.lsp.config.clangd.on_attach = function(client, bufnr)
-        if old_on_attach then old_on_attach(client, bufnr) end
-        vim.keymap.set('n', 'grs', "<cmd>ClangdSwitchSourceHeader<cr>", {
-            buffer = bufnr
-        })
-    end
 end
 
-local function setup_luals()
+local function setup_lua_ls()
     vim.lsp.config("lua_ls", {
         settings = {
             Lua = {
@@ -43,8 +45,6 @@ local function setup_luals()
                         [vim.fn.expand "$VIMRUNTIME/lua/vim/lsp"] = true,
                         [vim.fn.stdpath "data" .. "/lazy/lazy.nvim/lua/lazy"] = true,
                     },
-                    maxPreload = 100000,
-                    preloadFileSize = 10000,
                 },
             },
         },
@@ -52,15 +52,25 @@ local function setup_luals()
 end
 
 local function setup()
-    vim.lsp.enable('denols')
-    vim.lsp.enable('cmake')
-    vim.lsp.enable('bashls')
-    vim.lsp.enable('html')
-    vim.lsp.enable('cssls')
     setup_clangd()
-    setup_luals()
-end
+    setup_lua_ls()
 
+    function _G.crupest_no_range_format()
+        vim.notify("Range format is no supported by the lsp.", vim.log.levels.ERROR, {})
+    end
+
+    vim.api.nvim_create_autocmd('LspAttach', {
+        callback = function(ev)
+            local client = vim.lsp.get_client_by_id(ev.data.client_id)
+            vim.keymap.set('n', 'gqa', vim.lsp.buf.format, { buffer = ev.buf })
+            if client and not client:supports_method('textDocument/rangeFormatting') then
+                vim.bo[ev.buf].formatexpr = "v:lua.crupest_no_range_format()"
+            end
+        end
+    })
+
+    vim.lsp.enable({ "clangd", "lua_ls", "denols" })
+end
 
 return {
     setup = setup

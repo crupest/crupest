@@ -10,7 +10,9 @@ if not vim.uv.fs_stat(lazy_path) then
     })
 end
 vim.opt.rtp:prepend(lazy_path)
-require("lazy").setup("plugins")
+require("lazy").setup {
+    spec = { { import = "plugins" } }
+}
 
 if vim.g.neovide then
     vim.opt.guifont = "Maple Mono NF";
