@@ -7,7 +7,5 @@ die() {
   exit 1
 }
 
-/app/crupest-relay init || die "crupest-relay failed to init."
-
 /app/crupest-relay real-serve &
 /dovecot/sbin/dovecot -F

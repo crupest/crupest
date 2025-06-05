@@ -1,81 +1,90 @@
-import { join } from "@std/path";
 import { Hono } from "hono";
 import { logger as honoLogger } from "hono/logger";
 
-import log from "./log.ts";
-import config from "./config.ts";
-import { DbService } from "./db.ts";
+import { Logger } from "@crupest/base/log";
+
 import {
   AliasRecipientMailHook,
   FallbackRecipientHook,
   MailDeliverer,
+  RecipientFromHeadersHook,
 } from "./mail.ts";
-import { DovecotMailDeliverer } from "./dovecot/deliver.ts";
-import { CronTask, CronTaskConfig } from "./cron.ts";
+import { DovecotMailDeliverer } from "./dovecot.ts";
 import { DumbSmtpServer } from "./dumb-smtp-server.ts";
 
-export abstract class AppBase {
-  protected readonly db: DbService;
-  protected readonly crons: CronTask[] = [];
-  protected readonly routes: Hono[] = [];
-  protected readonly inboundDeliverer: MailDeliverer;
-  protected readonly hono = new Hono();
+export function createInbound(
+  logger: Logger,
+  {
+    fallback,
+    mailDomain,
+    aliasFile,
+    ldaPath,
+  }: {
+    fallback: string[];
+    mailDomain: string;
+    aliasFile: string;
+    ldaPath: string;
+  },
+) {
+  const deliverer = new DovecotMailDeliverer(logger, ldaPath);
+  deliverer.preHooks.push(
+    new RecipientFromHeadersHook(mailDomain),
+    new FallbackRecipientHook(new Set(fallback)),
+    new AliasRecipientMailHook(aliasFile),
+  );
+  return deliverer;
+}
 
-  protected abstract readonly outboundDeliverer: MailDeliverer;
+export function createHono(
+  logger: Logger,
+  outbound: MailDeliverer,
+  inbound: MailDeliverer,
+) {
+  const hono = new Hono();
 
-  constructor() {
-    const dataPath = config.get("dataPath");
-    Deno.mkdirSync(dataPath, { recursive: true });
-    log.path = join(dataPath, "log");
-    log.info(config);
+  hono.onError((err, c) => {
+    logger.error(err);
+    return c.json({ msg: "Server error, check its log." }, 500);
+  });
+  hono.use(honoLogger());
+  hono.post("/send/raw", async (context) => {
+    const body = await context.req.text();
+    if (body.trim().length === 0) {
+      return context.json({ msg: "Can't send an empty mail." }, 400);
+    } else {
+      const result = await outbound.deliverRaw(body);
+      return context.json({
+        awsMessageId: result.awsMessageId,
+      });
+    }
+  });
+  hono.post("/receive/raw", async (context) => {
+    await inbound.deliverRaw(await context.req.text());
+    return context.json({ msg: "Done!" });
+  });
 
-    this.db = new DbService(join(dataPath, "db.sqlite"));
-    this.inboundDeliverer = new DovecotMailDeliverer();
-    this.inboundDeliverer.preHooks.push(
-      new FallbackRecipientHook(new Set(config.getList("inboundFallback"))),
-      new AliasRecipientMailHook(join(dataPath, "aliases.csv")),
-    );
+  return hono;
+}
 
-    this.hono.onError((err, c) => {
-      log.error(err);
-      return c.json({ msg: "Server error, check its log." }, 500);
-    });
+export function createSmtp(logger: Logger, outbound: MailDeliverer) {
+  return new DumbSmtpServer(logger, outbound);
+}
 
-    this.hono.use(honoLogger());
-    this.hono.post("/send/raw", async (context) => {
-      const body = await context.req.text();
-      if (body.trim().length === 0) {
-        return context.json({ msg: "Can't send an empty mail." }, 400);
-      } else {
-        const result = await this.outboundDeliverer.deliverRaw(body);
-        return context.json({
-          awsMessageId: result.awsMessageId,
-        });
-      }
-    });
-    this.hono.post("/receive/raw", async (context) => {
-      await this.inboundDeliverer.deliverRaw(await context.req.text());
-      return context.json({ "msg": "Done!" });
-    });
+export async function sendMail(logger: Logger, port: number) {
+  const decoder = new TextDecoder();
+  let text = "";
+  for await (const chunk of Deno.stdin.readable) {
+    text += decoder.decode(chunk);
   }
 
-  createCron(config: CronTaskConfig): CronTask {
-    const cron = new CronTask(config);
-    this.crons.push(cron);
-    return cron;
-  }
-
-  async setup() {
-    await this.db.migrate()
-  }
-
-  serve(): { smtp: DumbSmtpServer; http: Deno.HttpServer } {
-    const smtp = new DumbSmtpServer(this.outboundDeliverer);
-    smtp.serve();
-    const http = Deno.serve({
-      hostname: config.HTTP_HOST,
-      port: config.HTTP_PORT,
-    }, this.hono.fetch);
-    return { smtp, http };
-  }
+  const res = await fetch(`http://127.0.0.1:${port}/send/raw`, {
+    method: "post",
+    body: text,
+  });
+  logger.builder(res).setError(!res.ok).write();
+  logger
+    .builder("Body\n" + (await res.text()))
+    .setError(!res.ok)
+    .write();
+  if (!res.ok) Deno.exit(-1);
 }

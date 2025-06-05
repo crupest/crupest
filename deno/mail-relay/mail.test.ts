@@ -1,6 +1,8 @@
 import { describe, it } from "@std/testing/bdd";
 import { expect, fn } from "@std/expect";
 
+import { Logger } from "@crupest/base/log";
+
 import { Mail, MailDeliverContext, MailDeliverer } from "./mail.ts";
 
 const mockDate = "Fri, 02 May 2025 08:33:02 +0000";
@@ -71,25 +73,10 @@ describe("Mail", () => {
 
   it("simple parse headers", () => {
     expect(
-      new Mail(mockMailStr).startSimpleParse().sections().headers(),
+      new Mail(mockMailStr).startSimpleParse().sections().headers().fields,
     ).toEqual(mockHeaders.map(
       (h) => [h[0], " " + h[1].replaceAll("\n", "")],
     ));
-  });
-
-  it("append headers", () => {
-    const mail = new Mail(mockMailStr);
-    const mockMoreHeaders = [["abc", "123"], ["def", "456"]] satisfies [
-      string,
-      string,
-    ][];
-    mail.appendHeaders(mockMoreHeaders);
-
-    expect(mail.raw).toBe(
-      mockHeaderStr + "\n" +
-        mockMoreHeaders.map((h) => h[0] + ": " + h[1]).join("\n") +
-        "\n\n" + mockBodyStr,
-    );
   });
 
   it("parse recipients", () => {
@@ -134,7 +121,7 @@ describe("MailDeliverer", () => {
       return Promise.resolve();
     }) as MailDeliverer["doDeliver"];
   }
-  const mockDeliverer = new MockMailDeliverer();
+  const mockDeliverer = new MockMailDeliverer(new Logger());
 
   it("deliver success", async () => {
     await mockDeliverer.deliverRaw(mockMailStr);

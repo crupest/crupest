@@ -1,29 +1,27 @@
 import { basename } from "@std/path";
 
-import config from "../config.ts";
-import log from "../log.ts";
+import { Logger } from "@crupest/base/log";
+
 import {
   Mail,
   MailDeliverContext,
   MailDeliverer,
-  RecipientFromHeadersHook,
-} from "../mail.ts";
+} from "./mail.ts";
 
 export class DovecotMailDeliverer extends MailDeliverer {
   readonly name = "dovecot";
+  readonly #ldaPath;
 
-  constructor() {
-    super();
-    this.preHooks.push(
-      new RecipientFromHeadersHook(),
-    );
+  constructor(logger: Logger, ldaPath: string) {
+    super(logger);
+    this.#ldaPath = ldaPath;
   }
 
   protected override async doDeliver(
     mail: Mail,
     context: MailDeliverContext,
   ): Promise<void> {
-    const ldaPath = config.get("ldaPath");
+    const ldaPath = this.#ldaPath;
     const ldaBinName = basename(ldaPath);
     const utf8Stream = mail.toUtf8Bytes();
 
@@ -35,12 +33,12 @@ export class DovecotMailDeliverer extends MailDeliverer {
       return;
     }
 
-    log.info(`Deliver to dovecot users: ${recipients.join(", ")}.`);
+    this.logger.info(`Deliver to dovecot users: ${recipients.join(", ")}.`);
 
     for (const recipient of recipients) {
       try {
         const commandArgs = ["-d", recipient];
-        log.info(
+        this.logger.info(
           `Run ${ldaBinName} ${commandArgs.join(" ")}...`,
         );
 
@@ -52,9 +50,11 @@ export class DovecotMailDeliverer extends MailDeliverer {
         });
 
         const ldaProcess = ldaCommand.spawn();
-        using logFiles = await log.openLogForProgram(ldaBinName);
-        ldaProcess.stdout.pipeTo(logFiles.stdout.writable);
-        ldaProcess.stderr.pipeTo(logFiles.stderr.writable);
+        using logFiles = await this.logger.createExternalLogStreamsForProgram(
+          ldaBinName,
+        );
+        ldaProcess.stdout.pipeTo(logFiles.stdout);
+        ldaProcess.stderr.pipeTo(logFiles.stderr);
 
         const stdinWriter = ldaProcess.stdin.getWriter();
         await stdinWriter.write(utf8Stream);
@@ -97,6 +97,6 @@ export class DovecotMailDeliverer extends MailDeliverer {
       }
     }
 
-    log.info("Done handling all recipients.");
+    this.logger.info("Done handling all recipients.");
   }
 }

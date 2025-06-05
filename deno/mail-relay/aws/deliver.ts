@@ -1,16 +1,13 @@
-// spellchecker: words sesv2 amazonses
+// spellchecker:words sesv2 amazonses
 
-import { SendEmailCommand, SESv2Client } from "@aws-sdk/client-sesv2";
-
-import log from "../log.ts";
-import { DbService } from "../db.ts";
 import {
-  Mail,
-  MailDeliverContext,
-  MailDeliverHook,
-  SyncMailDeliverer,
-} from "../mail.ts";
-import { AwsContext } from "./context.ts";
+  SendEmailCommand,
+  SESv2Client,
+  SESv2ClientConfig,
+} from "@aws-sdk/client-sesv2";
+
+import { Logger } from "@crupest/base/log";
+import { Mail, MailDeliverContext, SyncMailDeliverer } from "../mail.ts";
 
 declare module "../mail.ts" {
   interface MailDeliverResult {
@@ -18,61 +15,15 @@ declare module "../mail.ts" {
   }
 }
 
-export class AwsMailMessageIdRewriteHook implements MailDeliverHook {
-  readonly #db;
-
-  constructor(db: DbService) {
-    this.#db = db;
-  }
-
-  async callback(context: MailDeliverContext): Promise<void> {
-    log.info("Rewrite message ids...");
-    const addresses = context.mail.simpleFindAllAddresses();
-    log.info(`Addresses found in mail: ${addresses.join(", ")}.`);
-    for (const address of addresses) {
-      const awsMessageId = await this.#db.messageIdToAws(address);
-      if (awsMessageId != null && awsMessageId.length !== 0) {
-        log.info(`Rewrite ${address} to ${awsMessageId}.`);
-        context.mail.raw = context.mail.raw.replaceAll(address, awsMessageId);
-      }
-    }
-    log.info("Done rewrite message ids.");
-  }
-}
-
-export class AwsMailMessageIdSaveHook implements MailDeliverHook {
-  readonly #db;
-
-  constructor(db: DbService) {
-    this.#db = db;
-  }
-
-  async callback(context: MailDeliverContext): Promise<void> {
-    log.info("Save aws message ids...");
-    const messageId = context.mail.startSimpleParse().sections().headers()
-      .messageId();
-    if (messageId == null) {
-      log.info("Original mail does not have message id. Skip saving.");
-      return;
-    }
-    if (context.result.awsMessageId != null) {
-      log.info(`Saving ${messageId} => ${context.result.awsMessageId}.`);
-      await this.#db.addMessageIdMap({
-        message_id: messageId,
-        aws_message_id: context.result.awsMessageId,
-      });
-    }
-    log.info("Done save message ids.");
-  }
-}
-
 export class AwsMailDeliverer extends SyncMailDeliverer {
   readonly name = "aws";
+  readonly #logger;
   readonly #aws;
   readonly #ses;
 
-  constructor(aws: AwsContext) {
-    super();
+  constructor(logger: Logger, aws: SESv2ClientConfig) {
+    super(logger);
+    this.#logger = logger;
     this.#aws = aws;
     this.#ses = new SESv2Client(aws);
   }
@@ -81,7 +32,7 @@ export class AwsMailDeliverer extends SyncMailDeliverer {
     mail: Mail,
     context: MailDeliverContext,
   ): Promise<void> {
-    log.info("Begin to call aws send-email api...");
+    this.#logger.info("Begin to call aws send-email api...");
 
     try {
       const sendCommand = new SendEmailCommand({
@@ -92,7 +43,7 @@ export class AwsMailDeliverer extends SyncMailDeliverer {
 
       const res = await this.#ses.send(sendCommand);
       if (res.MessageId == null) {
-        log.warn("Aws send-email returns no message id.");
+        this.#logger.warn("Aws send-email returns no message id.");
       } else {
         context.result.awsMessageId =
           `${res.MessageId}@${this.#aws.region}.amazonses.com`;
