@@ -15,7 +15,7 @@ require("lazy").setup {
 }
 
 if vim.g.neovide then
-    vim.opt.guifont = "Maple Mono NF";
+    vim.opt.guifont = "Maple Mono";
     vim.g.neovide_normal_opacity = 0.95;
     vim.g.neovide_input_ime = false;
     vim.g.neovide_cursor_animate_in_insert_mode = false
