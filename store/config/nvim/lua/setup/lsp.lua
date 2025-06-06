@@ -51,9 +51,24 @@ local function setup_lua_ls()
     })
 end
 
+local function setup_denols()
+    vim.lsp.config("denols", {
+        root_dir = function(bufnr, on_dir)
+            local deno_configs = vim.fs.find({ "deno.json", "deno.jsonc" }, {
+                path = vim.api.nvim_buf_get_name(bufnr), upward = true, limit = math.huge })
+            if 0 ~= #deno_configs then
+                local deno_config = deno_configs[#deno_configs]
+                on_dir(vim.fs.dirname(deno_config))
+            end
+        end,
+    })
+end
+
+
 local function setup()
     setup_clangd()
     setup_lua_ls()
+    setup_denols()
 
     function _G.crupest_no_range_format()
         vim.notify("Range format is no supported by the lsp.", vim.log.levels.ERROR, {})
