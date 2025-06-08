@@ -7,6 +7,13 @@ vim.lsp.config("*", {
     )
 })
 
+---@param ev vim.api.keyset.create_autocmd.callback_args
+---@param name string
+local function client_name_is(ev, name)
+    local client = vim.lsp.get_client_by_id(ev.data.client_id)
+    return client and client.name == name
+end
+
 local function setup_clangd()
     local clangd = "clangd"
     local brew_clangd_path = "/usr/local/opt/llvm/bin/clangd"
@@ -19,8 +26,7 @@ local function setup_clangd()
 
     vim.api.nvim_create_autocmd('LspAttach', {
         callback = function(ev)
-            local client = vim.lsp.get_client_by_id(ev.data.client_id)
-            if client and client.name == "clangd" then
+            if client_name_is(ev, "clangd") then
                 vim.keymap.set('n', 'grs', "<cmd>ClangdSwitchSourceHeader<cr>", {
                     buffer = ev.buf
                 })
@@ -62,6 +68,14 @@ local function setup_denols()
             end
         end,
     })
+
+    vim.api.nvim_create_autocmd('LspAttach', {
+        callback = function(ev)
+            if client_name_is(ev, "denols") then
+                vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
+            end
+        end
+    })
 end
 
 
@@ -69,21 +83,6 @@ local function setup()
     setup_clangd()
     setup_lua_ls()
     setup_denols()
-
-    function _G.crupest_no_range_format()
-        vim.notify("Range format is no supported by the lsp.", vim.log.levels.ERROR, {})
-    end
-
-    vim.api.nvim_create_autocmd('LspAttach', {
-        callback = function(ev)
-            local client = vim.lsp.get_client_by_id(ev.data.client_id)
-            vim.keymap.set('n', 'gqa', vim.lsp.buf.format, { buffer = ev.buf })
-            if client and not client:supports_method('textDocument/rangeFormatting') then
-                vim.bo[ev.buf].formatexpr = "v:lua.crupest_no_range_format()"
-            end
-        end
-    })
-
     vim.lsp.enable({ "clangd", "lua_ls", "denols" })
 end
 
