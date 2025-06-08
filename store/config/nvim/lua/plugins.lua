@@ -1,11 +1,13 @@
 -- spellchecker: disable
 return {
-    { "catppuccin/nvim", name = "catppuccin", priority = 1000 },
-    "neovim/nvim-lspconfig",
-    "hrsh7th/nvim-cmp",
-    "hrsh7th/cmp-nvim-lsp",
-    "hrsh7th/cmp-buffer",
-    "hrsh7th/cmp-path",
+    {
+        "catppuccin/nvim",
+        name = "catppuccin",
+        priority = 1000
+    },
+    {
+        "neovim/nvim-lspconfig"
+    },
     {
         "nvim-treesitter/nvim-treesitter",
         build = ":TSUpdate"
@@ -28,7 +30,12 @@ return {
         "nvim-telescope/telescope.nvim",
         dependencies = { 'nvim-lua/plenary.nvim' }
     },
-    "windwp/nvim-autopairs",
-    "mfussenegger/nvim-lint",
-    "lewis6991/gitsigns.nvim",
+    { "lewis6991/gitsigns.nvim" },
+    { "hrsh7th/nvim-cmp" },
+    { "hrsh7th/cmp-nvim-lsp" },
+    { "hrsh7th/cmp-buffer" },
+    { "hrsh7th/cmp-path" },
+    { "windwp/nvim-autopairs" },
+    { "mfussenegger/nvim-lint" },
+    { 'stevearc/conform.nvim' }
 }
