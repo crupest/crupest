@@ -1,15 +1,17 @@
 {
-  "workspace": [ "./base", "./mail-relay" ],
+  "workspace": [ "./base", "./service-manager", "./mail-relay" ],
   "tasks": {
-    "compile:mail-relay": "deno task --cwd=mail-relay compile"
+    "compile:mail-relay": "deno task --cwd=mail-relay compile",
+    "compile:service-manager": "deno task --cwd=service-manager compile"
   },
   "imports": {
     "@std/cli": "jsr:@std/cli@^1.0.19",
+    "@std/collections": "jsr:@std/collections@^1.1.1",
     "@std/csv": "jsr:@std/csv@^1.0.6",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@std/expect": "jsr:@std/expect@^1.0.16",
     "@std/io": "jsr:@std/io@^0.225.2",
     "@std/path": "jsr:@std/path@^1.1.0",
-    "@std/testing": "jsr:@std/testing@^1.0.13",
+    "@std/testing": "jsr:@std/testing@^1.0.13"
   }
 }

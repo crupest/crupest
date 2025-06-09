@@ -1,0 +1,13 @@
+
+{
+  "version": "0.1.0",
+  "tasks": {
+    "run": "deno run -A main.ts",
+    "compile": "deno compile -o out/manage -A main.ts"
+  },
+  "imports": {
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.5",
+    "@std/fs": "jsr:@std/fs@^1.0.18",
+    "mustache": "npm:mustache@^4.2.0"
+  }
+}
