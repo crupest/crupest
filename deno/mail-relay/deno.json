@@ -2,7 +2,6 @@
   "version": "0.1.0",
   "tasks": {
     "run": "deno run -A aws/app.ts",
-    "test": "deno test -A",
     "compile": "deno compile -o out/crupest-relay -A aws/app.ts"
   },
   "imports": {
