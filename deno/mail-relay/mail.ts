@@ -4,12 +4,15 @@ import emailAddresses from "email-addresses";
 
 import { Logger } from "@crupest/base/log";
 
-class MailSimpleParseError extends Error { }
+class MailSimpleParseError extends Error {}
 
 class MailSimpleParsedHeaders {
-  #logger
+  #logger;
 
-  constructor(logger: Logger | undefined, public fields: [key:string, value: string][]) {
+  constructor(
+    logger: Logger | undefined,
+    public fields: [key: string, value: string][],
+  ) {
     this.#logger = logger;
   }
 
@@ -71,10 +74,10 @@ class MailSimpleParsedSections {
   eol: string;
   sep: string;
 
-  #logger
+  #logger;
 
   constructor(logger: Logger | undefined, raw: string) {
-    this.#logger = logger
+    this.#logger = logger;
 
     const twoEolMatch = raw.match(/(\r?\n)(\r?\n)/);
     if (twoEolMatch == null) {
@@ -96,7 +99,7 @@ class MailSimpleParsedSections {
   }
 
   headers(): MailSimpleParsedHeaders {
-    const headers = [] as [key:string, value: string][];
+    const headers = [] as [key: string, value: string][];
 
     let field: string | null = null;
     let lineNumber = 1;
@@ -105,9 +108,7 @@ class MailSimpleParsedSections {
       if (field == null) return;
       const sepPos = field.indexOf(":");
       if (sepPos === -1) {
-        throw new MailSimpleParseError(
-          `No ':' in the header line: ${field}`,
-        );
+        throw new MailSimpleParseError(`No ':' in the header line: ${field}`);
       }
       headers.push([field.slice(0, sepPos).trim(), field.slice(sepPos + 1)]);
       field = null;
@@ -149,8 +150,8 @@ export class Mail {
   }
 
   simpleFindAllAddresses(): string[] {
-    const re = /,?\<?([a-z0-9_'+\-\.]+\@[a-z0-9_'+\-\.]+)\>?,?/ig
-    return [...this.raw.matchAll(re)].map(m => m[1])
+    const re = /,?\<?([a-z0-9_'+\-\.]+\@[a-z0-9_'+\-\.]+)\>?,?/gi;
+    return [...this.raw.matchAll(re)].map((m) => m[1]);
   }
 }
 
@@ -169,16 +170,21 @@ export class MailDeliverResult {
   constructor(public mail: Mail) {}
 
   hasError(): boolean {
-    return this.recipients.size === 0 ||
-      this.recipients.values().some((r) => r.kind !== "done");
+    return (
+      this.recipients.size === 0 ||
+      this.recipients.values().some((r) => r.kind !== "done")
+    );
   }
 
   [Symbol.for("Deno.customInspect")]() {
     return [
       `message: ${this.message}`,
-      ...this.recipients.entries().map(([recipient, result]) =>
-        `${recipient} [${result.kind}]: ${result.message}`
-      ),
+      ...this.recipients
+        .entries()
+        .map(
+          ([recipient, result]) =>
+            `${recipient} [${result.kind}]: ${result.message}`,
+        ),
     ].join("\n");
   }
 }
@@ -204,7 +210,7 @@ export abstract class MailDeliverer {
   preHooks: MailDeliverHook[] = [];
   postHooks: MailDeliverHook[] = [];
 
-  constructor(protected readonly logger: Logger) { }
+  constructor(protected readonly logger: Logger) {}
 
   protected abstract doDeliver(
     mail: Mail,
@@ -248,13 +254,19 @@ export abstract class MailDeliverer {
 export abstract class SyncMailDeliverer extends MailDeliverer {
   #last: Promise<void> = Promise.resolve();
 
-  override async deliver(
-    options: { mail: Mail; recipients?: string[] },
-  ): Promise<MailDeliverResult> {
-    this.logger.info("The mail deliverer is sync. Wait for last delivering done...");
+  override async deliver(options: {
+    mail: Mail;
+    recipients?: string[];
+  }): Promise<MailDeliverResult> {
+    this.logger.info(
+      "The mail deliverer is sync. Wait for last delivering done...",
+    );
     await this.#last;
     const result = super.deliver(options);
-    this.#last = result.then(() => {}, () => {});
+    this.#last = result.then(
+      () => {},
+      () => {},
+    );
     return result;
   }
 }

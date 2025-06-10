@@ -1,9 +1,9 @@
 import { dirname, join, relative } from "@std/path";
 import { copySync, existsSync, walkSync } from "@std/fs";
 import { parse } from "@std/dotenv";
-import { distinct } from "@std/collections"
+import { distinct } from "@std/collections";
 // @ts-types="npm:@types/mustache"
-import Mustache from "mustache"
+import Mustache from "mustache";
 
 Mustache.tags = ["@@", "@@"];
 Mustache.escape = (value) => String(value);
@@ -21,7 +21,7 @@ function getVariableKeys(original: string): string[] {
 }
 
 export function loadVariables(files: string[]): Record<string, string> {
-  const vars: Record<string, string> = {}
+  const vars: Record<string, string> = {};
   for (const file of files) {
     const text = Deno.readTextFileSync(file);
     for (const [key, valueText] of Object.entries(parse(text))) {
@@ -38,7 +38,7 @@ export function loadVariables(files: string[]): Record<string, string> {
   return vars;
 }
 
-const TEMPLATE_FILE_EXT = ".template"
+const TEMPLATE_FILE_EXT = ".template";
 
 export class TemplateDir {
   templates: { path: string; ext: string; text: string; vars: string[] }[] = [];

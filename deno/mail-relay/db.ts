@@ -20,19 +20,20 @@ class SqliteStatementAdapter implements SqliteStatement {
   }
 
   all(parameters: readonly unknown[]): unknown[] {
-    return this.stmt.all(...parameters as sqlite.BindValue[]);
+    return this.stmt.all(...(parameters as sqlite.BindValue[]));
   }
 
   iterate(parameters: readonly unknown[]): IterableIterator<unknown> {
-    return this.stmt.iter(...parameters as sqlite.BindValue[]);
+    return this.stmt.iter(...(parameters as sqlite.BindValue[]));
   }
 
-  run(
-    parameters: readonly unknown[],
-  ): { changes: number | bigint; lastInsertRowid: number | bigint } {
+  run(parameters: readonly unknown[]): {
+    changes: number | bigint;
+    lastInsertRowid: number | bigint;
+  } {
     const { db } = this.stmt;
     const totalChangesBefore = db.totalChanges;
-    const changes = this.stmt.run(...parameters as sqlite.BindValue[]);
+    const changes = this.stmt.run(...(parameters as sqlite.BindValue[]));
     return {
       changes: totalChangesBefore === db.totalChanges ? 0 : changes,
       lastInsertRowid: db.lastInsertRowId,
@@ -52,8 +53,7 @@ class SqliteDatabaseAdapter implements SqliteDatabase {
   }
 }
 
-export class DbError extends Error {
-}
+export class DbError extends Error {}
 
 interface AwsMessageIdMapTable {
   id: Generated<number>;
@@ -100,9 +100,9 @@ export class DbService {
   constructor(public readonly path: string) {
     this.#db = new sqlite.Database(path);
     this.#kysely = new Kysely<Database>({
-      dialect: new SqliteDialect(
-        { database: new SqliteDatabaseAdapter(this.#db) },
-      ),
+      dialect: new SqliteDialect({
+        database: new SqliteDatabaseAdapter(this.#db),
+      }),
     });
     this.#migrator = new Migrator({
       db: this.#kysely,
@@ -121,24 +121,27 @@ export class DbService {
   async addMessageIdMap(
     mail: Insertable<AwsMessageIdMapTable>,
   ): Promise<number> {
-    const inserted = await this.#kysely.insertInto("aws_message_id_map").values(
-      mail,
-    ).executeTakeFirstOrThrow();
+    const inserted = await this.#kysely
+      .insertInto("aws_message_id_map")
+      .values(mail)
+      .executeTakeFirstOrThrow();
     return Number(inserted.insertId!);
   }
 
   async messageIdToAws(messageId: string): Promise<string | null> {
-    const row = await this.#kysely.selectFrom("aws_message_id_map").where(
-      "message_id",
-      "=",
-      messageId,
-    ).select("aws_message_id").executeTakeFirst();
+    const row = await this.#kysely
+      .selectFrom("aws_message_id_map")
+      .where("message_id", "=", messageId)
+      .select("aws_message_id")
+      .executeTakeFirst();
     return row?.aws_message_id ?? null;
   }
 
   async messageIdFromAws(awsMessageId: string): Promise<string | null> {
-    const row = await this.#kysely.selectFrom("aws_message_id_map")
-      .where("aws_message_id", "=", awsMessageId).select("message_id")
+    const row = await this.#kysely
+      .selectFrom("aws_message_id_map")
+      .where("aws_message_id", "=", awsMessageId)
+      .select("message_id")
       .executeTakeFirst();
     return row?.message_id ?? null;
   }

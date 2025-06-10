@@ -2,11 +2,7 @@ import { basename } from "@std/path";
 
 import { Logger } from "@crupest/base/log";
 
-import {
-  Mail,
-  MailDeliverContext,
-  MailDeliverer,
-} from "./mail.ts";
+import { Mail, MailDeliverContext, MailDeliverer } from "./mail.ts";
 
 export class DovecotMailDeliverer extends MailDeliverer {
   readonly name = "dovecot";
@@ -38,9 +34,7 @@ export class DovecotMailDeliverer extends MailDeliverer {
     for (const recipient of recipients) {
       try {
         const commandArgs = ["-d", recipient];
-        this.logger.info(
-          `Run ${ldaBinName} ${commandArgs.join(" ")}...`,
-        );
+        this.logger.info(`Run ${ldaBinName} ${commandArgs.join(" ")}...`);
 
         const ldaCommand = new Deno.Command(ldaPath, {
           args: commandArgs,
@@ -50,9 +44,8 @@ export class DovecotMailDeliverer extends MailDeliverer {
         });
 
         const ldaProcess = ldaCommand.spawn();
-        using logFiles = await this.logger.createExternalLogStreamsForProgram(
-          ldaBinName,
-        );
+        using logFiles =
+          await this.logger.createExternalLogStreamsForProgram(ldaBinName);
         ldaProcess.stdout.pipeTo(logFiles.stdout);
         ldaProcess.stderr.pipeTo(logFiles.stderr);
 

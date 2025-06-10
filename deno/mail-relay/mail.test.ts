@@ -67,33 +67,31 @@ describe("Mail", () => {
   });
 
   it("simple parse date", () => {
-    expect(new Mail(mockMailStr).startSimpleParse().sections().headers().date())
-      .toEqual(new Date(mockDate));
+    expect(
+      new Mail(mockMailStr).startSimpleParse().sections().headers().date(),
+    ).toEqual(new Date(mockDate));
   });
 
   it("simple parse headers", () => {
     expect(
       new Mail(mockMailStr).startSimpleParse().sections().headers().fields,
-    ).toEqual(mockHeaders.map(
-      (h) => [h[0], " " + h[1].replaceAll("\n", "")],
-    ));
+    ).toEqual(mockHeaders.map((h) => [h[0], " " + h[1].replaceAll("\n", "")]));
   });
 
   it("parse recipients", () => {
     const mail = new Mail(mockMailStr);
-    expect([...mail.startSimpleParse().sections().headers().recipients()])
-      .toEqual([
-        ...mockToAddresses,
-        mockCcAddress,
-      ]);
+    expect([
+      ...mail.startSimpleParse().sections().headers().recipients(),
+    ]).toEqual([...mockToAddresses, mockCcAddress]);
     expect([
       ...mail.startSimpleParse().sections().headers().recipients({
         domain: "example.com",
       }),
-    ]).toEqual([
-      ...mockToAddresses,
-      mockCcAddress,
-    ].filter((a) => a.endsWith("example.com")));
+    ]).toEqual(
+      [...mockToAddresses, mockCcAddress].filter((a) =>
+        a.endsWith("example.com"),
+      ),
+    );
   });
 
   it("find all addresses", () => {
