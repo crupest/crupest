@@ -107,10 +107,7 @@ export class DumbSmtpServer {
     }
   }
 
-  async serve(options: {
-    hostname: string,
-    port: number
-  }) {
+  async serve(options: { hostname: string; port: number }) {
     const listener = Deno.listen(options);
     this.#responses = createResponses(options.hostname, options.port);
     this.#logger.info(
@@ -121,7 +118,9 @@ export class DumbSmtpServer {
       try {
         await this.#handleConnection(conn);
       } catch (cause) {
-        this.#logger.error("One smtp connection session throws an error " + cause);
+        this.#logger.error(
+          "One smtp connection session throws an error " + cause,
+        );
       }
     }
   }
