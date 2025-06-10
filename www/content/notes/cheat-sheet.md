@@ -27,12 +27,6 @@ Script from <https://docs.deno.com/runtime/getting_started/installation/>
 $ curl -fsSL https://deno.land/install.sh | sh
 ```
 
-### Rebuild Blog
-
-```bash-session
-$ docker exec -it blog /scripts/update.bash
-```
-
 ### Add Git Server User / Set Password
 
 ```bash-session
