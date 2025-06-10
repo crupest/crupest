@@ -70,19 +70,6 @@ nav {
   font-size: large;
 }
 
-#slogan {
-  color: white;
-  width: 100%;
-  padding: 0.5em 1em;
-  text-align: center;
-  background-color: dodgerblue;
-  user-select: none;
-
-  & > * {
-    user-select: text;
-  }
-}
-
 #main-article {
   position: relative;
   left: 50%;
@@ -146,10 +133,5 @@ html[data-theme="dark"] {
 
   & a:visited {
     color:#abcac4;
-  }
-
-  & #slogan {
-    color: var(--body-fg-color);
-    background-color: midnightblue;
   }
 }

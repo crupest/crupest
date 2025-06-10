@@ -90,21 +90,3 @@ function next(): Scheme | null {
     }
   }
 }
-
-window.addEventListener("load", () => {
-  const slogon = document.getElementById("slogan")!
-  let clicks: number = 0
-
-  const reset = createResetTimer(() => {
-    clicks = 0
-  })
-
-  slogon.addEventListener("click", () => {
-    reset()
-    clicks += 1
-    if (clicks === 3) {
-      saveScheme(next())
-      clicks = 0
-    }
-  })
-})
