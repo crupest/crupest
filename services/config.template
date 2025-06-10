@@ -1,4 +1,3 @@
-CRUPEST_GITHUB=https://github.com/crupest
 CRUPEST_SERVICES_DIR=services
 CRUPEST_DATA_DIR=data
 CRUPEST_ROOT_URL=https://@@CRUPEST_DOMAIN@@

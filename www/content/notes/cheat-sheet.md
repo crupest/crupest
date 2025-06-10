@@ -19,6 +19,14 @@ bootloader id in `--bootloader-id=GRUB`.
 
 All commands should be run at the project root path.
 
+### Install Deno
+
+Script from <https://docs.deno.com/runtime/getting_started/installation/>
+
+```bash-session
+$ curl -fsSL https://deno.land/install.sh | sh
+```
+
 ### Rebuild Blog
 
 ```bash-session
