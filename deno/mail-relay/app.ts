@@ -43,7 +43,7 @@ export function createHono(
   const hono = new Hono();
 
   hono.onError((err, c) => {
-    logger.error(err);
+    logger.error("Hono handler throws an error.", err);
     return c.json({ msg: "Server error, check its log." }, 500);
   });
   hono.use(honoLogger());
@@ -81,10 +81,9 @@ export async function sendMail(logger: Logger, port: number) {
     method: "post",
     body: text,
   });
-  logger.builder(res).setError(!res.ok).write();
-  logger
-    .builder("Body\n" + (await res.text()))
-    .setError(!res.ok)
-    .write();
+  logger.write(Deno.inspect(res), { level: res.ok ? "info" : "error" });
+  logger.write(Deno.inspect(await res.text()), {
+    level: res.ok ? "info" : "error",
+  });
   if (!res.ok) Deno.exit(-1);
 }

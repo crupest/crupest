@@ -4,17 +4,9 @@ import { toFileNameString } from "./date.ts";
 
 export type LogLevel = "error" | "warn" | "info";
 
-export interface LogEntry {
-  content: [unknown, ...unknown[]];
+export interface LogOptions {
   level?: LogLevel;
   cause?: unknown;
-}
-
-export interface LogEntryBuilder {
-  withLevel(level: LogLevel): LogEntryBuilder;
-  withCause(cause: unknown): LogEntryBuilder;
-  setError(error: boolean): LogEntryBuilder;
-  write(): void;
 }
 
 export interface ExternalLogStream extends Disposable {
@@ -22,24 +14,8 @@ export interface ExternalLogStream extends Disposable {
 }
 
 export class Logger {
-  #indentSize = 2;
+  #defaultLevel = "info" as const;
   #externalLogDir?: string;
-
-  #contextStack: { depth: number; level: LogLevel }[] = [
-    { depth: 0, level: "info" },
-  ];
-
-  get #context() {
-    return this.#contextStack.at(-1)!;
-  }
-
-  get indentSize() {
-    return this.#indentSize;
-  }
-
-  set indentSize(value: number) {
-    this.#indentSize = value;
-  }
 
   get externalLogDir() {
     return this.#externalLogDir;
@@ -54,64 +30,37 @@ export class Logger {
     }
   }
 
-  write(entry: LogEntry): void {
-    const { content, level, cause } = entry;
-    const [message, ...rest] = content;
-    console[level ?? this.#context.level](
-      " ".repeat(this.#indentSize * this.#context.depth) + String(message),
-      ...(cause != null ? [cause, ...rest] : rest),
-    );
+  write(message: string, options?: LogOptions): void {
+    const logFunction = console[options?.level ?? this.#defaultLevel];
+    if (options?.cause != null) {
+      logFunction.call(console, message, options.cause);
+    } else {
+      logFunction.call(console, message);
+    }
   }
 
-  push(entry: LogEntry): Disposable {
-    this.write(entry);
-    this.#contextStack.push({
-      depth: this.#context.depth + 1,
-      level: entry.level ?? this.#context.level,
-    });
-    return {
-      [Symbol.dispose]: () => {
-        this.#contextStack.pop();
-      },
-    };
+  info(message: string) {
+    this.write(message, { level: "info" });
   }
 
-  info(message: unknown, ...args: unknown[]) {
-    this.write({ level: "info", content: [message, ...args] });
+  tagInfo(tag: string, message: string) {
+    this.info(tag + " " + message);
   }
 
-  warn(message: unknown, ...args: unknown[]) {
-    this.write({ level: "warn", content: [message, ...args] });
+  warn(message: string) {
+    this.write(message, { level: "warn" });
   }
 
-  error(message: unknown, ...args: unknown[]) {
-    this.write({ level: "error", content: [message, ...args] });
+  tagWarn(tag: string, message: string) {
+    this.warn(tag + " " + message);
   }
 
-  builder(message: unknown, ...args: unknown[]): LogEntryBuilder {
-    const entry: LogEntry = {
-      content: [message, ...args],
-      level: "info",
-      cause: undefined,
-    };
-    const builder: LogEntryBuilder = {
-      withCause: (cause) => {
-        entry.cause = cause;
-        return builder;
-      },
-      withLevel: (level) => {
-        entry.level = level;
-        return builder;
-      },
-      setError: (error) => {
-        if (error) entry.level = "error";
-        return builder;
-      },
-      write: () => {
-        this.write(entry);
-      },
-    };
-    return builder;
+  error(message: string, cause?: unknown) {
+    this.write(message, { level: "info", cause });
+  }
+
+  tagError(tag: string, message: string, cause?: unknown) {
+    this.error(tag + " " + message, cause);
   }
 
   async createExternalLogStream(
