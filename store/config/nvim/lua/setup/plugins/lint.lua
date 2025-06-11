@@ -1,5 +1,3 @@
-local lint = require("lint")
-
 local cspell = {
     name = "cspell",
     config_patterns = {
@@ -33,13 +31,7 @@ local markdownlint = {
 
 local linters = { cspell, markdownlint }
 
-local linter_names = vim.tbl_map(function(l) return l.name end, linters)
-
-local function cru_lint(linter, opt)
-    opt = opt or {}
-
-    local buf = opt.buf or 0
-
+function vim.crupest.lint(linter, buf)
     if linter.filetypes then
         local filetype = vim.api.nvim_get_option_value("filetype", { buf = buf })
         if not vim.list_contains(linter.filetypes, filetype) then
@@ -48,49 +40,29 @@ local function cru_lint(linter, opt)
     end
 
     if 0 ~= #vim.fs.find(linter.config_patterns, {
-            path = vim.api.nvim_buf_get_name(opt.buf), upward = true }) then
-        lint.try_lint(linter.name)
+            path = vim.api.nvim_buf_get_name(buf), upward = true }) then
+        require("lint").try_lint(linter.name)
     end
 end
 
-local function cru_lint_one(name, opt)
-    for _, linter in ipairs(linters) do
-        if linter.name == name then
-            cru_lint(linter, opt)
-            return
-        end
-    end
-    vim.notify("No linter named " .. name .. " is configured.", vim.log.levels.ERROR, {})
-end
-
-local function cru_lint_all(opt, fast)
+function vim.crupest.lint_all(buf, fast)
     for _, linter in ipairs(linters) do
         if not fast or linter.fast then
-            cru_lint(linter, opt)
+            vim.crupest.lint(linter, buf)
         end
-    end
-end
-
-local function cru_lint_all_fast(opt)
-    local buf = opt.buf
-    if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "" then
-        cru_lint_all(opt, true)
     end
 end
 
 local function setup()
-    vim.api.nvim_create_autocmd({ "BufReadPost", "InsertLeave", "TextChanged" }, { callback = cru_lint_all_fast })
-
-    local function cru_lint_cmd(opt)
-        if #opt.args == 0 then
-            cru_lint_all(opt, false)
-        else
-            cru_lint_one(opt.args, opt)
-        end
-    end
-
-    vim.api.nvim_create_user_command("CruLint", cru_lint_cmd,
-        { nargs = '?', complete = function() return linter_names end })
+    vim.api.nvim_create_autocmd(
+        { "BufReadPost", "InsertLeave", "TextChanged" },
+        {
+            callback = function(opt)
+                if vim.api.nvim_get_option_value("buftype", { buf = opt.buf }) == "" then
+                    vim.crupest.lint_all(opt.buf, true)
+                end
+            end
+        })
 end
 
 return {
