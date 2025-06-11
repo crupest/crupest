@@ -23,6 +23,9 @@ esmtp
 tini
 healthcheck
 nspawn
+containerd
+buildx
+fontconfig
 
 # vim/nvim
 nvim
