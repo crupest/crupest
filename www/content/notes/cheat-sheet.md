@@ -1,8 +1,14 @@
 ---
 title: "Cheat Sheet"
 date: 2025-04-01T23:09:53+08:00
-lastmod: 2025-04-01T23:09:53+08:00
+lastmod: 2025-06-12T01:09:39+08:00
 ---
+
+{{< mono >}}
+
+goto: [Hurd Cheat Sheet (in a separated page)](/notes/hurd/cheat-sheet)
+
+{{< /mono >}}
 
 ## GRUB
 
