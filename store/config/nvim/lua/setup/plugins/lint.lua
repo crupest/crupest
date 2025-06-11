@@ -1,3 +1,7 @@
+--- spellchecker: words markdownlintrc
+
+---@alias CruLinter { name: string, config_patterns: string[], filetypes: string[] | nil, fast: boolean }
+
 local cspell = {
     name = "cspell",
     config_patterns = {
@@ -29,8 +33,29 @@ local markdownlint = {
     fast = true,
 }
 
-local linters = { cspell, markdownlint }
+local linters = { cspell = cspell, markdownlint = markdownlint }
 
+---@param linter CruLinter
+---@param buf integer
+---@return string | nil
+local function find_config(linter, buf)
+    local files = vim.fs.find(linter.config_patterns, {
+        path = vim.api.nvim_buf_get_name(buf), upward = true })
+    if #files ~= 0 then
+        return files[1];
+    end
+    return nil
+end
+
+vim.list_extend(require("lint.linters.markdownlint").args, {
+    "--config",
+    function()
+        return find_config(markdownlint, 0);
+    end
+})
+
+---@param linter CruLinter
+---@param buf integer
 function vim.crupest.lint(linter, buf)
     if linter.filetypes then
         local filetype = vim.api.nvim_get_option_value("filetype", { buf = buf })
@@ -39,14 +64,13 @@ function vim.crupest.lint(linter, buf)
         end
     end
 
-    if 0 ~= #vim.fs.find(linter.config_patterns, {
-            path = vim.api.nvim_buf_get_name(buf), upward = true }) then
+    if find_config(linter, buf) then
         require("lint").try_lint(linter.name)
     end
 end
 
 function vim.crupest.lint_all(buf, fast)
-    for _, linter in ipairs(linters) do
+    for _, linter in pairs(linters) do
         if not fast or linter.fast then
             vim.crupest.lint(linter, buf)
         end
