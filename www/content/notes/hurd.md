@@ -95,13 +95,33 @@ upstream: <https://git.savannah.gnu.org/git/hurd/web.git>
 
 ## cheatsheet
 
-Start qemu
+### Use QEMU Virtual Machine
 
-```sh
-qemu-system-x86_64 -enable-kvm -m 4G \
-  -net nic -net user,hostfwd=tcp::3222-:22 \
-  -vga vmware -drive cache=writeback,file=[...]
+For i386, use
+
+```bash-session
+# qemu-system-x86_64 -enable-kvm -m 4G \
+>   -net nic -net user,hostfwd=tcp::3222-:22 \
+>   -vga vmware -drive cache=writeback,file=[...]
 ```
+
+For x86_64, use
+
+```bash-session
+# qemu-system-x86_64 -enable-kvm -m 8G -machine q35 \
+>   -net nic -net user,hostfwd=tcp::3223-:22 \
+>   -vga vmware -drive cache=writeback,file=[...]
+```
+
+GRUB in the image seems to use hard-coded path of `/dev/*` block file as the
+root partition in the kernel command line rather than GUID, so if the hard disk
+bus is changed in QEMU and the path is changed accordingly, the system can't
+boot on.
+
+QEMU cli arguments `-machine q35` enables AHCI and SATA, and is **required for
+official x86_64 image to boot**. As for i386, I haven't checked now.
+
+### Inside Hurd
 
 Configure/Setup network
 
