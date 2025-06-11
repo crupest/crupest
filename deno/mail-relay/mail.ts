@@ -31,7 +31,9 @@ class MailSimpleParsedHeaders {
     if (match != null) {
       return match[1];
     } else {
-      this.#logger?.warn("Invalid message-id header of mail: ", messageIdField);
+      this.#logger?.warn(
+        "Invalid message-id header of mail: " + messageIdField,
+      );
       return undefined;
     }
   }
@@ -240,8 +242,7 @@ export abstract class MailDeliverer {
       await hook.callback(context);
     }
 
-    context.logger.info("Deliver result:");
-    context.logger.info(context.result);
+    context.logger.info("Deliver result:\n" + Deno.inspect(context.result));
 
     if (context.result.hasError()) {
       throw new Error("Mail failed to deliver.");
@@ -290,8 +291,8 @@ export class RecipientFromHeadersHook implements MailDeliverHook {
         .forEach((r) => context.recipients.add(r));
 
       context.logger.info(
-        "Recipients found from mail headers: ",
-        [...context.recipients].join(" "),
+        "Recipients found from mail headers: " +
+          [...context.recipients].join(", "),
       );
     }
     return Promise.resolve();
@@ -304,8 +305,7 @@ export class FallbackRecipientHook implements MailDeliverHook {
   callback(context: MailDeliverContext) {
     if (context.recipients.size === 0) {
       context.logger.info(
-        "No recipients, fill with fallback: ",
-        [...this.fallback].join(" "),
+        "No recipients, fill with fallback: " + [...this.fallback].join(", "),
       );
       this.fallback.forEach((a) => context.recipients.add(a));
     }

@@ -17,6 +17,8 @@ function createResponses(host: string, port: number | string) {
   } as const;
 }
 
+const LOG_TAG = "[dumb-smtp]";
+
 export class DumbSmtpServer {
   #logger;
   #deliverer;
@@ -33,9 +35,12 @@ export class DumbSmtpServer {
   async #handleConnection(conn: Deno.Conn) {
     using disposeStack = new DisposableStack();
     disposeStack.defer(() => {
-      this.#logger.info("Close smtp session tcp connection.");
+      this.#logger.tagInfo(LOG_TAG, "Close session's tcp connection.");
       conn.close();
     });
+
+    this.#logger.tagInfo(LOG_TAG, "New session's tcp connection established.");
+
     const writer = conn.writable.getWriter();
     disposeStack.defer(() => writer.releaseLock());
     const reader = conn.readable.getReader();
@@ -43,8 +48,10 @@ export class DumbSmtpServer {
 
     const [decoder, encoder] = [new TextDecoder(), new TextEncoder()];
     const decode = (data: Uint8Array) => decoder.decode(data);
-    const send = async (s: string) =>
+    const send = async (s: string) => {
+      this.#logger.tagInfo(LOG_TAG, "Send line: " + s);
       await writer.write(encoder.encode(s + CRLF));
+    };
 
     let buffer: string = "";
     let rawMail: string | null = null;
@@ -65,7 +72,7 @@ export class DumbSmtpServer {
         buffer = buffer.slice(eolPos + CRLF.length);
 
         if (rawMail == null) {
-          this.#logger.info("Smtp server received line:", line);
+          this.#logger.tagInfo(LOG_TAG, "Received line: " + line);
           const upperLine = line.toUpperCase();
           if (upperLine.startsWith("EHLO") || upperLine.startsWith("HELO")) {
             await send(this.#responses["EHLO"]);
@@ -75,26 +82,32 @@ export class DumbSmtpServer {
             await send(this.#responses["RCPT"]);
           } else if (upperLine === "DATA") {
             await send(this.#responses["DATA"]);
-            this.#logger.info("Begin to receive mail data...");
+            this.#logger.tagInfo(LOG_TAG, "Begin to receive mail data...");
             rawMail = "";
           } else if (upperLine === "QUIT") {
             await send(this.#responses["QUIT"]);
             return;
           } else {
-            this.#logger.warn("Smtp server command unrecognized:", line);
+            this.#logger.tagWarn(
+              LOG_TAG,
+              "Unrecognized command from client: " + line,
+            );
             await send(this.#responses["INVALID"]);
             return;
           }
         } else {
           if (line === ".") {
             try {
-              this.#logger.info("Done receiving mail data, begin to relay...");
+              this.#logger.tagInfo(
+                LOG_TAG,
+                "Mail data Received, begin to relay...",
+              );
               const { message } = await this.#deliverer.deliverRaw(rawMail);
               await send(`250 2.6.0 ${message}`);
               rawMail = null;
-              this.#logger.info("Done SMTP mail session.");
+              this.#logger.tagInfo(LOG_TAG, "Relay succeeded.");
             } catch (err) {
-              this.#logger.info(err);
+              this.#logger.tagError(LOG_TAG, "Relay failed.", err);
               await send("554 5.3.0 Error: check server log");
               return;
             }
@@ -110,16 +123,19 @@ export class DumbSmtpServer {
   async serve(options: { hostname: string; port: number }) {
     const listener = Deno.listen(options);
     this.#responses = createResponses(options.hostname, options.port);
-    this.#logger.info(
-      `Dumb SMTP server starts running on ${this.#responses.serverName}.`,
+    this.#logger.tagInfo(
+      LOG_TAG,
+      `Dumb SMTP server starts to listen on ${this.#responses.serverName}.`,
     );
 
     for await (const conn of listener) {
       try {
         await this.#handleConnection(conn);
       } catch (cause) {
-        this.#logger.error(
-          "One smtp connection session throws an error " + cause,
+        this.#logger.tagError(
+          LOG_TAG,
+          "Tcp connection throws an error.",
+          cause,
         );
       }
     }
