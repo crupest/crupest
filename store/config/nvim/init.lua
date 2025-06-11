@@ -1,3 +1,5 @@
+vim.crupest = {}
+
 local lazy_path = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.uv.fs_stat(lazy_path) then
     vim.fn.system({
