@@ -1,5 +1,5 @@
 {
-  "workspace": ["./base", "./service-manager", "./mail-relay"],
+  "workspace": ["./base", "./service-manager", "./mail-relay", "./tools" ],
   "tasks": {
     "compile:mail-relay": "deno task --cwd=mail-relay compile",
     "compile:service-manager": "deno task --cwd=service-manager compile"
