@@ -8,6 +8,8 @@ tags:
   - posix
 ---
 
+(I've given up on this, at least for linux pam.)
+
 Recently, I’ve been working on porting some libraries to GNU/Hurd. Many (old)
 libraries use [`*_MAX` constants on POSIX system
 interfaces](https://pubs.opengroup.org/onlinepubs/9699919799.2008edition/nframe.html)

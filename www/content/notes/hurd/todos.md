@@ -58,5 +58,3 @@ gerrit: <https://chromium-review.googlesource.com/c/codecs/libgav1/+/6239812>
 {{< /link-group >}}
 
 {{< /todo >}}
-
-
