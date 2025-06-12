@@ -142,12 +142,25 @@ usermod -aG docker $USER
     <family>sans-serif</family>
     <prefer>
       <family>MiSans</family>
-      <family>Noto Color Emoji</family>
     </prefer>
   </alias>
 
   <alias>
     <family>serif</family>
+    <prefer>
+      <family>MiSans</family>
+    </prefer>
+  </alias>
+
+  <alias>
+    <family>monospace</family>
+    <prefer>
+      <family>Maple Mono</family>
+    </prefer>
+  </alias>
+
+  <alias>
+    <family>MiSans</family>
     <prefer>
       <family>MiSans</family>
       <family>Noto Color Emoji</family>
@@ -157,8 +170,10 @@ usermod -aG docker $USER
   <alias>
     <family>Maple Mono</family>
     <prefer>
-      <family>Maple Mono NF</family>
       <family>Maple Mono</family>
+      <family>Maple Mono NF</family>
+      <family>Maple Mono NF CN</family>
+      <family>Noto Color Emoji</family>
     </prefer>
   </alias>
 
