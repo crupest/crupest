@@ -1,8 +1,13 @@
 set-proxy() {
+  export http_proxy="http://127.0.0.1:7897"
+  export https_proxy="http://127.0.0.1:7897"
   export HTTP_PROXY="http://127.0.0.1:7897"
   export HTTPS_PROXY="http://127.0.0.1:7897"
 }
 
 unset-proxy() {
-  unset HTTP_PROXY HTTPS_PROXY
+  unset http_proxy
+  unset https_proxy
+  unset HTTP_PROXY
+  unset HTTPS_PROXY
 }
