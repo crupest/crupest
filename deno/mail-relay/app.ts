@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { logger as honoLogger } from "hono/logger";
 
-import { Logger } from "@crupest/base/log";
+import { LogFileProvider } from "@crupest/base/log";
 
 import {
   AliasRecipientMailHook,
@@ -13,7 +13,7 @@ import { DovecotMailDeliverer } from "./dovecot.ts";
 import { DumbSmtpServer } from "./dumb-smtp-server.ts";
 
 export function createInbound(
-  logger: Logger,
+  logFileProvider: LogFileProvider,
   {
     fallback,
     mailDomain,
@@ -26,7 +26,7 @@ export function createInbound(
     ldaPath: string;
   },
 ) {
-  const deliverer = new DovecotMailDeliverer(logger, ldaPath);
+  const deliverer = new DovecotMailDeliverer(logFileProvider, ldaPath);
   deliverer.preHooks.push(
     new RecipientFromHeadersHook(mailDomain),
     new FallbackRecipientHook(new Set(fallback)),

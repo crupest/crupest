@@ -1,17 +1,17 @@
 import { basename } from "@std/path";
 
-import { Logger } from "@crupest/base/log";
+import { LogFileProvider } from "@crupest/base/log";
 
 import { Mail, MailDeliverContext, MailDeliverer } from "./mail.ts";
 
 export class DovecotMailDeliverer extends MailDeliverer {
   readonly name = "dovecot";
-  readonly #logger;
+  readonly #logFileProvider;
   readonly #ldaPath;
 
-  constructor(logger: Logger, ldaPath: string) {
+  constructor(logFileProvider: LogFileProvider, ldaPath: string) {
     super();
-    this.#logger = logger;
+    this.#logFileProvider = logFileProvider;
     this.#ldaPath = ldaPath;
   }
 
@@ -47,7 +47,9 @@ export class DovecotMailDeliverer extends MailDeliverer {
 
         const ldaProcess = ldaCommand.spawn();
         using logFiles =
-          await this.#logger.createExternalLogStreamsForProgram(ldaBinName);
+          await this.#logFileProvider.createExternalLogStreamsForProgram(
+            ldaBinName,
+          );
         ldaProcess.stdout.pipeTo(logFiles.stdout);
         ldaProcess.stderr.pipeTo(logFiles.stderr);
 

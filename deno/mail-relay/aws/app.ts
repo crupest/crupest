@@ -6,7 +6,7 @@ import { FetchHttpHandler } from "@smithy/fetch-http-handler";
 // @ts-types="npm:@types/yargs"
 import yargs from "yargs";
 
-import { Logger } from "@crupest/base/log";
+import { LogFileProvider } from "@crupest/base/log";
 import { ConfigDefinition, ConfigProvider } from "@crupest/base/config";
 import { CronTask } from "@crupest/base/cron";
 
@@ -155,60 +155,56 @@ function createCron(fetcher: AwsMailFetcher, consumer: AwsS3MailConsumer) {
 function createBaseServices() {
   const config = new ConfigProvider(PREFIX, CONFIG_DEFINITIONS);
   Deno.mkdirSync(config.get("dataPath"), { recursive: true });
-  const logger = new Logger();
-  logger.externalLogDir = join(config.get("dataPath"), "log");
-  return { config, logger };
+  const logFileProvider = new LogFileProvider(
+    join(config.get("dataPath"), "log"),
+  );
+  return { config, logFileProvider };
 }
 
 function createAwsFetchOnlyServices() {
-  const { config, logger } = createBaseServices();
+  const services = createBaseServices();
+  const { config } = services;
+
   const awsOptions = createAwsOptions({
     user: config.get("awsUser"),
     password: config.get("awsPassword"),
     region: config.get("awsRegion"),
   });
   const fetcher = new AwsMailFetcher(awsOptions, config.get("awsMailBucket"));
-  return { config, logger, awsOptions, fetcher };
+
+  return { ...services, awsOptions, fetcher };
 }
 
 function createAwsRecycleOnlyServices() {
-  const { config, logger, awsOptions, fetcher } = createAwsFetchOnlyServices();
+  const services = createAwsFetchOnlyServices();
+  const { config, logFileProvider } = services;
 
-  const inbound = createInbound(logger, {
+  const inbound = createInbound(logFileProvider, {
     fallback: config.getList("inboundFallback"),
     ldaPath: config.get("ldaPath"),
     aliasFile: join(config.get("dataPath"), "aliases.csv"),
     mailDomain: config.get("mailDomain"),
   });
-
   const recycler = (rawMail: string, _: unknown): Promise<void> =>
     inbound.deliver({ mail: new Mail(rawMail) }).then();
 
-  return { config, logger, awsOptions, fetcher, inbound, recycler };
+  return { ...services, inbound, recycler };
 }
 function createAwsServices() {
-  const { config, logger, inbound, awsOptions, fetcher, recycler } =
-    createAwsRecycleOnlyServices();
+  const services = createAwsRecycleOnlyServices();
+  const { config, awsOptions } = services;
+
   const dbService = new DbService(join(config.get("dataPath"), "db.sqlite"));
   const outbound = createOutbound(awsOptions, dbService);
 
-  return {
-    config,
-    logger,
-    inbound,
-    dbService,
-    awsOptions,
-    fetcher,
-    recycler,
-    outbound,
-  };
+  return { ...services, dbService, outbound };
 }
 
 function createServerServices() {
   const services = createAwsServices();
   const { config, outbound, inbound, fetcher } = services;
-  const smtp = createSmtp(outbound);
 
+  const smtp = createSmtp(outbound);
   const hono = createHono(outbound, inbound);
   setupAwsHono(hono, {
     path: config.get("awsInboundPath"),
@@ -220,11 +216,7 @@ function createServerServices() {
     },
   });
 
-  return {
-    ...services,
-    smtp,
-    hono,
-  };
+  return { ...services, smtp, hono };
 }
 
 function serve(cron: boolean = false) {

@@ -6,20 +6,12 @@ export interface ExternalLogStream extends Disposable {
   stream: WritableStream;
 }
 
-export class Logger {
-  #externalLogDir?: string;
+export class LogFileProvider {
+  #directory: string;
 
-  get externalLogDir() {
-    return this.#externalLogDir;
-  }
-
-  set externalLogDir(value: string | undefined) {
-    this.#externalLogDir = value;
-    if (value != null) {
-      Deno.mkdirSync(value, {
-        recursive: true,
-      });
-    }
+  constructor(directory: string) {
+    this.#directory = directory;
+    Deno.mkdirSync(directory, { recursive: true });
   }
 
   async createExternalLogStream(
@@ -31,12 +23,9 @@ export class Logger {
     if (name.includes("/")) {
       throw new Error(`External log stream's name (${name}) contains '/'.`);
     }
-    if (this.#externalLogDir == null) {
-      throw new Error("External log directory is not set.");
-    }
 
     const logPath = join(
-      this.#externalLogDir,
+      this.#directory,
       options?.noTime === true
         ? name
         : `${name}-${toFileNameString(new Date())}`,
