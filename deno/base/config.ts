@@ -1,4 +1,4 @@
-import { camelCaseToKebabCase } from "./text.ts";
+import { camelCaseToKebabCase } from "./lib.ts";
 
 export interface ConfigDefinitionItem {
   readonly description: string;

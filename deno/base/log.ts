@@ -1,6 +1,6 @@
 import { join } from "@std/path";
 
-import { toFileNameString } from "./date.ts";
+import { toFileNameString } from "./lib.ts";
 
 export interface ExternalLogStream extends Disposable {
   stream: WritableStream;

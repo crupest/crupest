@@ -2,10 +2,9 @@
   "name": "@crupest/base",
   "version": "0.1.0",
   "exports": {
+    ".": "./lib.ts",
     "./config": "./config.ts",
     "./cron": "./cron.ts",
-    "./date": "./date.ts",
-    "./text": "./text.ts",
     "./log": "./log.ts"
   }
 }
