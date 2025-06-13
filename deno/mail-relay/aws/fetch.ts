@@ -104,8 +104,9 @@ export class AwsMailFetcher {
       .sections()
       .headers()
       .date();
-    const dateString =
-      date != null ? toFileNameString(date, true) : "invalid-date";
+    const dateString = date != null
+      ? toFileNameString(date, true)
+      : "invalid-date";
     const newPath = `${this.#archivePrefix}${dateString}/${s3Key}`;
 
     console.info(`Archiving s3 mail ${s3Key} to ${newPath}...`);

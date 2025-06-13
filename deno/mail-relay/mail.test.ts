@@ -87,7 +87,7 @@ describe("Mail", () => {
       }),
     ]).toEqual(
       [...mockToAddresses, mockCcAddress].filter((a) =>
-        a.endsWith("example.com"),
+        a.endsWith("example.com")
       ),
     );
   });

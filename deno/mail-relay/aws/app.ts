@@ -18,7 +18,7 @@ import {
 } from "./mail.ts";
 import { AwsMailDeliverer } from "./deliver.ts";
 import { AwsMailFetcher, AwsS3MailConsumer } from "./fetch.ts";
-import { createInbound, createHono, sendMail, createSmtp } from "../app.ts";
+import { createHono, createInbound, createSmtp, sendMail } from "../app.ts";
 
 const PREFIX = "crupest-mail-server";
 const CONFIG_DEFINITIONS = {
@@ -103,7 +103,7 @@ function createOutbound(
   );
   deliverer.postHooks.push(
     new AwsMailMessageIdSaveHook((original, aws) =>
-      db.addMessageIdMap({ message_id: original, aws_message_id: aws }).then(),
+      db.addMessageIdMap({ message_id: original, aws_message_id: aws }).then()
     ),
   );
   return deliverer;
@@ -210,8 +210,10 @@ function createServerServices() {
     path: config.get("awsInboundPath"),
     auth: config.get("awsInboundKey"),
     callback: (s3Key, recipients) => {
-      return fetcher.consumeS3Mail(s3Key, (rawMail, _) =>
-        inbound.deliver({ mail: new Mail(rawMail), recipients }).then(),
+      return fetcher.consumeS3Mail(
+        s3Key,
+        (rawMail, _) =>
+          inbound.deliver({ mail: new Mail(rawMail), recipients }).then(),
       );
     },
   });

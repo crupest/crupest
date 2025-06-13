@@ -3,6 +3,6 @@
   "tasks": {
   },
   "imports": {
-    "mustache": "npm:mustache@^4.2.0",
+    "mustache": "npm:mustache@^4.2.0"
   }
 }

@@ -37,5 +37,4 @@ return {
     { "hrsh7th/cmp-path" },
     { "windwp/nvim-autopairs" },
     { "mfussenegger/nvim-lint" },
-    { 'stevearc/conform.nvim' }
 }
