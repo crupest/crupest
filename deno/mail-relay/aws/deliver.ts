@@ -1,5 +1,3 @@
-// spellchecker:words sesv2 amazonses
-
 import {
   SendEmailCommand,
   SESv2Client,

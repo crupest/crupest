@@ -1,5 +1,3 @@
--- spellchecker: words termguicolors
-
 local function close_float()
     local wins = vim.api.nvim_list_wins()
     for _, v in ipairs(wins) do
