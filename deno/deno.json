@@ -1,7 +1,7 @@
 {
-  "workspace": ["./base", "./mail-relay", "./tools" ],
+  "workspace": ["./base", "./mail-relay", "./tools"],
   "tasks": {
-    "compile:mail-relay": "deno task --cwd=mail-relay compile",
+    "compile:mail-relay": "deno task --cwd=mail-relay compile"
   },
   "imports": {
     "@std/collections": "jsr:@std/collections@^1.1.1",
@@ -13,7 +13,7 @@
     "@std/testing": "jsr:@std/testing@^1.0.13",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.5",
     "@std/fs": "jsr:@std/fs@^1.0.18",
-    "yargs": "npm:yargs@^18.0.0"
+    "yargs": "npm:yargs@^18.0.0",
     "@types/yargs": "npm:@types/yargs@^17.0.33"
   }
 }

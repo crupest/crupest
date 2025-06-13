@@ -40,14 +40,14 @@ export class AwsMailDeliverer extends SyncMailDeliverer {
       if (res.MessageId == null) {
         console.warn("Aws send-email returns no message id.");
       } else {
-        context.result.awsMessageId = `${res.MessageId}@${
-          this.#aws.region
-        }.amazonses.com`;
+        context.result.awsMessageId =
+          `${res.MessageId}@${this.#aws.region}.amazonses.com`;
       }
 
       context.result.recipients.set("*", {
         kind: "done",
-        message: `Successfully called aws send-email, message id ${context.result.awsMessageId}.`,
+        message:
+          `Successfully called aws send-email, message id ${context.result.awsMessageId}.`,
       });
     } catch (cause) {
       context.result.recipients.set("*", {

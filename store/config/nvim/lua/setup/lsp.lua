@@ -22,12 +22,20 @@ local function setup_clangd()
 
     vim.lsp.config("clangd", { cmd = { clangd } })
 
-    vim.api.nvim_create_autocmd('LspAttach', {
+    vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(ev)
             if client_name_is(ev, "clangd") then
-                vim.keymap.set('n', 'grs', "<cmd>ClangdSwitchSourceHeader<cr>", {
+                vim.keymap.set("n", "grs", "<cmd>ClangdSwitchSourceHeader<cr>", {
                     buffer = ev.buf
                 })
+            end
+        end
+    })
+
+    vim.api.nvim_create_autocmd("LspDetach", {
+        callback = function(ev)
+            if client_name_is(ev, "clangd") then
+                vim.keymap.del("n", "grs", { buffer = ev.buf })
             end
         end
     })
@@ -55,6 +63,11 @@ local function setup_lua_ls()
     })
 end
 
+function vim.crupest.no_range_format()
+    print("Lsp doesn't support range formatting. Use gqa to format the whole document.")
+    return 0
+end
+
 local function setup_denols()
     vim.lsp.config("denols", {
         root_dir = function(bufnr, on_dir)
@@ -67,10 +80,22 @@ local function setup_denols()
         end,
     })
 
-    vim.api.nvim_create_autocmd('LspAttach', {
+    vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(ev)
             if client_name_is(ev, "denols") then
-                vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
+                vim.api.nvim_set_option_value(
+                    "formatexpr",
+                    "v:lua.vim.crupest.no_range_format()",
+                    { buf = ev.buf }
+                )
+            end
+        end
+    })
+
+    vim.api.nvim_create_autocmd("LspDetach", {
+        callback = function(ev)
+            if client_name_is(ev, "denols") then
+                vim.api.nvim_set_option_value("formatexpr", "", { buf = ev.buf })
             end
         end
     })
@@ -78,6 +103,18 @@ end
 
 
 local function setup()
+    vim.api.nvim_create_autocmd("LspAttach", {
+        callback = function(ev)
+            vim.keymap.set("n", "gqa", vim.lsp.buf.format, { buffer = ev.buf })
+        end
+    })
+
+    vim.api.nvim_create_autocmd("LspDetach", {
+        callback = function(ev)
+            vim.keymap.del("n", "gqa", { buffer = ev.buf })
+        end
+    })
+
     setup_clangd()
     setup_lua_ls()
     setup_denols()

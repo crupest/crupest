@@ -73,7 +73,9 @@ export class TemplateDir {
 
   generate(vars: Record<string, string>, generatedDir?: string) {
     console.log(
-      `Generating, template dir: ${this.dir}, generated dir: ${generatedDir ?? "[dry-run]"}:`,
+      `Generating, template dir: ${this.dir}, generated dir: ${
+        generatedDir ?? "[dry-run]"
+      }:`,
     );
 
     const undefinedVars = this.allNeededVars().filter((v) => !(v in vars));

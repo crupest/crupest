@@ -46,8 +46,8 @@ export class DovecotMailDeliverer extends MailDeliverer {
         });
 
         const ldaProcess = ldaCommand.spawn();
-        using logFiles =
-          await this.#logFileProvider.createExternalLogStreamsForProgram(
+        using logFiles = await this.#logFileProvider
+          .createExternalLogStreamsForProgram(
             ldaBinName,
           );
         ldaProcess.stdout.pipeTo(logFiles.stdout);
