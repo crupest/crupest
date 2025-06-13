@@ -4,7 +4,6 @@
     "compile:mail-relay": "deno task --cwd=mail-relay compile",
   },
   "imports": {
-    "@std/cli": "jsr:@std/cli@^1.0.19",
     "@std/collections": "jsr:@std/collections@^1.1.1",
     "@std/csv": "jsr:@std/csv@^1.0.6",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
