@@ -2,19 +2,10 @@ import { encodeBase64 } from "@std/encoding/base64";
 import { parse } from "@std/csv/parse";
 import emailAddresses from "email-addresses";
 
-import { Logger } from "@crupest/base/log";
-
 class MailSimpleParseError extends Error {}
 
 class MailSimpleParsedHeaders {
-  #logger;
-
-  constructor(
-    logger: Logger | undefined,
-    public fields: [key: string, value: string][],
-  ) {
-    this.#logger = logger;
-  }
+  constructor(public fields: [key: string, value: string][]) {}
 
   getFirst(fieldKey: string): string | undefined {
     for (const [key, value] of this.fields) {
@@ -31,9 +22,7 @@ class MailSimpleParsedHeaders {
     if (match != null) {
       return match[1];
     } else {
-      this.#logger?.warn(
-        "Invalid message-id header of mail: " + messageIdField,
-      );
+      console.warn("Invalid message-id header of mail: " + messageIdField);
       return undefined;
     }
   }
@@ -44,7 +33,7 @@ class MailSimpleParsedHeaders {
 
     const date = new Date(dateField);
     if (invalidToUndefined && isNaN(date.getTime())) {
-      this.#logger?.warn(`Invalid date string (${dateField}) found in header.`);
+      console.warn(`Invalid date string (${dateField}) found in header.`);
       return undefined;
     }
     return date;
@@ -76,11 +65,7 @@ class MailSimpleParsedSections {
   eol: string;
   sep: string;
 
-  #logger;
-
-  constructor(logger: Logger | undefined, raw: string) {
-    this.#logger = logger;
-
+  constructor(raw: string) {
     const twoEolMatch = raw.match(/(\r?\n)(\r?\n)/);
     if (twoEolMatch == null) {
       throw new MailSimpleParseError(
@@ -91,7 +76,7 @@ class MailSimpleParsedSections {
     const [eol, sep] = [twoEolMatch[1], twoEolMatch[2]];
 
     if (eol !== sep) {
-      logger?.warn("Different EOLs (\\r\\n, \\n) found.");
+      console.warn("Different EOLs (\\r\\n, \\n) found.");
     }
 
     this.header = raw.slice(0, twoEolMatch.index!);
@@ -131,7 +116,7 @@ class MailSimpleParsedSections {
 
     handleField();
 
-    return new MailSimpleParsedHeaders(this.#logger, headers);
+    return new MailSimpleParsedHeaders(headers);
   }
 }
 
@@ -147,8 +132,8 @@ export class Mail {
     return encodeBase64(this.raw);
   }
 
-  startSimpleParse(logger?: Logger) {
-    return { sections: () => new MailSimpleParsedSections(logger, this.raw) };
+  startSimpleParse() {
+    return { sections: () => new MailSimpleParsedSections(this.raw) };
   }
 
   simpleFindAllAddresses(): string[] {
@@ -195,10 +180,7 @@ export class MailDeliverContext {
   readonly recipients: Set<string> = new Set();
   readonly result;
 
-  constructor(
-    public readonly logger: Logger,
-    public mail: Mail,
-  ) {
+  constructor(public mail: Mail) {
     this.result = new MailDeliverResult(this.mail);
   }
 }
@@ -211,8 +193,6 @@ export abstract class MailDeliverer {
   abstract readonly name: string;
   preHooks: MailDeliverHook[] = [];
   postHooks: MailDeliverHook[] = [];
-
-  constructor(protected readonly logger: Logger) {}
 
   protected abstract doDeliver(
     mail: Mail,
@@ -227,9 +207,9 @@ export abstract class MailDeliverer {
     mail: Mail;
     recipients?: string[];
   }): Promise<MailDeliverResult> {
-    this.logger.info(`Begin to deliver mail via ${this.name}...`);
+    console.info(`Begin to deliver mail via ${this.name}...`);
 
-    const context = new MailDeliverContext(this.logger, options.mail);
+    const context = new MailDeliverContext(options.mail);
     options.recipients?.forEach((r) => context.recipients.add(r));
 
     for (const hook of this.preHooks) {
@@ -242,7 +222,8 @@ export abstract class MailDeliverer {
       await hook.callback(context);
     }
 
-    context.logger.info("Deliver result:\n" + Deno.inspect(context.result));
+    console.info("Deliver result:");
+    console.info(context.result);
 
     if (context.result.hasError()) {
       throw new Error("Mail failed to deliver.");
@@ -259,7 +240,7 @@ export abstract class SyncMailDeliverer extends MailDeliverer {
     mail: Mail;
     recipients?: string[];
   }): Promise<MailDeliverResult> {
-    this.logger.info(
+    console.info(
       "The mail deliverer is sync. Wait for last delivering done...",
     );
     await this.#last;
@@ -277,12 +258,12 @@ export class RecipientFromHeadersHook implements MailDeliverHook {
 
   callback(context: MailDeliverContext) {
     if (context.recipients.size !== 0) {
-      context.logger.warn(
+      console.warn(
         "Recipients are already filled. Won't set them with ones in headers.",
       );
     } else {
       context.mail
-        .startSimpleParse(context.logger)
+        .startSimpleParse()
         .sections()
         .headers()
         .recipients({
@@ -290,7 +271,7 @@ export class RecipientFromHeadersHook implements MailDeliverHook {
         })
         .forEach((r) => context.recipients.add(r));
 
-      context.logger.info(
+      console.info(
         "Recipients found from mail headers: " +
           [...context.recipients].join(", "),
       );
@@ -304,7 +285,7 @@ export class FallbackRecipientHook implements MailDeliverHook {
 
   callback(context: MailDeliverContext) {
     if (context.recipients.size === 0) {
-      context.logger.info(
+      console.info(
         "No recipients, fill with fallback: " + [...this.fallback].join(", "),
       );
       this.fallback.forEach((a) => context.recipients.add(a));
@@ -320,10 +301,10 @@ export class AliasRecipientMailHook implements MailDeliverHook {
     this.#aliasFile = aliasFile;
   }
 
-  async #parseAliasFile(logger: Logger): Promise<Map<string, string>> {
+  async #parseAliasFile(): Promise<Map<string, string>> {
     const result = new Map();
     if ((await Deno.stat(this.#aliasFile)).isFile) {
-      logger.info(`Found recipients alias file: ${this.#aliasFile}.`);
+      console.info(`Found recipients alias file: ${this.#aliasFile}.`);
       const text = await Deno.readTextFile(this.#aliasFile);
       const csv = parse(text);
       for (const [real, ...aliases] of csv) {
@@ -334,11 +315,11 @@ export class AliasRecipientMailHook implements MailDeliverHook {
   }
 
   async callback(context: MailDeliverContext) {
-    const aliases = await this.#parseAliasFile(context.logger);
+    const aliases = await this.#parseAliasFile();
     for (const recipient of [...context.recipients]) {
       const realRecipients = aliases.get(recipient);
       if (realRecipients != null) {
-        context.logger.info(
+        console.info(
           `Recipient alias resolved: ${recipient} => ${realRecipients}.`,
         );
         context.recipients.delete(recipient);

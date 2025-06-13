@@ -8,7 +8,6 @@ import {
 } from "@aws-sdk/client-s3";
 
 import { toFileNameString } from "@crupest/base/date";
-import { Logger } from "@crupest/base/log";
 
 import { Mail } from "../mail.ts";
 
@@ -42,18 +41,16 @@ export type AwsS3MailConsumer = (
 export class AwsMailFetcher {
   readonly #livePrefix = "mail/live/";
   readonly #archivePrefix = "mail/archive/";
-  readonly #logger;
   readonly #s3;
   readonly #bucket;
 
-  constructor(logger: Logger, aws: S3ClientConfig, bucket: string) {
-    this.#logger = logger;
+  constructor(aws: S3ClientConfig, bucket: string) {
     this.#s3 = new S3Client(aws);
     this.#bucket = bucket;
   }
 
   async listLiveMails(): Promise<string[]> {
-    this.#logger.info("Begin to retrieve live mails.");
+    console.info("Begin to retrieve live mails.");
 
     const listCommand = new ListObjectsV2Command({
       Bucket: this.#bucket,
@@ -62,16 +59,14 @@ export class AwsMailFetcher {
     const res = await this.#s3.send(listCommand);
 
     if (res.Contents == null) {
-      this.#logger.warn("Listing live mails in S3 returns null Content.");
+      console.warn("Listing live mails in S3 returns null Content.");
       return [];
     }
 
     const result: string[] = [];
     for (const object of res.Contents) {
       if (object.Key == null) {
-        this.#logger.warn(
-          "Listing live mails in S3 returns an object with no Key.",
-        );
+        console.warn("Listing live mails in S3 returns an object with no Key.");
         continue;
       }
 
@@ -83,9 +78,9 @@ export class AwsMailFetcher {
   }
 
   async consumeS3Mail(s3Key: string, consumer: AwsS3MailConsumer) {
-    this.#logger.info(`Begin to consume s3 mail ${s3Key} ...`);
+    console.info(`Begin to consume s3 mail ${s3Key} ...`);
 
-    this.#logger.info(`Fetching s3 mail ${s3Key}...`);
+    console.info(`Fetching s3 mail ${s3Key}...`);
     const mailPath = `${this.#livePrefix}${s3Key}`;
     const command = new GetObjectCommand({
       Bucket: this.#bucket,
@@ -98,14 +93,14 @@ export class AwsMailFetcher {
     }
 
     const rawMail = await res.Body.transformToString();
-    this.#logger.info(`Done fetching s3 mail ${s3Key}.`);
+    console.info(`Done fetching s3 mail ${s3Key}.`);
 
-    this.#logger.info(`Calling consumer...`);
+    console.info(`Calling consumer...`);
     await consumer(rawMail, s3Key);
-    this.#logger.info(`Done consuming s3 mail ${s3Key}.`);
+    console.info(`Done consuming s3 mail ${s3Key}.`);
 
     const date = new Mail(rawMail)
-      .startSimpleParse(this.#logger)
+      .startSimpleParse()
       .sections()
       .headers()
       .date();
@@ -113,17 +108,17 @@ export class AwsMailFetcher {
       date != null ? toFileNameString(date, true) : "invalid-date";
     const newPath = `${this.#archivePrefix}${dateString}/${s3Key}`;
 
-    this.#logger.info(`Archiving s3 mail ${s3Key} to ${newPath}...`);
+    console.info(`Archiving s3 mail ${s3Key} to ${newPath}...`);
     await s3MoveObject(this.#s3, this.#bucket, mailPath, newPath);
-    this.#logger.info(`Done archiving s3 mail ${s3Key}.`);
+    console.info(`Done archiving s3 mail ${s3Key}.`);
 
-    this.#logger.info(`Done consuming s3 mail ${s3Key}.`);
+    console.info(`Done consuming s3 mail ${s3Key}.`);
   }
 
   async recycleLiveMails(consumer: AwsS3MailConsumer) {
-    this.#logger.info("Begin to recycle live mails...");
+    console.info("Begin to recycle live mails...");
     const mails = await this.listLiveMails();
-    this.#logger.info(`Found ${mails.length} live mails`);
+    console.info(`Found ${mails.length} live mails`);
     for (const s3Key of mails) {
       await this.consumeS3Mail(s3Key, consumer);
     }

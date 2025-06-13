@@ -1,4 +1,3 @@
-import { Logger } from "@crupest/base/log";
 import { MailDeliverer } from "./mail.ts";
 
 const CRLF = "\r\n";
@@ -20,26 +19,24 @@ function createResponses(host: string, port: number | string) {
 const LOG_TAG = "[dumb-smtp]";
 
 export class DumbSmtpServer {
-  #logger;
   #deliverer;
   #responses: ReturnType<typeof createResponses> = createResponses(
     "invalid",
     "invalid",
   );
 
-  constructor(logger: Logger, deliverer: MailDeliverer) {
-    this.#logger = logger;
+  constructor(deliverer: MailDeliverer) {
     this.#deliverer = deliverer;
   }
 
   async #handleConnection(conn: Deno.Conn) {
     using disposeStack = new DisposableStack();
     disposeStack.defer(() => {
-      this.#logger.tagInfo(LOG_TAG, "Close session's tcp connection.");
+      console.info(LOG_TAG, "Close session's tcp connection.");
       conn.close();
     });
 
-    this.#logger.tagInfo(LOG_TAG, "New session's tcp connection established.");
+    console.info(LOG_TAG, "New session's tcp connection established.");
 
     const writer = conn.writable.getWriter();
     disposeStack.defer(() => writer.releaseLock());
@@ -49,7 +46,7 @@ export class DumbSmtpServer {
     const [decoder, encoder] = [new TextDecoder(), new TextEncoder()];
     const decode = (data: Uint8Array) => decoder.decode(data);
     const send = async (s: string) => {
-      this.#logger.tagInfo(LOG_TAG, "Send line: " + s);
+      console.info(LOG_TAG, "Send line: " + s);
       await writer.write(encoder.encode(s + CRLF));
     };
 
@@ -72,7 +69,7 @@ export class DumbSmtpServer {
         buffer = buffer.slice(eolPos + CRLF.length);
 
         if (rawMail == null) {
-          this.#logger.tagInfo(LOG_TAG, "Received line: " + line);
+          console.info(LOG_TAG, "Received line: " + line);
           const upperLine = line.toUpperCase();
           if (upperLine.startsWith("EHLO") || upperLine.startsWith("HELO")) {
             await send(this.#responses["EHLO"]);
@@ -82,32 +79,26 @@ export class DumbSmtpServer {
             await send(this.#responses["RCPT"]);
           } else if (upperLine === "DATA") {
             await send(this.#responses["DATA"]);
-            this.#logger.tagInfo(LOG_TAG, "Begin to receive mail data...");
+            console.info(LOG_TAG, "Begin to receive mail data...");
             rawMail = "";
           } else if (upperLine === "QUIT") {
             await send(this.#responses["QUIT"]);
             return;
           } else {
-            this.#logger.tagWarn(
-              LOG_TAG,
-              "Unrecognized command from client: " + line,
-            );
+            console.warn(LOG_TAG, "Unrecognized command from client: " + line);
             await send(this.#responses["INVALID"]);
             return;
           }
         } else {
           if (line === ".") {
             try {
-              this.#logger.tagInfo(
-                LOG_TAG,
-                "Mail data Received, begin to relay...",
-              );
+              console.info(LOG_TAG, "Mail data Received, begin to relay...");
               const { message } = await this.#deliverer.deliverRaw(rawMail);
               await send(`250 2.6.0 ${message}`);
               rawMail = null;
-              this.#logger.tagInfo(LOG_TAG, "Relay succeeded.");
+              console.info(LOG_TAG, "Relay succeeded.");
             } catch (err) {
-              this.#logger.tagError(LOG_TAG, "Relay failed.", err);
+              console.error(LOG_TAG, "Relay failed.", err);
               await send("554 5.3.0 Error: check server log");
               return;
             }
@@ -123,7 +114,7 @@ export class DumbSmtpServer {
   async serve(options: { hostname: string; port: number }) {
     const listener = Deno.listen(options);
     this.#responses = createResponses(options.hostname, options.port);
-    this.#logger.tagInfo(
+    console.info(
       LOG_TAG,
       `Dumb SMTP server starts to listen on ${this.#responses.serverName}.`,
     );
@@ -132,11 +123,7 @@ export class DumbSmtpServer {
       try {
         await this.#handleConnection(conn);
       } catch (cause) {
-        this.#logger.tagError(
-          LOG_TAG,
-          "Tcp connection throws an error.",
-          cause,
-        );
+        console.error(LOG_TAG, "Tcp connection throws an error.", cause);
       }
     }
   }

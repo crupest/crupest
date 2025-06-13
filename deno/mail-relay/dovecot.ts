@@ -6,10 +6,12 @@ import { Mail, MailDeliverContext, MailDeliverer } from "./mail.ts";
 
 export class DovecotMailDeliverer extends MailDeliverer {
   readonly name = "dovecot";
+  readonly #logger;
   readonly #ldaPath;
 
   constructor(logger: Logger, ldaPath: string) {
-    super(logger);
+    super();
+    this.#logger = logger;
     this.#ldaPath = ldaPath;
   }
 
@@ -29,12 +31,12 @@ export class DovecotMailDeliverer extends MailDeliverer {
       return;
     }
 
-    this.logger.info(`Deliver to dovecot users: ${recipients.join(", ")}.`);
+    console.info(`Deliver to dovecot users: ${recipients.join(", ")}.`);
 
     for (const recipient of recipients) {
       try {
         const commandArgs = ["-d", recipient];
-        this.logger.info(`Run ${ldaBinName} ${commandArgs.join(" ")}...`);
+        console.info(`Run ${ldaBinName} ${commandArgs.join(" ")}...`);
 
         const ldaCommand = new Deno.Command(ldaPath, {
           args: commandArgs,
@@ -45,7 +47,7 @@ export class DovecotMailDeliverer extends MailDeliverer {
 
         const ldaProcess = ldaCommand.spawn();
         using logFiles =
-          await this.logger.createExternalLogStreamsForProgram(ldaBinName);
+          await this.#logger.createExternalLogStreamsForProgram(ldaBinName);
         ldaProcess.stdout.pipeTo(logFiles.stdout);
         ldaProcess.stderr.pipeTo(logFiles.stderr);
 
@@ -90,6 +92,6 @@ export class DovecotMailDeliverer extends MailDeliverer {
       }
     }
 
-    this.logger.info("Done handling all recipients.");
+    console.info("Done handling all recipients.");
   }
 }

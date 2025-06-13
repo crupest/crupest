@@ -1,8 +1,7 @@
-import os from "node:os"
+import os from "node:os";
 import { join } from "@std/path";
 // @ts-types="npm:@types/yargs"
 import yargs from "yargs";
-
 
 type ArchAliasMap = { [name: string]: string[] };
 const arches = {
@@ -13,9 +12,7 @@ type Arch = keyof typeof arches;
 type GeneralArch = (typeof arches)[Arch][number];
 
 function normalizeArch(generalName: GeneralArch): Arch {
-  for (const [name, aliases] of Object.entries(
-    arches as ArchAliasMap,
-  )) {
+  for (const [name, aliases] of Object.entries(arches as ArchAliasMap)) {
     if (aliases.includes(generalName)) return name as Arch;
   }
   throw Error("Unknown architecture name.");

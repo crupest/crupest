@@ -2,19 +2,11 @@ import { join } from "@std/path";
 
 import { toFileNameString } from "./date.ts";
 
-export type LogLevel = "error" | "warn" | "info";
-
-export interface LogOptions {
-  level?: LogLevel;
-  cause?: unknown;
-}
-
 export interface ExternalLogStream extends Disposable {
   stream: WritableStream;
 }
 
 export class Logger {
-  #defaultLevel = "info" as const;
   #externalLogDir?: string;
 
   get externalLogDir() {
@@ -28,39 +20,6 @@ export class Logger {
         recursive: true,
       });
     }
-  }
-
-  write(message: string, options?: LogOptions): void {
-    const logFunction = console[options?.level ?? this.#defaultLevel];
-    if (options?.cause != null) {
-      logFunction.call(console, message, options.cause);
-    } else {
-      logFunction.call(console, message);
-    }
-  }
-
-  info(message: string) {
-    this.write(message, { level: "info" });
-  }
-
-  tagInfo(tag: string, message: string) {
-    this.info(tag + " " + message);
-  }
-
-  warn(message: string) {
-    this.write(message, { level: "warn" });
-  }
-
-  tagWarn(tag: string, message: string) {
-    this.warn(tag + " " + message);
-  }
-
-  error(message: string, cause?: unknown) {
-    this.write(message, { level: "info", cause });
-  }
-
-  tagError(tag: string, message: string, cause?: unknown) {
-    this.error(tag + " " + message, cause);
   }
 
   async createExternalLogStream(
