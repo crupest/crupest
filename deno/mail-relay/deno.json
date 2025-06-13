@@ -5,6 +5,7 @@
     "compile": "deno compile -o out/crupest-relay -A aws/app.ts"
   },
   "imports": {
+    "@std/cli": "jsr:@std/cli@^1.0.19",
     "@aws-sdk/client-s3": "npm:@aws-sdk/client-s3@^3.821.0",
     "@aws-sdk/client-sesv2": "npm:@aws-sdk/client-sesv2@^3.821.0",
     "@db/sqlite": "jsr:@db/sqlite@^0.12.0",
