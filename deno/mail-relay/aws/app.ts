@@ -94,11 +94,10 @@ function createAwsOptions({
 }
 
 function createOutbound(
-  logger: Logger,
   awsOptions: ReturnType<typeof createAwsOptions>,
   db: DbService,
 ) {
-  const deliverer = new AwsMailDeliverer(logger, awsOptions);
+  const deliverer = new AwsMailDeliverer(awsOptions);
   deliverer.preHooks.push(
     new AwsMailMessageIdRewriteHook(db.messageIdToAws.bind(db)),
   );
@@ -168,11 +167,7 @@ function createAwsFetchOnlyServices() {
     password: config.get("awsPassword"),
     region: config.get("awsRegion"),
   });
-  const fetcher = new AwsMailFetcher(
-    logger,
-    awsOptions,
-    config.get("awsMailBucket"),
-  );
+  const fetcher = new AwsMailFetcher(awsOptions, config.get("awsMailBucket"));
   return { config, logger, awsOptions, fetcher };
 }
 
@@ -195,7 +190,7 @@ function createAwsServices() {
   const { config, logger, inbound, awsOptions, fetcher, recycler } =
     createAwsRecycleOnlyServices();
   const dbService = new DbService(join(config.get("dataPath"), "db.sqlite"));
-  const outbound = createOutbound(logger, awsOptions, dbService);
+  const outbound = createOutbound(awsOptions, dbService);
 
   return {
     config,
@@ -211,10 +206,10 @@ function createAwsServices() {
 
 function createServerServices() {
   const services = createAwsServices();
-  const { logger, config, outbound, inbound, fetcher } = services;
-  const smtp = createSmtp(logger, outbound);
+  const { config, outbound, inbound, fetcher } = services;
+  const smtp = createSmtp(outbound);
 
-  const hono = createHono(logger, outbound, inbound);
+  const hono = createHono(outbound, inbound);
   setupAwsHono(hono, {
     path: config.get("awsInboundPath"),
     auth: config.get("awsInboundKey"),
@@ -252,11 +247,11 @@ function serve(cron: boolean = false) {
 }
 
 async function listLives() {
-  const { logger, fetcher } = createAwsFetchOnlyServices();
+  const { fetcher } = createAwsFetchOnlyServices();
   const liveMails = await fetcher.listLiveMails();
-  logger.info(`Total ${liveMails.length}:`);
+  console.info(`Total ${liveMails.length}:`);
   if (liveMails.length !== 0) {
-    logger.info(liveMails.join("\n"));
+    console.info(liveMails.join("\n"));
   }
 }
 
@@ -272,8 +267,8 @@ if (import.meta.main) {
       command: "sendmail",
       describe: "send mail via this server's endpoint",
       handler: async (_argv) => {
-        const { logger, config } = createBaseServices();
-        await sendMail(logger, config.getInt("httpPort"));
+        const { config } = createBaseServices();
+        await sendMail(config.getInt("httpPort"));
       },
     })
     .command({

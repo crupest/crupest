@@ -1,8 +1,6 @@
 import { describe, it } from "@std/testing/bdd";
 import { expect, fn } from "@std/expect";
 
-import { Logger } from "@crupest/base/log";
-
 import { Mail, MailDeliverContext, MailDeliverer } from "./mail.ts";
 
 const mockDate = "Fri, 02 May 2025 08:33:02 +0000";
@@ -119,7 +117,7 @@ describe("MailDeliverer", () => {
       return Promise.resolve();
     }) as MailDeliverer["doDeliver"];
   }
-  const mockDeliverer = new MockMailDeliverer(new Logger());
+  const mockDeliverer = new MockMailDeliverer();
 
   it("deliver success", async () => {
     await mockDeliverer.deliverRaw(mockMailStr);

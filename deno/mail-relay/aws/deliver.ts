@@ -4,7 +4,6 @@ import {
   SESv2ClientConfig,
 } from "@aws-sdk/client-sesv2";
 
-import { Logger } from "@crupest/base/log";
 import { Mail, MailDeliverContext, SyncMailDeliverer } from "../mail.ts";
 
 declare module "../mail.ts" {
@@ -15,13 +14,11 @@ declare module "../mail.ts" {
 
 export class AwsMailDeliverer extends SyncMailDeliverer {
   readonly name = "aws";
-  readonly #logger;
   readonly #aws;
   readonly #ses;
 
-  constructor(logger: Logger, aws: SESv2ClientConfig) {
-    super(logger);
-    this.#logger = logger;
+  constructor(aws: SESv2ClientConfig) {
+    super();
     this.#aws = aws;
     this.#ses = new SESv2Client(aws);
   }
@@ -30,7 +27,7 @@ export class AwsMailDeliverer extends SyncMailDeliverer {
     mail: Mail,
     context: MailDeliverContext,
   ): Promise<void> {
-    this.#logger.info("Begin to call aws send-email api...");
+    console.info("Begin to call aws send-email api...");
 
     try {
       const sendCommand = new SendEmailCommand({
@@ -41,9 +38,11 @@ export class AwsMailDeliverer extends SyncMailDeliverer {
 
       const res = await this.#ses.send(sendCommand);
       if (res.MessageId == null) {
-        this.#logger.warn("Aws send-email returns no message id.");
+        console.warn("Aws send-email returns no message id.");
       } else {
-        context.result.awsMessageId = `${res.MessageId}@${this.#aws.region}.amazonses.com`;
+        context.result.awsMessageId = `${res.MessageId}@${
+          this.#aws.region
+        }.amazonses.com`;
       }
 
       context.result.recipients.set("*", {

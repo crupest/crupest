@@ -35,15 +35,11 @@ export function createInbound(
   return deliverer;
 }
 
-export function createHono(
-  logger: Logger,
-  outbound: MailDeliverer,
-  inbound: MailDeliverer,
-) {
+export function createHono(outbound: MailDeliverer, inbound: MailDeliverer) {
   const hono = new Hono();
 
   hono.onError((err, c) => {
-    logger.error("Hono handler throws an error.", err);
+    console.error("Hono handler throws an error.", err);
     return c.json({ msg: "Server error, check its log." }, 500);
   });
   hono.use(honoLogger());
@@ -66,11 +62,11 @@ export function createHono(
   return hono;
 }
 
-export function createSmtp(logger: Logger, outbound: MailDeliverer) {
-  return new DumbSmtpServer(logger, outbound);
+export function createSmtp(outbound: MailDeliverer) {
+  return new DumbSmtpServer(outbound);
 }
 
-export async function sendMail(logger: Logger, port: number) {
+export async function sendMail(port: number) {
   const decoder = new TextDecoder();
   let text = "";
   for await (const chunk of Deno.stdin.readable) {
@@ -81,9 +77,8 @@ export async function sendMail(logger: Logger, port: number) {
     method: "post",
     body: text,
   });
-  logger.write(Deno.inspect(res), { level: res.ok ? "info" : "error" });
-  logger.write(Deno.inspect(await res.text()), {
-    level: res.ok ? "info" : "error",
-  });
+  const fn = res.ok ? "info" : "error";
+  console[fn](res);
+  console[fn](await res.text());
   if (!res.ok) Deno.exit(-1);
 }

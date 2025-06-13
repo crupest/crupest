@@ -1,7 +1,8 @@
-const PROXY_NAME = "node-select"
-const ATTR = "cn"
+const PROXY_NAME = "node-select";
+const ATTR = "cn";
 const REPO_NAME = "domain-list-community";
-const URL = "https://github.com/v2fly/domain-list-community/archive/refs/heads/master.zip"
+const URL =
+  "https://github.com/v2fly/domain-list-community/archive/refs/heads/master.zip";
 const SITES = [
   "github",
   "google",
@@ -39,9 +40,9 @@ const SITES = [
   "ieee",
   "sci-hub",
   "libgen",
-]
+];
 
-const prefixes = ["include", "domain", "keyword", "full", "regexp"] as const
+const prefixes = ["include", "domain", "keyword", "full", "regexp"] as const;
 
 interface Rule {
   kind: (typeof prefixes)[number];
@@ -52,20 +53,20 @@ interface Rule {
 type FileProvider = (name: string) => string;
 
 function extract(starts: string[], provider: FileProvider): Rule[] {
-function parseLine(line: string): Rule {
-  let kind = prefixes.find((p) => line.startsWith(p + ":"));
-  if (kind != null) {
-    line = line.slice(line.indexOf(":") + 1);
-  } else {
-    kind = "domain";
+  function parseLine(line: string): Rule {
+    let kind = prefixes.find((p) => line.startsWith(p + ":"));
+    if (kind != null) {
+      line = line.slice(line.indexOf(":") + 1);
+    } else {
+      kind = "domain";
+    }
+    const segs = line.split("@");
+    return {
+      kind,
+      value: segs[0].trim(),
+      attrs: [...segs.slice(1)].map((s) => s.trim()),
+    };
   }
-  const segs = line.split("@");
-  return {
-    kind,
-    value: segs[0].trim(),
-    attrs: [...segs.slice(1)].map((s) => s.trim()),
-  };
-}
 
   function parse(text: string): Rule[] {
     return text
@@ -76,10 +77,10 @@ function parseLine(line: string): Rule {
       .map((l) => parseLine(l));
   }
 
-  const visited = [] as string[]
-  const rules = [] as Rule[]
+  const visited = [] as string[];
+  const rules = [] as Rule[];
 
-  function add(name :string) {
+  function add(name: string) {
     const text = provider(name);
     for (const rule of parse(text)) {
       if (rule.kind === "include") {
@@ -100,25 +101,25 @@ function parseLine(line: string): Rule {
     add(start);
   }
 
-  return rules
+  return rules;
 }
 
 function toNewFormat(rules: Rule[], attr: string): [string, string] {
   function toLine(rule: Rule) {
     const prefixMap = {
-      "domain": "DOMAIN-SUFFIX",
-      "full": "DOMAIN",
-      "keyword": "DOMAIN-KEYWORD",
-      "regexp": "DOMAIN-REGEX",
+      domain: "DOMAIN-SUFFIX",
+      full: "DOMAIN",
+      keyword: "DOMAIN-KEYWORD",
+      regexp: "DOMAIN-REGEX",
     } as const;
     if (rule.kind === "include") {
-      throw new Error("Include rule not parsed.")
+      throw new Error("Include rule not parsed.");
     }
-    return `${prefixMap[rule.kind]},${rule.value}`
+    return `${prefixMap[rule.kind]},${rule.value}`;
   }
 
   function toLines(rules: Rule[]) {
-    return rules.map(r => toLine(r)).join("\n")
+    return rules.map((r) => toLine(r)).join("\n");
   }
 
   const has: Rule[] = [];
@@ -127,7 +128,6 @@ function toNewFormat(rules: Rule[], attr: string): [string, string] {
 
   return [toLines(has), toLines(notHas)];
 }
-
 
 if (import.meta.main) {
   const tmpDir = Deno.makeTempDirSync({ prefix: "geosite-rules-" });
@@ -150,12 +150,11 @@ if (import.meta.main) {
   const provider = (name: string) =>
     Deno.readTextFileSync(dataDir + "/" + name);
 
-  const rules = extract(SITES, provider)
-  const [has, notHas] = toNewFormat(rules, ATTR)
-  const hasFile = tmpDir + "/has-rule"
-  const notHasFile = tmpDir + "/not-has-rule"
-  console.log("Write result to: " + hasFile + " , " + notHasFile)
-  Deno.writeTextFileSync(hasFile, has)
-  Deno.writeTextFileSync(notHasFile, notHas)
+  const rules = extract(SITES, provider);
+  const [has, notHas] = toNewFormat(rules, ATTR);
+  const hasFile = tmpDir + "/has-rule";
+  const notHasFile = tmpDir + "/not-has-rule";
+  console.log("Write result to: " + hasFile + " , " + notHasFile);
+  Deno.writeTextFileSync(hasFile, has);
+  Deno.writeTextFileSync(notHasFile, notHas);
 }
-

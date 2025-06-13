@@ -1326,8 +1326,7 @@
       },
       "tools": {
         "dependencies": [
-          "npm:mustache@^4.2.0",
-          "npm:yargs@18"
+          "npm:mustache@^4.2.0"
         ]
       }
     }
