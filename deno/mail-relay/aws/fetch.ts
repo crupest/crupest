@@ -7,7 +7,7 @@ import {
   S3ClientConfig,
 } from "@aws-sdk/client-s3";
 
-import { toFileNameString } from "@crupest/base/date";
+import { toFileNameString } from "@crupest/base";
 
 import { Mail } from "../mail.ts";
 
