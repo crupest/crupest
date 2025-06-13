@@ -1,5 +1,3 @@
-// spellchecker: words kysely insertable updateable introspector
-
 import {
   Generated,
   Insertable,

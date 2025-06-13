@@ -1,5 +1,3 @@
--- spellchecker: words denols luals
-
 vim.lsp.config("*", {
     capabilities = vim.tbl_extend("force",
         vim.lsp.protocol.make_client_capabilities(),

@@ -1,4 +1,3 @@
--- spellchecker: words pwsh
 -- spellchecker: ignore shellcmdflag shellredir shellpipe shellquote shellxquote
 local function setup()
     vim.cmd([[

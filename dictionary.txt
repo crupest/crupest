@@ -4,56 +4,74 @@ Yuqian
 Yang
 fxxking
 
-# self-hosted services
+# general
+aarch64
+esmtp
+healthcheck
+
 2fauth
-rspamd
 certbot
 roundcube
 roundcubemail
-gohugoio
-
-# general
-catppuccin
-macchiato
-cheatsheet
-aarch64
-pythonpath
 gerrit
-esmtp
-tini
-healthcheck
+gohugoio
+pwsh
+rclone
+
+kmod
+btrfs
+chroot
+nproc
+zstd
+cpio
+pacman
+fontconfig
+
 nspawn
+tini
 containerd
 buildx
-fontconfig
+qcow2
+hostfwd
+
+# languages
+pythonpath
+denoland
+kysely
+insertable
+
+ustc
+sourceware
+sesv2
+amazonses
+
+geodata
+geoip
+geosite
+vmess
+vnext
+
+catppuccin
+macchiato
 
 # vim/nvim
 nvim
 neovide
 vimruntime
-
+termguicolors
 autobrief
 autopairs
 bashls
 bufhidden
 bufnr
 clangd
+denols
 devicons
 exepath
 gitsigns
 lspconfig
 lualine
 luasnip
-
-# unix
-cpio
-kmod
-nproc
-sourceware
-zstd
-btrfs
-pacman
-rclone
 
 # hurd
 gnumach
@@ -69,7 +87,6 @@ dquilt
 buildpackage
 quiltrc
 nocheck
-chroot
 indep
 confdir
 createchroot
@@ -77,10 +94,3 @@ sbuild
 sbuildrc
 schroot
 
-# misc
-geodata
-geoip
-geosite
-vmess
-vnext
-ustc

@@ -1,4 +1,4 @@
---- spellchecker: words markdownlintrc
+--- spellchecker: ignore markdownlintrc
 
 ---@alias CruLinter { name: string, config_patterns: string[], filetypes: string[] | nil, fast: boolean }
 
