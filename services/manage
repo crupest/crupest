@@ -14,4 +14,4 @@ export CRUPEST_PROJECT_DIR
 
 echo "Project Dir: $CRUPEST_PROJECT_DIR"
 
-exec deno run -A "$CRUPEST_PROJECT_DIR/deno/service-manager/main.ts" --project-dir "$CRUPEST_PROJECT_DIR" "$@"
+exec deno run -A "$CRUPEST_PROJECT_DIR/deno/tools/manage-service.ts" --project-dir "$CRUPEST_PROJECT_DIR" "$@"

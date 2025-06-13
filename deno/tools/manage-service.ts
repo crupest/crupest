@@ -1,5 +1,5 @@
 import { parseArgs } from "@std/cli";
-import { loadVariables, TemplateDir } from "./template.ts";
+import { TemplateDir } from "./template.ts";
 import { join } from "@std/path";
 
 if (import.meta.main) {
