@@ -7,5 +7,5 @@ die() {
   exit 1
 }
 
-/app/crupest-relay real-serve &
+/app/crupest-relay serve --real &
 /dovecot/sbin/dovecot -F

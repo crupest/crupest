@@ -1,9 +1,10 @@
 import { join } from "@std/path";
-import { parseArgs } from "@std/cli";
 import { z } from "zod";
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { FetchHttpHandler } from "@smithy/fetch-http-handler";
+// @ts-types="npm:@types/yargs"
+import yargs from "yargs";
 
 import { Logger } from "@crupest/base/log";
 import { ConfigDefinition, ConfigProvider } from "@crupest/base/config";
@@ -254,7 +255,9 @@ async function listLives() {
   const { logger, fetcher } = createAwsFetchOnlyServices();
   const liveMails = await fetcher.listLiveMails();
   logger.info(`Total ${liveMails.length}:`);
-  logger.info(liveMails.join("\n"));
+  if (liveMails.length !== 0) {
+    logger.info(liveMails.join("\n"));
+  }
 }
 
 async function recycleLives() {
@@ -263,38 +266,43 @@ async function recycleLives() {
 }
 
 if (import.meta.main) {
-  const args = parseArgs(Deno.args);
-
-  if (args._.length === 0) {
-    throw new Error("You must specify a command.");
-  }
-
-  const command = String(args._[0]);
-
-  switch (command) {
-    case "sendmail": {
-      const { logger, config } = createBaseServices();
-      await sendMail(logger, config.getInt("httpPort"));
-      break;
-    }
-    case "list-lives": {
-      await listLives();
-      break;
-    }
-    case "recycle-lives": {
-      await recycleLives();
-      break;
-    }
-    case "serve": {
-      serve();
-      break;
-    }
-    case "real-serve": {
-      serve(true);
-      break;
-    }
-    default: {
-      throw new Error(command + " is not a valid command.");
-    }
-  }
+  await yargs(Deno.args)
+    .scriptName("mail-relay")
+    .command({
+      command: "sendmail",
+      describe: "send mail via this server's endpoint",
+      handler: async (_argv) => {
+        const { logger, config } = createBaseServices();
+        await sendMail(logger, config.getInt("httpPort"));
+      },
+    })
+    .command({
+      command: "live",
+      describe: "work with live mails",
+      builder: (builder) => {
+        return builder
+          .command({
+            command: "list",
+            describe: "list live mails",
+            handler: listLives,
+          })
+          .command({
+            command: "recycle",
+            describe: "recycle all live mails",
+            handler: recycleLives,
+          })
+          .demandCommand(1, "One command must be specified.");
+      },
+      handler: () => {},
+    })
+    .command({
+      command: "serve",
+      describe: "start the http and smtp servers",
+      builder: (builder) => builder.option("real", { type: "boolean" }),
+      handler: (argv) => serve(argv.real),
+    })
+    .demandCommand(1, "One command must be specified.")
+    .help()
+    .strict()
+    .parse();
 }
