@@ -1,7 +1,7 @@
 ---
 title: "Hurd Cheat Sheet"
 date: 2025-06-12T00:59:16+08:00
-lastmod: 2025-06-12T00:59:16+08:00
+lastmod: 2025-06-14T20:34:06+08:00
 ---
 
 ## Mirrors
@@ -44,6 +44,9 @@ boot on.
 
 QEMU cli arguments `-machine q35` enables AHCI and SATA, and is **required for
 official x86_64 image to boot**. As for i386, I haven't checked now.
+
+There is [a Deno script](https://github.com/crupest/crupest/blob/dev/deno/tools/manage-vm.ts)
+written by me to help define and build QEMU cli arguments of VMs.
 
 ## Inside Hurd
 

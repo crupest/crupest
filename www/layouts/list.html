@@ -5,13 +5,9 @@
 {{ define "content" }}
   {{ partial "nav.html" . }}
   <h1>{{ .Title }}</h1>
-  {{ $pages := .RegularPages }}
-  {{ if .Param "recursive" }}
-    {{ $pages = .RegularPagesRecursive }}
-  {{ end }}
   {{ partial "preview/posts.html" (dict
       "h" "h3"
-      "pages" $pages
+      "pages" .RegularPages
     )
   }}
 {{ end }}

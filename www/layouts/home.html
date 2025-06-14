@@ -33,11 +33,11 @@
       goto:
       <ul>
         <li><a href="{{ absURL "/git/" }}">git</a></li>
+        {{ with .GetPage "/notes" }}
+          <li><a href="{{ .RelPermalink }}">notes</a></li>
+        {{ end }}
         {{ with .GetPage "/notes/hurd" }}
           <li><a href="{{ .RelPermalink }}">hurd</a></li>
-        {{ end }}
-        {{ with .GetPage "/notes/todos" }}
-          <li><a href="{{ .RelPermalink }}">todos</a></li>
         {{ end }}
         {{ with .GetPage "/notes/cheat-sheet" }}
           <li><a href="{{ .RelPermalink }}">cheat-sheet</a></li>

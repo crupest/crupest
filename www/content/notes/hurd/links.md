@@ -1,18 +1,10 @@
 ---
-title: "Hurd"
-date: 2025-03-03T15:34:41+08:00
-lastmod: 2025-06-12T01:09:39+08:00
+title: "Hurd Useful Links"
+date: 2025-06-14T20:34:06+08:00
+lastmod: 2025-06-14T20:34:06+08:00
 ---
 
-{{< mono >}}
-
-goto: [Cheat Sheet](/notes/hurd/cheat-sheet) | [Todos](/notes/hurd/todos)
-
-{{< /mono >}}
-
 ## links
-
-{{< mono >}}
 
 | name | link |
 | --- | --- |
@@ -22,11 +14,7 @@ goto: [Cheat Sheet](/notes/hurd/cheat-sheet) | [Todos](/notes/hurd/todos)
 | kernel-home | <https://www.gnu.org/software/hurd/index.html> |
 | debian-home | <https://www.debian.org/ports/hurd/> |
 
-{{< /mono >}}
-
 refs:
-
-{{< mono >}}
 
 | name | link |
 | --- | --- |
@@ -36,19 +24,13 @@ refs:
 | posix 2008 | <https://pubs.opengroup.org/onlinepubs/9699919799.2008edition/> |
 | glibc | <https://sourceware.org/glibc/manual/2.41/html_mono/libc.html> |
 
-{{< /mono >}}
-
 ## mailing lists / irc
-
-{{< mono >}}
 
 | name | address |
 | --- | --- |
 | hurd | <bug-hurd@gnu.org> |
 | debian | <debian-hurd@lists.debian.org> |
 | irc | librechat #hurd |
-
-{{< /mono >}}
 
 ## *_MAX patch
 
