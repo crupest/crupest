@@ -18,6 +18,10 @@ frontmatter:
 
 markup:
   goldmark:
+    parser:
+      attribute:
+        block: true
+        title: true
     extensions:
       table: true
   highlight:

@@ -1,24 +1,17 @@
-.todo {
-  h3::before {
-    font-family: monospace;
+h3.todo {
+  &::before {
+    font-size: small;
   }
 
-  &.working h3::before {
-    content: "* ";
+  &.working::before {
+    content: "(working) ";
   }
 
-  &.done h3::before {
-    content: "✓ ";
+  &.done::before {
+    content: "(done) ";
   }
 
-  &.give-up  {
-    &, a:link, a:visited {
-      color: grey;
-    }
-
-    h3:before {
-      content: "orz ✖ ";
-    }
+  &.give-up::before {
+    content: "(give up) ";
   }
 }
-
