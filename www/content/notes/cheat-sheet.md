@@ -41,7 +41,7 @@ docker run -it --rm -v "./data/git/user-info:/user-info" httpd htpasswd /user-in
 A complete command is `[prefix] [docker (based on challenge kind)] [command] [challenge] [domains] [test] [misc]`
 
 | part | for | segment |
-| --- | --- | --- |
+| :-: | :-: | --- |
 | prefix | * | `docker run -it --rm --name certbot -v "./data/certbot/certs:/etc/letsencrypt" -v "./data/certbot/data:/var/lib/letsencrypt"` |
 | docker | challenge standalone | `-p "0.0.0.0:80:80"` |
 | docker | challenge nginx | `-v "./data/certbot/webroot:/var/www/certbot"` |
