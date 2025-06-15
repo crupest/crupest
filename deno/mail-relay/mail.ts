@@ -39,6 +39,14 @@ class MailSimpleParsedHeaders {
     return date;
   }
 
+  from(): string | undefined {
+    const fromField = this.getFirst("from");
+    if (fromField == null) return undefined;
+
+    const addr = emailAddresses.parseOneAddress(fromField);
+    return addr?.type === "mailbox" ? addr.address : undefined;
+  }
+
   recipients(options?: { domain?: string; headers?: string[] }): Set<string> {
     const domain = options?.domain;
     const headers = options?.headers ?? ["to", "cc", "bcc", "x-original-to"];
