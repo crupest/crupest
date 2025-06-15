@@ -2,9 +2,6 @@
   font-size: 0.95em;
   padding-inline: 0.5em;
   padding-block: 0.5em;
-  margin-block-end: 0.5em;
-  border-radius: 3px;
-  background-color: hsl(33, 100%, 98%);
 
   & > p {
     font-size: 0.9em;
@@ -21,7 +18,6 @@
   & > .date {
     font-size: small;
     float: right;
-    margin-inline-end: 1.5em;
     color: hsl(0, 0%, 25%);
   }
 
@@ -39,4 +35,9 @@ html[data-theme="dark"]  {
       color: hsl(0, 0%, 75%);
     }
   }
+}
+
+hr.article-preview-hr {
+  border: none;
+  border-top: 1.5px dashed currentColor;
 }
