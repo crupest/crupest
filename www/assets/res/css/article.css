@@ -17,7 +17,7 @@
 
   & > .date {
     font-size: small;
-    margin-top: 0.3em;
+    margin-top: 0.25em;
     float: right;
     color: hsl(0, 0%, 25%);
   }
