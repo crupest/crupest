@@ -17,6 +17,7 @@ gerrit
 gohugoio
 pwsh
 rclone
+doveadm
 
 kmod
 btrfs

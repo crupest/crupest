@@ -19,6 +19,7 @@ import {
 import { AwsMailDeliverer } from "./deliver.ts";
 import { AwsMailFetcher, AwsS3MailConsumer } from "./fetch.ts";
 import { createHono, createInbound, createSmtp, sendMail } from "../app.ts";
+import { DovecotMailDeliverer } from "../dovecot.ts";
 
 const PREFIX = "crupest-mail-server";
 const CONFIG_DEFINITIONS = {
@@ -46,6 +47,10 @@ const CONFIG_DEFINITIONS = {
   ldaPath: {
     description: "full path of lda executable",
     default: "/dovecot/libexec/dovecot/dovecot-lda",
+  },
+  doveadmPath: {
+    description: "full path of doveadm executable",
+    default: "/dovecot/bin/doveadm",
   },
   inboundFallback: {
     description: "comma separated addresses used as fallback recipients",
@@ -96,14 +101,18 @@ function createAwsOptions({
 function createOutbound(
   awsOptions: ReturnType<typeof createAwsOptions>,
   db: DbService,
+  local?: DovecotMailDeliverer,
 ) {
   const deliverer = new AwsMailDeliverer(awsOptions);
   deliverer.preHooks.push(
     new AwsMailMessageIdRewriteHook(db.messageIdToAws.bind(db)),
   );
   deliverer.postHooks.push(
-    new AwsMailMessageIdSaveHook((original, aws) =>
-      db.addMessageIdMap({ message_id: original, aws_message_id: aws }).then()
+    new AwsMailMessageIdSaveHook(
+      async (original, aws, context) => {
+        await db.addMessageIdMap({ message_id: original, aws_message_id: aws });
+        void local?.saveNewSent(original, context.mail);
+      },
     ),
   );
   return deliverer;
@@ -182,6 +191,7 @@ function createAwsRecycleOnlyServices() {
   const inbound = createInbound(logFileProvider, {
     fallback: config.getList("inboundFallback"),
     ldaPath: config.get("ldaPath"),
+    doveadmPath: config.get("doveadmPath"),
     aliasFile: join(config.get("dataPath"), "aliases.csv"),
     mailDomain: config.get("mailDomain"),
   });
@@ -190,12 +200,13 @@ function createAwsRecycleOnlyServices() {
 
   return { ...services, inbound, recycler };
 }
+
 function createAwsServices() {
   const services = createAwsRecycleOnlyServices();
-  const { config, awsOptions } = services;
+  const { config, awsOptions, inbound } = services;
 
   const dbService = new DbService(join(config.get("dataPath"), "db.sqlite"));
-  const outbound = createOutbound(awsOptions, dbService);
+  const outbound = createOutbound(awsOptions, dbService, inbound);
 
   return { ...services, dbService, outbound };
 }

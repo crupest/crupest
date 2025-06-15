@@ -19,14 +19,20 @@ export function createInbound(
     mailDomain,
     aliasFile,
     ldaPath,
+    doveadmPath,
   }: {
     fallback: string[];
     mailDomain: string;
     aliasFile: string;
     ldaPath: string;
+    doveadmPath: string;
   },
 ) {
-  const deliverer = new DovecotMailDeliverer(logFileProvider, ldaPath);
+  const deliverer = new DovecotMailDeliverer(
+    logFileProvider,
+    ldaPath,
+    doveadmPath,
+  );
   deliverer.preHooks.push(
     new RecipientFromHeadersHook(mailDomain),
     new FallbackRecipientHook(new Set(fallback)),

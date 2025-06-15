@@ -25,7 +25,13 @@ export class AwsMailMessageIdRewriteHook implements MailDeliverHook {
 export class AwsMailMessageIdSaveHook implements MailDeliverHook {
   readonly #record;
 
-  constructor(record: (original: string, aws: string) => Promise<void>) {
+  constructor(
+    record: (
+      original: string,
+      aws: string,
+      context: MailDeliverContext,
+    ) => Promise<void>,
+  ) {
     this.#record = record;
   }
 
@@ -42,7 +48,11 @@ export class AwsMailMessageIdSaveHook implements MailDeliverHook {
     }
     if (context.result.awsMessageId != null) {
       console.info(`Saving ${messageId} => ${context.result.awsMessageId}.`);
-      await this.#record(messageId, context.result.awsMessageId);
+      context.mail.raw = context.mail.raw.replaceAll(
+        messageId,
+        context.result.awsMessageId,
+      );
+      await this.#record(messageId, context.result.awsMessageId, context);
     }
     console.info("Done save message ids.");
   }
