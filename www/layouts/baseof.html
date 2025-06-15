@@ -26,6 +26,8 @@
       {{ end }}
       <hr/>
       <footer class="mono-link">
+        {{ block "footer" . }}
+        {{ end }}
         <p id="license">
           <small>This work is licensed under
             <a rel="license noopener noreferrer"
