@@ -1,5 +1,11 @@
 {{ $h := .h }}
+{{ $is_first := true}}
 {{ range .pages }}
+  {{ if $is_first }}
+    {{ $is_first = false }}
+  {{ else }}
+    <hr class="article-preview-hr">
+  {{ end }}
   {{ partial "preview/post.html" (dict
     "h" $h
     "page" .)
