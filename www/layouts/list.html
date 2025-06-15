@@ -5,6 +5,7 @@
 {{ define "content" }}
   {{ partial "nav.html" . }}
   <h1>{{ .Title }}</h1>
+  <hr/>
   {{ partial "preview/posts.html" (dict
       "h" "h3"
       "pages" .RegularPages
