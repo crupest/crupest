@@ -159,7 +159,7 @@ export interface MailDeliverRecipientResult {
 }
 
 export class MailDeliverResult {
-  message: string = "";
+  smtpMessage: string = "";
   recipients: Map<string, MailDeliverRecipientResult> = new Map();
 
   constructor(public mail: Mail) {}
@@ -173,13 +173,9 @@ export class MailDeliverResult {
 
   [Symbol.for("Deno.customInspect")]() {
     return [
-      `message: ${this.message}`,
-      ...this.recipients
-        .entries()
-        .map(
-          ([recipient, result]) =>
-            `${recipient} [${result.kind}]: ${result.message}`,
-        ),
+      ...this.recipients.entries().map(([recipient, result]) =>
+        `${recipient} [${result.kind}]: ${result.message}`
+      ),
     ].join("\n");
   }
 }

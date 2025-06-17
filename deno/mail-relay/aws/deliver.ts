@@ -44,10 +44,10 @@ export class AwsMailDeliverer extends SyncMailDeliverer {
           `${res.MessageId}@${this.#aws.region}.amazonses.com`;
       }
 
+      context.result.smtpMessage = `AWS Message ID: ${context.result.awsMessageId}`;
       context.result.recipients.set("*", {
         kind: "done",
-        message:
-          `Successfully called aws send-email, message id ${context.result.awsMessageId}.`,
+        message: `Successfully called aws send-email.`,
       });
     } catch (cause) {
       context.result.recipients.set("*", {
