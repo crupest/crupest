@@ -5,6 +5,5 @@
     ".": "./lib.ts",
     "./config": "./config.ts",
     "./cron": "./cron.ts",
-    "./log": "./log.ts"
   }
 }
