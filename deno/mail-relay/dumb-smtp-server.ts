@@ -12,6 +12,7 @@ function createResponses(host: string, port: number | string) {
     RCPT: "250 2.1.5 Recipient OK",
     DATA: "354 Start mail input; end with <CRLF>.<CRLF>",
     QUIT: `211 2.0.0 ${serverName} closing connection`,
+    ACTIVE_CLOSE: "421 4.7.0 Please open a new connection to send more emails",
     INVALID: "500 5.5.1 Error: command not recognized",
   } as const;
 }
@@ -93,15 +94,15 @@ export class DumbSmtpServer {
           if (line === ".") {
             try {
               console.info(LOG_TAG, "Mail data Received, begin to relay...");
-              const { message } = await this.#deliverer.deliverRaw(rawMail);
-              await send(`250 2.6.0 ${message}`);
+              const { smtpMessage } = await this.#deliverer.deliverRaw(rawMail);
+              await send(`250 2.6.0 ${smtpMessage}`);
               rawMail = null;
               console.info(LOG_TAG, "Relay succeeded.");
             } catch (err) {
               console.error(LOG_TAG, "Relay failed.", err);
               await send("554 5.3.0 Error: check server log");
-              return;
             }
+            await send(this.#responses["ACTIVE_CLOSE"]);
           } else {
             const dataLine = line.startsWith("..") ? line.slice(1) : line;
             rawMail += dataLine + CRLF;

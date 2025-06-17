@@ -1,5 +1,3 @@
-import { basename } from "@std/path";
-
 import { Mail, MailDeliverContext, MailDeliverer } from "./mail.ts";
 
 // https://doc.dovecot.org/main/core/man/dovecot-lda.1.html
@@ -23,7 +21,7 @@ async function runCommand(
 ): Promise<CommandResult> {
   const { args, stdin, errorCodeMessageMap } = options;
 
-  console.info(`Run external command ${bin} ${args.join(" ")} ...`);
+  console.info(`Run external command ${bin} ${args.join(" ")}`);
 
   try {
     // Create and spawn process.
@@ -89,7 +87,7 @@ export class DovecotMailDeliverer extends MailDeliverer {
     const recipients = [...context.recipients];
 
     if (recipients.length === 0) {
-      context.result.message =
+      context.result.smtpMessage =
         "Failed to deliver to dovecot, no recipients are specified.";
       return;
     }
@@ -196,12 +194,17 @@ export class DovecotMailDeliverer extends MailDeliverer {
       );
     }
 
-    console.info("Schedule deletion of old mails at 15 seconds later.");
-    setTimeout(() => {
-      console.info(
-        "Try to delete mails in Sent box that has old message id.",
-      );
-      void this.#deleteMail(from, "Sent", messageIdToDelete);
-    }, 1000 * 15);
+    console.info("Schedule deletion of old mails at 15,30,60 seconds later.");
+    [15, 30, 60].forEach((seconds) =>
+      setTimeout(() => {
+        console.info(
+          `Try to delete mails in Sent. (message-id: ${messageIdToDelete}, ` +
+            `attempt delay: ${seconds}s) ` +
+            "Note that the mail may have already been deleted," +
+            " in which case failures of deletion can be just ignored.",
+        );
+        void this.#deleteMail(from, "Sent", messageIdToDelete);
+      }, 1000 * seconds)
+    );
   }
 }
