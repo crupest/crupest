@@ -6,7 +6,6 @@ import { FetchHttpHandler } from "@smithy/fetch-http-handler";
 // @ts-types="npm:@types/yargs"
 import yargs from "yargs";
 
-import { LogFileProvider } from "@crupest/base/log";
 import { ConfigDefinition, ConfigProvider } from "@crupest/base/config";
 import { CronTask } from "@crupest/base/cron";
 
@@ -111,7 +110,7 @@ function createOutbound(
     new AwsMailMessageIdSaveHook(
       async (original, aws, context) => {
         await db.addMessageIdMap({ message_id: original, aws_message_id: aws });
-        void local?.saveNewSent(original, context.mail);
+        void local?.saveNewSent(context.mail, original);
       },
     ),
   );
@@ -164,10 +163,7 @@ function createCron(fetcher: AwsMailFetcher, consumer: AwsS3MailConsumer) {
 function createBaseServices() {
   const config = new ConfigProvider(PREFIX, CONFIG_DEFINITIONS);
   Deno.mkdirSync(config.get("dataPath"), { recursive: true });
-  const logFileProvider = new LogFileProvider(
-    join(config.get("dataPath"), "log"),
-  );
-  return { config, logFileProvider };
+  return { config };
 }
 
 function createAwsFetchOnlyServices() {
@@ -186,9 +182,9 @@ function createAwsFetchOnlyServices() {
 
 function createAwsRecycleOnlyServices() {
   const services = createAwsFetchOnlyServices();
-  const { config, logFileProvider } = services;
+  const { config } = services;
 
-  const inbound = createInbound(logFileProvider, {
+  const inbound = createInbound({
     fallback: config.getList("inboundFallback"),
     ldaPath: config.get("ldaPath"),
     doveadmPath: config.get("doveadmPath"),

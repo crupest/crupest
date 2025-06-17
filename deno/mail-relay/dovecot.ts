@@ -1,22 +1,81 @@
 import { basename } from "@std/path";
 
-import { LogFileProvider } from "@crupest/base/log";
-
 import { Mail, MailDeliverContext, MailDeliverer } from "./mail.ts";
+
+// https://doc.dovecot.org/main/core/man/dovecot-lda.1.html
+const ldaExitCodeMessageMap = new Map<number, string>();
+ldaExitCodeMessageMap.set(67, "recipient user not known");
+ldaExitCodeMessageMap.set(75, "temporary error");
+
+type CommandResult = {
+  kind: "exit-success" | "exit-failure";
+  status: Deno.CommandStatus;
+  logMessage: string;
+} | { kind: "throw"; cause: unknown; logMessage: string };
+
+async function runCommand(
+  bin: string,
+  options: {
+    args: string[];
+    stdin?: Uint8Array;
+    errorCodeMessageMap?: Map<number, string>;
+  },
+): Promise<CommandResult> {
+  const { args, stdin, errorCodeMessageMap } = options;
+
+  console.info(`Run external command ${bin} ${args.join(" ")} ...`);
+
+  try {
+    // Create and spawn process.
+    const command = new Deno.Command(bin, {
+      args,
+      stdin: stdin == null ? "null" : "piped",
+    });
+    const process = command.spawn();
+
+    // Write stdin if any.
+    if (stdin != null) {
+      console.info("Write stdin...");
+      const writer = process.stdin.getWriter();
+      await writer.write(stdin);
+      writer.close();
+    }
+
+    // Wait for process to exit.
+    const status = await process.status;
+
+    // Build log message string.
+    let message = `Command exited with code ${status.code}`;
+    if (status.signal != null) message += ` (signal: ${status.signal})`;
+    if (errorCodeMessageMap != null && errorCodeMessageMap.has(status.code)) {
+      message += `, ${errorCodeMessageMap.get(status.code)}`;
+    }
+    message += ".";
+    console.log(message);
+
+    // Return result.
+    return {
+      kind: status.success ? "exit-success" : "exit-failure",
+      status,
+      logMessage: message,
+    };
+  } catch (cause) {
+    const message = "Running command threw an error:";
+    console.log(message, cause);
+    return { kind: "throw", cause, logMessage: message + " " + cause };
+  }
+}
 
 export class DovecotMailDeliverer extends MailDeliverer {
   readonly name = "dovecot";
-  readonly #logFileProvider;
   readonly #ldaPath;
   readonly #doveadmPath;
 
   constructor(
-    logFileProvider: LogFileProvider,
     ldaPath: string,
     doveadmPath: string,
   ) {
     super();
-    this.#logFileProvider = logFileProvider;
     this.#ldaPath = ldaPath;
     this.#doveadmPath = doveadmPath;
   }
@@ -25,9 +84,7 @@ export class DovecotMailDeliverer extends MailDeliverer {
     mail: Mail,
     context: MailDeliverContext,
   ): Promise<void> {
-    const ldaPath = this.#ldaPath;
-    const ldaBinName = basename(ldaPath);
-    const utf8Stream = mail.toUtf8Bytes();
+    const utf8Bytes = mail.toUtf8Bytes();
 
     const recipients = [...context.recipients];
 
@@ -40,62 +97,23 @@ export class DovecotMailDeliverer extends MailDeliverer {
     console.info(`Deliver to dovecot users: ${recipients.join(", ")}.`);
 
     for (const recipient of recipients) {
-      try {
-        const commandArgs = ["-d", recipient];
-        console.info(`Run ${ldaBinName} ${commandArgs.join(" ")}...`);
+      const result = await runCommand(
+        this.#ldaPath,
+        {
+          args: ["-d", recipient],
+          stdin: utf8Bytes,
+        },
+      );
 
-        const ldaCommand = new Deno.Command(ldaPath, {
-          args: commandArgs,
-          stdin: "piped",
-          stdout: "piped",
-          stderr: "piped",
+      if (result.kind === "exit-success") {
+        context.result.recipients.set(recipient, {
+          kind: "done",
+          message: result.logMessage,
         });
-
-        const ldaProcess = ldaCommand.spawn();
-        using logFiles = await this.#logFileProvider
-          .createExternalLogStreamsForProgram(
-            ldaBinName,
-          );
-        ldaProcess.stdout.pipeTo(logFiles.stdout);
-        ldaProcess.stderr.pipeTo(logFiles.stderr);
-
-        const stdinWriter = ldaProcess.stdin.getWriter();
-        await stdinWriter.write(utf8Stream);
-        await stdinWriter.close();
-
-        const status = await ldaProcess.status;
-
-        if (status.success) {
-          context.result.recipients.set(recipient, {
-            kind: "done",
-            message: `${ldaBinName} exited with success.`,
-          });
-        } else {
-          let message = `${ldaBinName} exited with error code ${status.code}`;
-
-          if (status.signal != null) {
-            message += ` (signal ${status.signal})`;
-          }
-
-          // https://doc.dovecot.org/main/core/man/dovecot-lda.1.html
-          switch (status.code) {
-            case 67:
-              message += ", recipient user not known";
-              break;
-            case 75:
-              message += ", temporary error";
-              break;
-          }
-
-          message += ".";
-
-          context.result.recipients.set(recipient, { kind: "fail", message });
-        }
-      } catch (cause) {
+      } else {
         context.result.recipients.set(recipient, {
           kind: "fail",
-          message: "An error is thrown when running lda: " + cause,
-          cause,
+          message: result.logMessage,
         });
       }
     }
@@ -103,80 +121,87 @@ export class DovecotMailDeliverer extends MailDeliverer {
     console.info("Done handling all recipients.");
   }
 
+  #queryArgs(mailbox: string, messageId: string) {
+    return ["mailbox", mailbox, "header", "Message-ID", `<${messageId}>`];
+  }
+
   async #deleteMail(
     user: string,
     mailbox: string,
     messageId: string,
   ): Promise<void> {
-    try {
-      const args = [
-        "expunge",
-        "-u",
-        user,
-        "mailbox",
-        mailbox,
-        "header",
-        "Message-ID",
-        `<${messageId}>`,
-      ];
-      console.info(
-        `Run external command ${this.#doveadmPath} ${args.join(" ")} ...`,
-      );
-      const command = new Deno.Command(this.#doveadmPath, { args });
-      const status = await command.spawn().status;
-      if (status.success) {
-        console.info("Expunged successfully.");
-      } else {
-        console.warn("Expunging failed with exit code %d.", status.code);
-      }
-    } catch (cause) {
-      console.warn("Expunging failed with an error thrown: ", cause);
-    }
+    console.info(
+      `Find and delete mails (user: ${user}, message-id: ${messageId}, mailbox: ${mailbox}).`,
+    );
+    await runCommand(this.#doveadmPath, {
+      args: ["expunge", "-u", user, ...this.#queryArgs(mailbox, messageId)],
+    });
   }
 
   async #saveMail(user: string, mailbox: string, mail: Uint8Array) {
-    try {
-      const args = ["save", "-u", user, "-m", mailbox];
-      console.info(
-        `Run external command ${this.#doveadmPath} ${args.join(" ")} ...`,
-      );
-      const command = new Deno.Command(this.#doveadmPath, {
-        args,
-        stdin: "piped",
-      });
-      const process = command.spawn();
-      const stdinWriter = process.stdin.getWriter();
-      await stdinWriter.write(mail);
-      await stdinWriter.close();
-      const status = await process.status;
-
-      if (status.success) {
-        console.info("Saved successfully.");
-      } else {
-        console.warn("Saving failed with exit code %d.", status.code);
-      }
-    } catch (cause) {
-      console.warn("Saving failed with an error thrown: ", cause);
-    }
+    console.info(`Save a mail (user: ${user}, mailbox: ${mailbox}).`);
+    await runCommand(this.#doveadmPath, {
+      args: ["save", "-u", user, "-m", mailbox],
+      stdin: mail,
+    });
   }
 
-  async saveNewSent(originalMessageId: string, mail: Mail) {
+  async #markAsRead(user: string, mailbox: string, messageId: string) {
     console.info(
-      "Try to save mail with new id and delete mail with old id in Sent box.",
+      `Mark mails as \\Seen(user: ${user}, message-id: ${messageId}, mailbox: ${mailbox}, user: ${user}).`,
     );
-    const from = mail.startSimpleParse().sections().headers()
-      .from();
-    if (from != null) {
-      console.info("Parsed sender (from): ", from);
-      await this.#saveMail(from, "Sent", mail.toUtf8Bytes());
-      setTimeout(() => {
-        console.info(
-          "Try to delete mail in Sent box that has old message id.",
-        );
-        this.#deleteMail(from, "Sent", originalMessageId);
-      }, 1000 * 15);
-    } else {
-      console.warn("Failed to determine from.");
+    await runCommand(this.#doveadmPath, {
+      args: [
+        "flags",
+        "add",
+        "-u",
+        user,
+        "\\Seen",
+        ...this.#queryArgs(mailbox, messageId),
+      ],
+    });
+  }
+
+  async saveNewSent(mail: Mail, messageIdToDelete: string) {
+    console.info("Save sent mails and delete ones with old message id.");
+
+    // Try to get from and recipients from headers.
+    const headers = mail.startSimpleParse().sections().headers();
+    const from = headers.from(),
+      recipients = headers.recipients(),
+      messageId = headers.messageId();
+
+    if (from == null) {
+      console.warn("Failed to determine from from headers, skip saving.");
+      return;
     }
+
+    console.info("Parsed from: ", from);
+
+    if (recipients.has(from)) {
+      // So the mail should lie in the Inbox.
+      console.info(
+        "The mail has the sender itself as one of recipients, skip saving.",
+      );
+      return;
+    }
+
+    await this.#saveMail(from, "Sent", mail.toUtf8Bytes());
+    if (messageId != null) {
+      console.info("Mark sent mail as read.");
+      await this.#markAsRead(from, "Sent", messageId);
+    } else {
+      console.warn(
+        "New message id of the mail is not found, skip marking as read.",
+      );
+    }
+
+    console.info("Schedule deletion of old mails at 15 seconds later.");
+    setTimeout(() => {
+      console.info(
+        "Try to delete mails in Sent box that has old message id.",
+      );
+      void this.#deleteMail(from, "Sent", messageIdToDelete);
+    }, 1000 * 15);
   }
 }
