@@ -1,4 +1,0 @@
-#!/bin/sh
-
-export CRU_NVIM_SERVER=${CRU_NVIM_SERVER:-/tmp/nvimsocket}
-exec nvr --nostart --servername "$CRU_NVIM_SERVER" -cc split --remote-wait "$@"
