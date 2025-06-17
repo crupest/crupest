@@ -50,8 +50,6 @@ export class AwsMailFetcher {
   }
 
   async listLiveMails(): Promise<string[]> {
-    console.info("Begin to retrieve live mails.");
-
     const listCommand = new ListObjectsV2Command({
       Bucket: this.#bucket,
       Prefix: this.#livePrefix,
@@ -59,14 +57,14 @@ export class AwsMailFetcher {
     const res = await this.#s3.send(listCommand);
 
     if (res.Contents == null) {
-      console.warn("Listing live mails in S3 returns null Content.");
+      console.warn("S3 API returned null Content.");
       return [];
     }
 
     const result: string[] = [];
     for (const object of res.Contents) {
       if (object.Key == null) {
-        console.warn("Listing live mails in S3 returns an object with no Key.");
+        console.warn("S3 API returned null Key.");
         continue;
       }
 
@@ -77,10 +75,12 @@ export class AwsMailFetcher {
     return result;
   }
 
-  async consumeS3Mail(s3Key: string, consumer: AwsS3MailConsumer) {
-    console.info(`Begin to consume s3 mail ${s3Key} ...`);
-
-    console.info(`Fetching s3 mail ${s3Key}...`);
+  async consumeS3Mail(
+    logTag: string,
+    s3Key: string,
+    consumer: AwsS3MailConsumer,
+  ) {
+    console.info(logTag, `Fetching s3 mail ${s3Key}...`);
     const mailPath = `${this.#livePrefix}${s3Key}`;
     const command = new GetObjectCommand({
       Bucket: this.#bucket,
@@ -89,39 +89,37 @@ export class AwsMailFetcher {
     const res = await this.#s3.send(command);
 
     if (res.Body == null) {
-      throw new Error("S3 mail returns a null body.");
+      throw new Error("S3 API returns a null body.");
     }
 
     const rawMail = await res.Body.transformToString();
-    console.info(`Done fetching s3 mail ${s3Key}.`);
 
-    console.info(`Calling consumer...`);
+    console.info(logTag, `Calling consumer...`);
     await consumer(rawMail, s3Key);
-    console.info(`Done consuming s3 mail ${s3Key}.`);
 
-    const date = new Mail(rawMail)
-      .startSimpleParse()
-      .sections()
-      .headers()
-      .date();
+    const { date } = new Mail(rawMail).parsed;
     const dateString = date != null
       ? toFileNameString(date, true)
       : "invalid-date";
     const newPath = `${this.#archivePrefix}${dateString}/${s3Key}`;
 
-    console.info(`Archiving s3 mail ${s3Key} to ${newPath}...`);
+    console.info(logTag, `Archiving s3 mail ${s3Key} to ${newPath}...`);
     await s3MoveObject(this.#s3, this.#bucket, mailPath, newPath);
-    console.info(`Done archiving s3 mail ${s3Key}.`);
 
-    console.info(`Done consuming s3 mail ${s3Key}.`);
+    console.info(logTag, `Done consuming s3 mail ${s3Key}.`);
   }
 
   async recycleLiveMails(consumer: AwsS3MailConsumer) {
     console.info("Begin to recycle live mails...");
     const mails = await this.listLiveMails();
     console.info(`Found ${mails.length} live mails`);
+    let counter = 1;
     for (const s3Key of mails) {
-      await this.consumeS3Mail(s3Key, consumer);
+      await this.consumeS3Mail(
+        `[${counter++}/${mails.length}]`,
+        s3Key,
+        consumer,
+      );
     }
   }
 }

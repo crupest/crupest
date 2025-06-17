@@ -17,27 +17,25 @@ function createResponses(host: string, port: number | string) {
   } as const;
 }
 
-const LOG_TAG = "[dumb-smtp]";
-
 export class DumbSmtpServer {
   #deliverer;
-  #responses: ReturnType<typeof createResponses> = createResponses(
-    "invalid",
-    "invalid",
-  );
 
   constructor(deliverer: MailDeliverer) {
     this.#deliverer = deliverer;
   }
 
-  async #handleConnection(conn: Deno.Conn) {
+  async #handleConnection(
+    logTag: string,
+    conn: Deno.Conn,
+    responses: ReturnType<typeof createResponses>,
+  ) {
     using disposeStack = new DisposableStack();
     disposeStack.defer(() => {
-      console.info(LOG_TAG, "Close session's tcp connection.");
+      console.info(logTag, "Close tcp connection.");
       conn.close();
     });
 
-    console.info(LOG_TAG, "New session's tcp connection established.");
+    console.info(logTag, "New tcp connection established.");
 
     const writer = conn.writable.getWriter();
     disposeStack.defer(() => writer.releaseLock());
@@ -47,14 +45,14 @@ export class DumbSmtpServer {
     const [decoder, encoder] = [new TextDecoder(), new TextEncoder()];
     const decode = (data: Uint8Array) => decoder.decode(data);
     const send = async (s: string) => {
-      console.info(LOG_TAG, "Send line: " + s);
+      console.info(logTag, "Send line:", s);
       await writer.write(encoder.encode(s + CRLF));
     };
 
     let buffer: string = "";
     let rawMail: string | null = null;
 
-    await send(this.#responses["READY"]);
+    await send(responses["READY"]);
 
     while (true) {
       const { value, done } = await reader.read();
@@ -70,39 +68,37 @@ export class DumbSmtpServer {
         buffer = buffer.slice(eolPos + CRLF.length);
 
         if (rawMail == null) {
-          console.info(LOG_TAG, "Received line: " + line);
+          console.info(logTag, "Received line:", line);
           const upperLine = line.toUpperCase();
           if (upperLine.startsWith("EHLO") || upperLine.startsWith("HELO")) {
-            await send(this.#responses["EHLO"]);
+            await send(responses["EHLO"]);
           } else if (upperLine.startsWith("MAIL FROM:")) {
-            await send(this.#responses["MAIL"]);
+            await send(responses["MAIL"]);
           } else if (upperLine.startsWith("RCPT TO:")) {
-            await send(this.#responses["RCPT"]);
+            await send(responses["RCPT"]);
           } else if (upperLine === "DATA") {
-            await send(this.#responses["DATA"]);
-            console.info(LOG_TAG, "Begin to receive mail data...");
+            await send(responses["DATA"]);
+            console.info(logTag, "Begin to receive mail data...");
             rawMail = "";
           } else if (upperLine === "QUIT") {
-            await send(this.#responses["QUIT"]);
+            await send(responses["QUIT"]);
             return;
           } else {
-            console.warn(LOG_TAG, "Unrecognized command from client: " + line);
-            await send(this.#responses["INVALID"]);
+            await send(responses["INVALID"]);
             return;
           }
         } else {
           if (line === ".") {
             try {
-              console.info(LOG_TAG, "Mail data Received, begin to relay...");
+              console.info(logTag, "Mail data received, begin to relay...");
               const { smtpMessage } = await this.#deliverer.deliverRaw(rawMail);
               await send(`250 2.6.0 ${smtpMessage}`);
               rawMail = null;
-              console.info(LOG_TAG, "Relay succeeded.");
             } catch (err) {
-              console.error(LOG_TAG, "Relay failed.", err);
+              console.error(logTag, "Relay failed.", err);
               await send("554 5.3.0 Error: check server log");
             }
-            await send(this.#responses["ACTIVE_CLOSE"]);
+            await send(responses["ACTIVE_CLOSE"]);
           } else {
             const dataLine = line.startsWith("..") ? line.slice(1) : line;
             rawMail += dataLine + CRLF;
@@ -114,17 +110,19 @@ export class DumbSmtpServer {
 
   async serve(options: { hostname: string; port: number }) {
     const listener = Deno.listen(options);
-    this.#responses = createResponses(options.hostname, options.port);
+    const responses = createResponses(options.hostname, options.port);
     console.info(
-      LOG_TAG,
-      `Dumb SMTP server starts to listen on ${this.#responses.serverName}.`,
+      `Dumb SMTP server starts to listen on ${responses.serverName}.`,
     );
 
+    let counter = 1;
+
     for await (const conn of listener) {
+      const logTag = `[outbound ${counter++}]`;
       try {
-        await this.#handleConnection(conn);
+        await this.#handleConnection(logTag, conn, responses);
       } catch (cause) {
-        console.error(LOG_TAG, "Tcp connection throws an error.", cause);
+        console.error(logTag, "A JS error was thrown by handler:", cause);
       }
     }
   }

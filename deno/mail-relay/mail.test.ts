@@ -51,7 +51,7 @@ const mockToAddresses = [
 
 describe("Mail", () => {
   it("simple parse", () => {
-    const parsed = new Mail(mockMailStr).startSimpleParse().sections();
+    const { parsed } = new Mail(mockMailStr);
     expect(parsed.header).toEqual(mockHeaderStr);
     expect(parsed.body).toEqual(mockBodyStr);
     expect(parsed.sep).toBe("\n");
@@ -59,37 +59,29 @@ describe("Mail", () => {
   });
 
   it("simple parse crlf", () => {
-    const parsed = new Mail(mockCrlfMailStr).startSimpleParse().sections();
+    const { parsed } = new Mail(mockCrlfMailStr);
     expect(parsed.sep).toBe("\r\n");
     expect(parsed.eol).toBe("\r\n");
   });
 
   it("simple parse date", () => {
     expect(
-      new Mail(mockMailStr).startSimpleParse().sections().headers().date(),
+      new Mail(mockMailStr).parsed.date,
     ).toEqual(new Date(mockDate));
   });
 
   it("simple parse headers", () => {
     expect(
-      new Mail(mockMailStr).startSimpleParse().sections().headers().fields,
+      new Mail(mockMailStr).parsed.headers,
     ).toEqual(mockHeaders.map((h) => [h[0], " " + h[1].replaceAll("\n", "")]));
   });
 
   it("parse recipients", () => {
     const mail = new Mail(mockMailStr);
-    expect([
-      ...mail.startSimpleParse().sections().headers().recipients(),
-    ]).toEqual([...mockToAddresses, mockCcAddress]);
-    expect([
-      ...mail.startSimpleParse().sections().headers().recipients({
-        domain: "example.com",
-      }),
-    ]).toEqual(
-      [...mockToAddresses, mockCcAddress].filter((a) =>
-        a.endsWith("example.com")
-      ),
-    );
+    expect([...mail.parsed.recipients]).toEqual([
+      ...mockToAddresses,
+      mockCcAddress,
+    ]);
   });
 
   it("find all addresses", () => {
@@ -113,11 +105,14 @@ describe("MailDeliverer", () => {
   class MockMailDeliverer extends MailDeliverer {
     name = "mock";
     override doDeliver = fn((_: Mail, ctx: MailDeliverContext) => {
-      ctx.result.recipients.set("*", { kind: "done", message: "success" });
+      ctx.result.recipients.set("*", {
+        kind: "success",
+        message: "success message",
+      });
       return Promise.resolve();
     }) as MailDeliverer["doDeliver"];
   }
-  const mockDeliverer = new MockMailDeliverer();
+  const mockDeliverer = new MockMailDeliverer(false);
 
   it("deliver success", async () => {
     await mockDeliverer.deliverRaw(mockMailStr);

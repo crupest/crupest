@@ -6,7 +6,7 @@ ldaExitCodeMessageMap.set(67, "recipient user not known");
 ldaExitCodeMessageMap.set(75, "temporary error");
 
 type CommandResult = {
-  kind: "exit-success" | "exit-failure";
+  kind: "exit";
   status: Deno.CommandStatus;
   logMessage: string;
 } | { kind: "throw"; cause: unknown; logMessage: string };
@@ -14,14 +14,17 @@ type CommandResult = {
 async function runCommand(
   bin: string,
   options: {
+    logTag: string;
     args: string[];
     stdin?: Uint8Array;
+    suppressResultLog?: boolean;
     errorCodeMessageMap?: Map<number, string>;
   },
 ): Promise<CommandResult> {
-  const { args, stdin, errorCodeMessageMap } = options;
+  const { logTag, args, stdin, suppressResultLog, errorCodeMessageMap } =
+    options;
 
-  console.info(`Run external command ${bin} ${args.join(" ")}`);
+  console.info(logTag, `Run external command ${bin} ${args.join(" ")}`);
 
   try {
     // Create and spawn process.
@@ -33,7 +36,6 @@ async function runCommand(
 
     // Write stdin if any.
     if (stdin != null) {
-      console.info("Write stdin...");
       const writer = process.stdin.getWriter();
       await writer.write(stdin);
       writer.close();
@@ -43,23 +45,23 @@ async function runCommand(
     const status = await process.status;
 
     // Build log message string.
-    let message = `Command exited with code ${status.code}`;
+    let message = `External command exited with code ${status.code}`;
     if (status.signal != null) message += ` (signal: ${status.signal})`;
     if (errorCodeMessageMap != null && errorCodeMessageMap.has(status.code)) {
       message += `, ${errorCodeMessageMap.get(status.code)}`;
     }
     message += ".";
-    console.log(message);
+    if (suppressResultLog !== true) console.log(logTag, message);
 
     // Return result.
     return {
-      kind: status.success ? "exit-success" : "exit-failure",
+      kind: "exit",
       status,
       logMessage: message,
     };
   } catch (cause) {
-    const message = "Running command threw an error:";
-    console.log(message, cause);
+    const message = `A JS error was thrown when invoking external command:`;
+    if (suppressResultLog !== true) console.log(logTag, message);
     return { kind: "throw", cause, logMessage: message + " " + cause };
   }
 }
@@ -73,7 +75,7 @@ export class DovecotMailDeliverer extends MailDeliverer {
     ldaPath: string,
     doveadmPath: string,
   ) {
-    super();
+    super(false);
     this.#ldaPath = ldaPath;
     this.#doveadmPath = doveadmPath;
   }
@@ -87,36 +89,35 @@ export class DovecotMailDeliverer extends MailDeliverer {
     const recipients = [...context.recipients];
 
     if (recipients.length === 0) {
-      context.result.smtpMessage =
-        "Failed to deliver to dovecot, no recipients are specified.";
-      return;
+      throw new Error(
+        "Failed to deliver to dovecot, no recipients are specified.",
+      );
     }
-
-    console.info(`Deliver to dovecot users: ${recipients.join(", ")}.`);
 
     for (const recipient of recipients) {
       const result = await runCommand(
         this.#ldaPath,
         {
+          logTag: context.logTag,
           args: ["-d", recipient],
           stdin: utf8Bytes,
+          suppressResultLog: true,
+          errorCodeMessageMap: ldaExitCodeMessageMap,
         },
       );
 
-      if (result.kind === "exit-success") {
+      if (result.kind === "exit" && result.status.success) {
         context.result.recipients.set(recipient, {
-          kind: "done",
+          kind: "success",
           message: result.logMessage,
         });
       } else {
         context.result.recipients.set(recipient, {
-          kind: "fail",
+          kind: "failure",
           message: result.logMessage,
         });
       }
     }
-
-    console.info("Done handling all recipients.");
   }
 
   #queryArgs(mailbox: string, messageId: string) {
@@ -124,31 +125,38 @@ export class DovecotMailDeliverer extends MailDeliverer {
   }
 
   async #deleteMail(
+    logTag: string,
     user: string,
     mailbox: string,
     messageId: string,
   ): Promise<void> {
-    console.info(
-      `Find and delete mails (user: ${user}, message-id: ${messageId}, mailbox: ${mailbox}).`,
-    );
     await runCommand(this.#doveadmPath, {
+      logTag,
       args: ["expunge", "-u", user, ...this.#queryArgs(mailbox, messageId)],
     });
   }
 
-  async #saveMail(user: string, mailbox: string, mail: Uint8Array) {
-    console.info(`Save a mail (user: ${user}, mailbox: ${mailbox}).`);
+  async #saveMail(
+    logTag: string,
+    user: string,
+    mailbox: string,
+    mail: Uint8Array,
+  ) {
     await runCommand(this.#doveadmPath, {
+      logTag,
       args: ["save", "-u", user, "-m", mailbox],
       stdin: mail,
     });
   }
 
-  async #markAsRead(user: string, mailbox: string, messageId: string) {
-    console.info(
-      `Mark mails as \\Seen(user: ${user}, message-id: ${messageId}, mailbox: ${mailbox}, user: ${user}).`,
-    );
+  async #markAsRead(
+    logTag: string,
+    user: string,
+    mailbox: string,
+    messageId: string,
+  ) {
     await runCommand(this.#doveadmPath, {
+      logTag,
       args: [
         "flags",
         "add",
@@ -160,50 +168,45 @@ export class DovecotMailDeliverer extends MailDeliverer {
     });
   }
 
-  async saveNewSent(mail: Mail, messageIdToDelete: string) {
-    console.info("Save sent mails and delete ones with old message id.");
+  async saveNewSent(logTag: string, mail: Mail, messageIdToDelete: string) {
+    console.info(logTag, "Save sent mail and delete ones with old message id.");
 
     // Try to get from and recipients from headers.
-    const headers = mail.startSimpleParse().sections().headers();
-    const from = headers.from(),
-      recipients = headers.recipients(),
-      messageId = headers.messageId();
+    const { messageId, from, recipients } = mail.parsed;
 
     if (from == null) {
-      console.warn("Failed to determine from from headers, skip saving.");
+      console.warn(
+        logTag,
+        "Failed to get sender (from) in headers, skip saving.",
+      );
       return;
     }
 
-    console.info("Parsed from: ", from);
-
-    if (recipients.has(from)) {
+    if (recipients.includes(from)) {
       // So the mail should lie in the Inbox.
       console.info(
-        "The mail has the sender itself as one of recipients, skip saving.",
+        logTag,
+        "One recipient of the mail is the sender itself, skip saving.",
       );
       return;
     }
 
-    await this.#saveMail(from, "Sent", mail.toUtf8Bytes());
+    await this.#saveMail(logTag, from, "Sent", mail.toUtf8Bytes());
     if (messageId != null) {
-      console.info("Mark sent mail as read.");
-      await this.#markAsRead(from, "Sent", messageId);
+      await this.#markAsRead(logTag, from, "Sent", messageId);
     } else {
       console.warn(
-        "New message id of the mail is not found, skip marking as read.",
+        "Message id of the mail is not found, skip marking as read.",
       );
     }
 
-    console.info("Schedule deletion of old mails at 15,30,60 seconds later.");
+    console.info(
+      logTag,
+      "Schedule deletion of old mails at 15,30,60 seconds later.",
+    );
     [15, 30, 60].forEach((seconds) =>
       setTimeout(() => {
-        console.info(
-          `Try to delete mails in Sent. (message-id: ${messageIdToDelete}, ` +
-            `attempt delay: ${seconds}s) ` +
-            "Note that the mail may have already been deleted," +
-            " in which case failures of deletion can be just ignored.",
-        );
-        void this.#deleteMail(from, "Sent", messageIdToDelete);
+        void this.#deleteMail(logTag, from, "Sent", messageIdToDelete);
       }, 1000 * seconds)
     );
   }
