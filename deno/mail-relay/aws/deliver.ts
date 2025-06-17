@@ -4,7 +4,7 @@ import {
   SESv2ClientConfig,
 } from "@aws-sdk/client-sesv2";
 
-import { Mail, MailDeliverContext, SyncMailDeliverer } from "../mail.ts";
+import { Mail, MailDeliverContext, MailDeliverer } from "../mail.ts";
 
 declare module "../mail.ts" {
   interface MailDeliverResult {
@@ -12,13 +12,13 @@ declare module "../mail.ts" {
   }
 }
 
-export class AwsMailDeliverer extends SyncMailDeliverer {
+export class AwsMailDeliverer extends MailDeliverer {
   readonly name = "aws";
   readonly #aws;
   readonly #ses;
 
   constructor(aws: SESv2ClientConfig) {
-    super();
+    super(true);
     this.#aws = aws;
     this.#ses = new SESv2Client(aws);
   }
@@ -27,8 +27,6 @@ export class AwsMailDeliverer extends SyncMailDeliverer {
     mail: Mail,
     context: MailDeliverContext,
   ): Promise<void> {
-    console.info("Begin to call aws send-email api...");
-
     try {
       const sendCommand = new SendEmailCommand({
         Content: {
@@ -36,23 +34,28 @@ export class AwsMailDeliverer extends SyncMailDeliverer {
         },
       });
 
+      console.info(context.logTag, "Calling aws send-email api...");
       const res = await this.#ses.send(sendCommand);
       if (res.MessageId == null) {
-        console.warn("Aws send-email returns no message id.");
+        console.warn(
+          context.logTag,
+          "AWS send-email returned null message id.",
+        );
       } else {
         context.result.awsMessageId =
           `${res.MessageId}@${this.#aws.region}.amazonses.com`;
       }
 
-      context.result.smtpMessage = `AWS Message ID: ${context.result.awsMessageId}`;
+      context.result.smtpMessage =
+        `AWS Message ID: ${context.result.awsMessageId}`;
       context.result.recipients.set("*", {
-        kind: "done",
-        message: `Successfully called aws send-email.`,
+        kind: "success",
+        message: `Succeeded to call aws send-email api.`,
       });
     } catch (cause) {
       context.result.recipients.set("*", {
-        kind: "fail",
-        message: "An error was thrown when calling aws send-email." + cause,
+        kind: "failure",
+        message: "A JS error was thrown when calling aws send-email." + cause,
         cause,
       });
     }

@@ -8,17 +8,17 @@ export class AwsMailMessageIdRewriteHook implements MailDeliverHook {
   }
 
   async callback(context: MailDeliverContext): Promise<void> {
-    console.info("Rewrite message ids...");
     const addresses = context.mail.simpleFindAllAddresses();
-    console.info(`Addresses found in mail: ${addresses.join(", ")}.`);
     for (const address of addresses) {
       const awsMessageId = await this.#lookup(address);
       if (awsMessageId != null && awsMessageId.length !== 0) {
-        console.info(`Rewrite ${address} to ${awsMessageId}.`);
+        console.info(
+          context.logTag,
+          `Rewrite address-line string in mail: ${address} => ${awsMessageId}.`,
+        );
         context.mail.raw = context.mail.raw.replaceAll(address, awsMessageId);
       }
     }
-    console.info("Done rewrite message ids.");
   }
 }
 
@@ -36,24 +36,24 @@ export class AwsMailMessageIdSaveHook implements MailDeliverHook {
   }
 
   async callback(context: MailDeliverContext): Promise<void> {
-    console.info("Save aws message ids...");
-    const messageId = context.mail
-      .startSimpleParse()
-      .sections()
-      .headers()
-      .messageId();
+    const { messageId } = context.mail.parsed;
     if (messageId == null) {
-      console.info("Original mail does not have message id. Skip saving.");
+      console.warn(
+        context.logTag,
+        "Original mail doesn't have message id, skip saving message id map.",
+      );
       return;
     }
     if (context.result.awsMessageId != null) {
-      console.info(`Saving ${messageId} => ${context.result.awsMessageId}.`);
+      console.info(
+        context.logTag,
+        `Save message id map: ${messageId} => ${context.result.awsMessageId}.`,
+      );
       context.mail.raw = context.mail.raw.replaceAll(
         messageId,
         context.result.awsMessageId,
       );
       await this.#record(messageId, context.result.awsMessageId, context);
     }
-    console.info("Done save message ids.");
   }
 }

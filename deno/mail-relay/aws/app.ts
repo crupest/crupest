@@ -110,7 +110,7 @@ function createOutbound(
     new AwsMailMessageIdSaveHook(
       async (original, aws, context) => {
         await db.addMessageIdMap({ message_id: original, aws_message_id: aws });
-        void local?.saveNewSent(context.mail, original);
+        void local?.saveNewSent(context.logTag, context.mail, original);
       },
     ),
   );
@@ -213,11 +213,14 @@ function createServerServices() {
 
   const smtp = createSmtp(outbound);
   const hono = createHono(outbound, inbound);
+
+  let counter = 1;
   setupAwsHono(hono, {
     path: config.get("awsInboundPath"),
     auth: config.get("awsInboundKey"),
     callback: (s3Key, recipients) => {
       return fetcher.consumeS3Mail(
+        `[inbound ${counter++}]`,
         s3Key,
         (rawMail, _) =>
           inbound.deliver({ mail: new Mail(rawMail), recipients }).then(),

@@ -38,7 +38,7 @@ export function createHono(outbound: MailDeliverer, inbound: MailDeliverer) {
   const hono = new Hono();
 
   hono.onError((err, c) => {
-    console.error("Hono handler throws an error.", err);
+    console.error("Hono handler threw an uncaught error.", err);
     return c.json({ msg: "Server error, check its log." }, 500);
   });
   hono.use(honoLogger());
