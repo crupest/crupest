@@ -3,6 +3,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   ListObjectsV2Command,
+  NoSuchBucket,
   S3Client,
   S3ClientConfig,
 } from "@aws-sdk/client-s3";
@@ -86,13 +87,22 @@ export class AwsMailFetcher {
       Bucket: this.#bucket,
       Key: mailPath,
     });
-    const res = await this.#s3.send(command);
 
-    if (res.Body == null) {
-      throw new Error("S3 API returns a null body.");
+    let rawMail;
+
+    try {
+      const res = await this.#s3.send(command);
+      if (res.Body == null) {
+        throw new Error("S3 API returns a null body.");
+      }
+      rawMail = await res.Body.transformToString();
+    } catch (cause) {
+      if (cause instanceof NoSuchBucket) {
+        console.error(`S3 mail key ${s3Key} not found. Perhaps already consumed?`)
+        return;
+      }
+      throw cause;
     }
-
-    const rawMail = await res.Body.transformToString();
 
     console.info(logTag, `Calling consumer...`);
     await consumer(rawMail, s3Key);
