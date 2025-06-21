@@ -1,4 +1,4 @@
-import { camelCaseToKebabCase } from "./lib.ts";
+import { StringUtils } from "./lib.ts";
 
 export interface ConfigDefinitionItem {
   readonly description: string;
@@ -29,7 +29,9 @@ export class ConfigProvider<K extends string> {
       for (const [key, def] of Object.entries(definition as ConfigDefinition)) {
         map[key] = {
           ...def,
-          env: `${this.#prefix}-${camelCaseToKebabCase(key as string)}`
+          env: `${this.#prefix}-${
+            StringUtils.camelCaseToKebabCase(key as string)
+          }`
             .replaceAll("-", "_")
             .toUpperCase(),
         };
