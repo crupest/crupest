@@ -62,8 +62,8 @@ export class MailDeliverResult {
       lines.push(`${prefix} smtpMessage: ${this.smtpMessage}`);
     }
     for (const [name, result] of this.recipients.entries()) {
-      const { kind, message, cause } = result;
-      lines.push(`${prefix}   (${name}): ${kind} ${message} ${cause}`);
+      const { kind, message } = result;
+      lines.push(`${prefix}   (${name}): ${kind} ${message}`);
     }
     return lines.join("\n");
   }

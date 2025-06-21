@@ -4,6 +4,6 @@
   "exports": {
     ".": "./lib.ts",
     "./config": "./config.ts",
-    "./cron": "./cron.ts",
+    "./cron": "./cron.ts"
   }
 }

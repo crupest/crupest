@@ -8,7 +8,7 @@ import {
   S3ClientConfig,
 } from "@aws-sdk/client-s3";
 
-import { toFileNameString } from "@crupest/base";
+import { DateUtils } from "@crupest/base";
 
 import { Mail } from "../mail.ts";
 
@@ -98,7 +98,9 @@ export class AwsMailFetcher {
       rawMail = await res.Body.transformToString();
     } catch (cause) {
       if (cause instanceof NoSuchBucket) {
-        console.error(`S3 mail key ${s3Key} not found. Perhaps already consumed?`)
+        console.error(
+          `S3 mail key ${s3Key} not found. Perhaps already consumed?`,
+        );
         return;
       }
       throw cause;
@@ -109,7 +111,7 @@ export class AwsMailFetcher {
 
     const { date } = new Mail(rawMail).parsed;
     const dateString = date != null
-      ? toFileNameString(date, true)
+      ? DateUtils.toFileNameString(date, true)
       : "invalid-date";
     const newPath = `${this.#archivePrefix}${dateString}/${s3Key}`;
 
