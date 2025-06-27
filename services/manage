@@ -9,9 +9,10 @@ deno --version >/dev/null 2>&1 || (
     exit 1
 )
 
-CRUPEST_PROJECT_DIR="$(realpath "$(dirname "$0")/..")"
+CRUPEST_PROJECT_DIR="$(dirname "$0")/.."
 export CRUPEST_PROJECT_DIR
 
-echo "Project Dir: $CRUPEST_PROJECT_DIR"
+echo "Detected project Dir: $CRUPEST_PROJECT_DIR"
+echo
 
-exec deno run -A "$CRUPEST_PROJECT_DIR/deno/tools/manage-service.ts" --project-dir "$CRUPEST_PROJECT_DIR" "$@"
+exec deno run -A "$CRUPEST_PROJECT_DIR/deno/tools/main.ts" service --project-dir "$CRUPEST_PROJECT_DIR" "$@"
