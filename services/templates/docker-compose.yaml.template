@@ -140,3 +140,4 @@ networks:
     ipam:
       config:
         - subnet: "172.21.5.0/24"
+          ip_range: "172.21.5.64/26"
