@@ -3,9 +3,9 @@ services:
   nginx:
     pull_policy: build
     build:
-      context: ./@@CRUPEST_DOCKER_DIR@@/nginx
+      context: "./@@CRUPEST_DOCKER_DIR@@/nginx"
       additional_contexts:
-        - www=./www
+        - "www=./www"
       dockerfile: Dockerfile
       pull: true
     ports:
@@ -13,46 +13,25 @@ services:
       - "443:443"
       - "443:443/udp"
     env_file:
-      - ./@@CRUPEST_GENERATED_DIR@@/envs/nginx.env
-      - ./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env
-      - ./@@CRUPEST_GENERATED_DIR@@/envs/mail-server-common.env
+      - "./@@CRUPEST_GENERATED_DIR@@/envs/nginx.env"
+      - "./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env"
+      - "./@@CRUPEST_GENERATED_DIR@@/envs/mail-server-common.env"
     volumes:
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/certs:/etc/letsencrypt"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/data:/var/lib/letsencrypt"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/webroot:/srv/acme:ro"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/webroot:/var/www/certbot"
-    restart: on-failure:3
-
-  v2ray:
-    pull_policy: build
-    build:
-      context: ./@@CRUPEST_DOCKER_DIR@@/v2ray
-      dockerfile: Dockerfile
-      pull: true
-    hostname: v2ray
-    env_file:
-      - ./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env
-      - ./@@CRUPEST_GENERATED_DIR@@/envs/v2ray.env
-    restart: on-failure:3
-
-  auto-backup:
-    pull_policy: build
-    env_file: ./@@CRUPEST_GENERATED_DIR@@/envs/auto-backup.env
-    build:
-      context: ./@@CRUPEST_DOCKER_DIR@@/auto-backup
-      dockerfile: Dockerfile
-      pull: true
-    volumes:
-      - "./data:/data:ro"
-      - "./data/auto-backup:/data/auto-backup"
-    restart: on-failure:3
+    networks:
+      default:
+        ipv4_address: "172.21.5.2"
+    restart: "on-failure:3"
 
   mail-server:
     pull_policy: build
     build:
-      context: ./@@CRUPEST_DOCKER_DIR@@/mail-server
+      context: "./@@CRUPEST_DOCKER_DIR@@/mail-server"
       additional_contexts:
-        - deno=./deno
+        - "deno=./deno"
       dockerfile: Dockerfile
       pull: true
     container_name: mail-server
@@ -72,42 +51,92 @@ services:
       - "./@@CRUPEST_SSL_FULLCHAIN_FILE@@:/etc/dovecot/ssl/tls.crt"
       - "./@@CRUPEST_SSL_PRIVATE_KEY_FILE@@:/etc/dovecot/ssl/tls.key"
       - "/etc/localtime:/etc/localtime:ro"
-    restart: on-failure:3
+    networks:
+      default:
+        ipv4_address: "172.21.5.3"
+    restart: "on-failure:3"
     stop_grace_period: 1m
 
   git-server:
     pull_policy: build
     build:
-      context: ./@@CRUPEST_DOCKER_DIR@@/git-server
+      context: "./@@CRUPEST_DOCKER_DIR@@/git-server"
       dockerfile: Dockerfile
       pull: true
     hostname: git-server
     environment:
-      - CRUPEST_ROOT_URL=@@CRUPEST_ROOT_URL@@
+      - "CRUPEST_ROOT_URL=@@CRUPEST_ROOT_URL@@"
     volumes:
       - "./@@CRUPEST_DATA_GIT_DIR@@:/git"
+    networks:
+      default:
+        ipv4_address: "172.21.5.4"
     restart: on-failure:3
 
   roundcubemail:
-    image: roundcube/roundcubemail:latest
+    image: "roundcube/roundcubemail"
     pull_policy: always
     hostname: roundcubemail
-    env_file: ./@@CRUPEST_GENERATED_DIR@@/envs/roundcubemail.env
+    env_file:
+      - "./@@CRUPEST_GENERATED_DIR@@/envs/roundcubemail.env"
     volumes:
-      - ./@@CRUPEST_DATA_SECRET_DIR@@/gnupg:/gnupg
-      - ./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/www/html:/var/www/html
-      - ./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/db:/var/roundcube/db
-      - ./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/config:/var/roundcube/config
-      - roundcubemail-temp:/tmp/roundcube-temp
+      - "./@@CRUPEST_DATA_SECRET_DIR@@/gnupg:/gnupg"
+      - "./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/www/html:/var/www/html"
+      - "./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/db:/var/roundcube/db"
+      - "./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/config:/var/roundcube/config"
+      - "roundcubemail-temp:/tmp/roundcube-temp"
+    networks:
+      default:
+        ipv4_address: "172.21.5.5"
     restart: on-failure:3
 
   2fauth:
-    image: 2fauth/2fauth
+    image: "2fauth/2fauth"
     pull_policy: always
     hostname: 2fauth
-    env_file: ./@@CRUPEST_GENERATED_DIR@@/envs/2fauth.env
+    env_file:
+      - "./@@CRUPEST_GENERATED_DIR@@/envs/2fauth.env"
     volumes:
-      - ./data/2fauth:/2fauth
+      - "./data/2fauth:/2fauth"
+    networks:
+      default:
+        ipv4_address: "172.21.5.6"
+    restart: "on-failure:3"
+
+  v2ray:
+    pull_policy: build
+    build:
+      context: "./@@CRUPEST_DOCKER_DIR@@/v2ray"
+      dockerfile: Dockerfile
+      pull: true
+    hostname: v2ray
+    env_file:
+      - "./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env"
+      - "./@@CRUPEST_GENERATED_DIR@@/envs/v2ray.env"
+    networks:
+      default:
+        ipv4_address: "172.21.5.7"
+    restart: "on-failure:3"
+
+  auto-backup:
+    pull_policy: build
+    build:
+      context: "./@@CRUPEST_DOCKER_DIR@@/auto-backup"
+      dockerfile: Dockerfile
+      pull: true
+    env_file:
+      - "./@@CRUPEST_GENERATED_DIR@@/envs/auto-backup.env"
+    volumes:
+      - "./data:/data:ro"
+      - "./data/auto-backup:/data/auto-backup"
+    restart: "on-failure:3"
 
 volumes:
   roundcubemail-temp:
+
+networks:
+  default:
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: "172.21.5.0/24"
