@@ -1,7 +1,6 @@
 import os from "node:os";
 import { join } from "@std/path";
-// @ts-types="npm:@types/yargs"
-import yargs from "yargs";
+import { defineYargsModule, DEMAND_COMMAND_MESSAGE } from "./yargs.ts";
 
 type ArchAliasMap = { [name: string]: string[] };
 const arches = {
@@ -112,33 +111,34 @@ function createQemuArgs(setup: VmSetup): string[] {
   ];
 }
 
-if (import.meta.main) {
-  await yargs(Deno.args)
-    .scriptName("manage-vm")
-    .command({
-      command: "gen <name>",
-      describe: "generate cli command to run the vm",
-      builder: (builder) => {
-        return builder
-          .positional("name", {
-            describe: "name of the vm to run",
-            type: "string",
-          })
-          .demandOption("name")
-          .strict();
-      },
-      handler: (argv) => {
-        const vm = resolveVmSetup(argv.name, MY_VMS);
-        if (vm == null) {
-          console.error(`No vm called ${argv.name} is found.`);
-          Deno.exit(-1);
-        }
-        const cli = createQemuArgs(vm);
-        console.log(`${cli.join(" ")}`);
-      },
-    })
-    .demandCommand(1, "One command must be specified.")
-    .help()
-    .strict()
-    .parse();
-}
+const gen = defineYargsModule({
+  command: "gen <name>",
+  describe: "generate cli command to run the vm",
+  builder: (builder) => {
+    return builder
+      .positional("name", {
+        describe: "name of the vm to run",
+        type: "string",
+      })
+      .demandOption("name")
+      .strict();
+  },
+  handler: (argv) => {
+    const vm = resolveVmSetup(argv.name, MY_VMS);
+    if (vm == null) {
+      console.error(`No vm called ${argv.name} is found.`);
+      Deno.exit(-1);
+    }
+    const cli = createQemuArgs(vm);
+    console.log(`${cli.join(" ")}`);
+  },
+});
+
+export default defineYargsModule({
+  command: "vm",
+  describe: "Manage (qemu) virtual machines.",
+  builder: (builder) => {
+    return builder.command(gen).demandCommand(1, DEMAND_COMMAND_MESSAGE);
+  },
+  handler: () => {},
+});
