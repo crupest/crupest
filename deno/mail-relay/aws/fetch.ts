@@ -3,7 +3,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   ListObjectsV2Command,
-  NoSuchBucket,
+  NoSuchKey,
   S3Client,
   S3ClientConfig,
 } from "@aws-sdk/client-s3";
@@ -11,6 +11,9 @@ import {
 import { DateUtils } from "@crupest/base";
 
 import { Mail } from "../mail.ts";
+import { MailDeliverer } from "../mail.ts";
+
+export class LiveMailNotFoundError extends Error {}
 
 async function s3MoveObject(
   client: S3Client,
@@ -33,11 +36,6 @@ async function s3MoveObject(
 }
 
 const AWS_SES_S3_SETUP_TAG = "AMAZON_SES_SETUP_NOTIFICATION";
-
-export type AwsS3MailConsumer = (
-  rawMail: string,
-  s3Key: string,
-) => Promise<void>;
 
 export class AwsMailFetcher {
   readonly #livePrefix = "mail/live/";
@@ -76,12 +74,13 @@ export class AwsMailFetcher {
     return result;
   }
 
-  async consumeS3Mail(
+  async deliverLiveMail(
     logTag: string,
     s3Key: string,
-    consumer: AwsS3MailConsumer,
+    deliverer: MailDeliverer,
+    recipients?: string[],
   ) {
-    console.info(logTag, `Fetching s3 mail ${s3Key}...`);
+    console.info(logTag, `Fetching live mail ${s3Key}...`);
     const mailPath = `${this.#livePrefix}${s3Key}`;
     const command = new GetObjectCommand({
       Bucket: this.#bucket,
@@ -97,17 +96,17 @@ export class AwsMailFetcher {
       }
       rawMail = await res.Body.transformToString();
     } catch (cause) {
-      if (cause instanceof NoSuchBucket) {
-        console.error(
-          `S3 mail key ${s3Key} not found. Perhaps already consumed?`,
-        );
-        return;
+      if (cause instanceof NoSuchKey) {
+        const message =
+          `Live mail  ${s3Key} is not found. Perhaps already delivered?`;
+        console.error(message, cause);
+        throw new LiveMailNotFoundError(message);
       }
       throw cause;
     }
 
-    console.info(logTag, `Calling consumer...`);
-    await consumer(rawMail, s3Key);
+    const mail = new Mail(rawMail);
+    await deliverer.deliver({ mail, recipients });
 
     const { date } = new Mail(rawMail).parsed;
     const dateString = date != null
@@ -115,22 +114,22 @@ export class AwsMailFetcher {
       : "invalid-date";
     const newPath = `${this.#archivePrefix}${dateString}/${s3Key}`;
 
-    console.info(logTag, `Archiving s3 mail ${s3Key} to ${newPath}...`);
+    console.info(logTag, `Archiving live mail ${s3Key} to ${newPath}...`);
     await s3MoveObject(this.#s3, this.#bucket, mailPath, newPath);
 
-    console.info(logTag, `Done consuming s3 mail ${s3Key}.`);
+    console.info(logTag, `Done deliver live mail ${s3Key}.`);
   }
 
-  async recycleLiveMails(consumer: AwsS3MailConsumer) {
+  async recycleLiveMails(deliverer: MailDeliverer) {
     console.info("Begin to recycle live mails...");
     const mails = await this.listLiveMails();
     console.info(`Found ${mails.length} live mails`);
     let counter = 1;
     for (const s3Key of mails) {
-      await this.consumeS3Mail(
+      await this.deliverLiveMail(
         `[${counter++}/${mails.length}]`,
         s3Key,
-        consumer,
+        deliverer,
       );
     }
   }

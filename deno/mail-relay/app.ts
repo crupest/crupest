@@ -39,13 +39,13 @@ export function createHono(outbound: MailDeliverer, inbound: MailDeliverer) {
 
   hono.onError((err, c) => {
     console.error("Hono handler threw an uncaught error.", err);
-    return c.json({ msg: "Server error, check its log." }, 500);
+    return c.json({ message: "Server error, check its log." }, 500);
   });
   hono.use(honoLogger());
   hono.post("/send/raw", async (context) => {
     const body = await context.req.text();
     if (body.trim().length === 0) {
-      return context.json({ msg: "Can't send an empty mail." }, 400);
+      return context.json({ message: "Can't send an empty mail." }, 400);
     } else {
       const result = await outbound.deliverRaw(body);
       return context.json({
@@ -55,7 +55,7 @@ export function createHono(outbound: MailDeliverer, inbound: MailDeliverer) {
   });
   hono.post("/receive/raw", async (context) => {
     await inbound.deliverRaw(await context.req.text());
-    return context.json({ msg: "Done!" });
+    return context.json({ message: "Done!" });
   });
 
   return hono;

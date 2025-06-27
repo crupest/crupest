@@ -10,15 +10,16 @@ import { ConfigDefinition, ConfigProvider } from "@crupest/base/config";
 import { CronTask } from "@crupest/base/cron";
 
 import { DbService } from "../db.ts";
-import { Mail } from "../mail.ts";
+import { createHono, createInbound, createSmtp, sendMail } from "../app.ts";
+import { DovecotMailDeliverer } from "../dovecot.ts";
+import { MailDeliverer } from "../mail.ts";
 import {
   AwsMailMessageIdRewriteHook,
   AwsMailMessageIdSaveHook,
 } from "./mail.ts";
 import { AwsMailDeliverer } from "./deliver.ts";
-import { AwsMailFetcher, AwsS3MailConsumer } from "./fetch.ts";
-import { createHono, createInbound, createSmtp, sendMail } from "../app.ts";
-import { DovecotMailDeliverer } from "../dovecot.ts";
+import { AwsMailFetcher, LiveMailNotFoundError } from "./fetch.ts";
+
 
 const PREFIX = "crupest-mail-server";
 const CONFIG_DEFINITIONS = {
@@ -122,15 +123,18 @@ function setupAwsHono(
   options: {
     path: string;
     auth: string;
-    callback: (s3Key: string, recipients?: string[]) => Promise<void>;
+    fetcher: AwsMailFetcher;
+    deliverer: MailDeliverer;
   },
 ) {
+  let counter = 1;
+
   hono.post(
     `/${options.path}`,
     async (ctx, next) => {
       const auth = ctx.req.header("Authorization");
       if (auth !== options.auth) {
-        return ctx.json({ msg: "Bad auth!" }, 403);
+        return ctx.json({ message: "Bad auth!" }, 403);
       }
       await next();
     },
@@ -142,19 +146,32 @@ function setupAwsHono(
       }),
     ),
     async (ctx) => {
+      const { fetcher, deliverer } = options;
       const { key, recipients } = ctx.req.valid("json");
-      await options.callback(key, recipients);
-      return ctx.json({ msg: "Done!" });
+      try {
+        await fetcher.deliverLiveMail(
+          `[inbound ${counter++}]`,
+          key,
+          deliverer,
+          recipients,
+        );
+      } catch (e) {
+        if (e instanceof LiveMailNotFoundError) {
+          return ctx.json({ message: e.message });
+        }
+        throw e;
+      }
+      return ctx.json({ message: "Done!" });
     },
   );
 }
 
-function createCron(fetcher: AwsMailFetcher, consumer: AwsS3MailConsumer) {
+function createCron(fetcher: AwsMailFetcher, deliverer: MailDeliverer) {
   return new CronTask({
     name: "live-mail-recycler",
     interval: 6 * 3600 * 1000,
     callback: () => {
-      return fetcher.recycleLiveMails(consumer);
+      return fetcher.recycleLiveMails(deliverer);
     },
     startNow: true,
   });
@@ -191,10 +208,8 @@ function createAwsRecycleOnlyServices() {
     aliasFile: join(config.get("dataPath"), "aliases.csv"),
     mailDomain: config.get("mailDomain"),
   });
-  const recycler = (rawMail: string, _: unknown): Promise<void> =>
-    inbound.deliver({ mail: new Mail(rawMail) }).then();
 
-  return { ...services, inbound, recycler };
+  return { ...services, inbound };
 }
 
 function createAwsServices() {
@@ -214,25 +229,18 @@ function createServerServices() {
   const smtp = createSmtp(outbound);
   const hono = createHono(outbound, inbound);
 
-  let counter = 1;
   setupAwsHono(hono, {
     path: config.get("awsInboundPath"),
     auth: config.get("awsInboundKey"),
-    callback: (s3Key, recipients) => {
-      return fetcher.consumeS3Mail(
-        `[inbound ${counter++}]`,
-        s3Key,
-        (rawMail, _) =>
-          inbound.deliver({ mail: new Mail(rawMail), recipients }).then(),
-      );
-    },
+    fetcher,
+    deliverer: inbound,
   });
 
   return { ...services, smtp, hono };
 }
 
 function serve(cron: boolean = false) {
-  const { config, fetcher, recycler, smtp, hono } = createServerServices();
+  const { config, fetcher, inbound, smtp, hono } = createServerServices();
   smtp.serve({
     hostname: config.get("smtpHost"),
     port: config.getInt("smtpPort"),
@@ -246,7 +254,7 @@ function serve(cron: boolean = false) {
   );
 
   if (cron) {
-    createCron(fetcher, recycler);
+    createCron(fetcher, inbound);
   }
 }
 
@@ -260,8 +268,8 @@ async function listLives() {
 }
 
 async function recycleLives() {
-  const { fetcher, recycler } = createAwsRecycleOnlyServices();
-  await fetcher.recycleLiveMails(recycler);
+  const { fetcher, inbound } = createAwsRecycleOnlyServices();
+  await fetcher.recycleLiveMails(inbound);
 }
 
 if (import.meta.main) {
