@@ -1,4 +1,3 @@
-const PROXY_NAME = "node-select";
 const ATTR = "cn";
 const REPO_NAME = "domain-list-community";
 const URL =
@@ -152,8 +151,10 @@ if (import.meta.main) {
 
   const rules = extract(SITES, provider);
   const [has, notHas] = toNewFormat(rules, ATTR);
-  const hasFile = tmpDir + "/has-rule";
-  const notHasFile = tmpDir + "/not-has-rule";
+  const resultDir = tmpDir + "/result";
+  Deno.mkdirSync(resultDir);
+  const hasFile = resultDir + "/has-rule";
+  const notHasFile = resultDir + "/not-has-rule";
   console.log("Write result to: " + hasFile + " , " + notHasFile);
   Deno.writeTextFileSync(hasFile, has);
   Deno.writeTextFileSync(notHasFile, notHas);
