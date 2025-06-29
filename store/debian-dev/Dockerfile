@@ -8,9 +8,11 @@ ENV CRUPEST_DEBIAN_DEV_USER=${USER}
 ENV CRUPEST_DEBIAN_DEV_CHINA=${CHINA}
 
 ADD setup /setup
-RUN env DEBIAN_FRONTEND=noninteractive /setup/apt.bash
-RUN env DEBIAN_FRONTEND=noninteractive /setup/package.bash
-RUN env DEBIAN_FRONTEND=noninteractive /setup/for-container.bash
+RUN export DEBIAN_FRONTEND=noninteractive; \
+  /setup/apt.bash && /setup/package.bash && \
+  /setup/for-container.bash && \
+  rm -rf /var/lib/apt/lists/*
+
 
 ENV LANG=en_US.utf8
 USER ${USER}
