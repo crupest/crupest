@@ -6,11 +6,6 @@ server {
         root /srv/www;
     }
 
-    location /2fa/ {
-        include common/proxy-common;
-        proxy_pass http://2fauth:8000/;
-    }
-
     location /git/ {
         include common/proxy-common;
         client_max_body_size 5G;

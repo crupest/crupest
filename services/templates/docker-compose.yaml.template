@@ -90,19 +90,6 @@ services:
         ipv4_address: "172.21.5.5"
     restart: on-failure:3
 
-  2fauth:
-    image: "2fauth/2fauth"
-    pull_policy: always
-    hostname: 2fauth
-    env_file:
-      - "./@@CRUPEST_GENERATED_DIR@@/envs/2fauth.env"
-    volumes:
-      - "./data/2fauth:/2fauth"
-    networks:
-      default:
-        ipv4_address: "172.21.5.6"
-    restart: "on-failure:3"
-
   v2ray:
     pull_policy: build
     build:
@@ -115,7 +102,7 @@ services:
       - "./@@CRUPEST_GENERATED_DIR@@/envs/v2ray.env"
     networks:
       default:
-        ipv4_address: "172.21.5.7"
+        ipv4_address: "172.21.5.6"
     restart: "on-failure:3"
 
   auto-backup:

@@ -9,7 +9,6 @@ aarch64
 esmtp
 healthcheck
 
-2fauth
 certbot
 roundcube
 roundcubemail
