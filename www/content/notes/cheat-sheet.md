@@ -42,7 +42,7 @@ A complete command is `[prefix] [docker (based on challenge kind)] [command] [ch
 
 | part | for | segment |
 | :-: | :-: | --- |
-| prefix | * | `docker run -it --rm --name certbot -v "./data/certbot/certs:/etc/letsencrypt" -v "./data/certbot/data:/var/lib/letsencrypt"` |
+| prefix | * | `docker run -it --rm --name certbot -v "./data/certbot/certs:/etc/letsencrypt" -v "./data/certbot/data:/var/lib/letsencrypt" certbot/certbot` |
 | docker | challenge standalone | `-p "0.0.0.0:80:80"` |
 | docker | challenge nginx | `-v "./data/certbot/webroot:/var/www/certbot"` |
 | command | create/expand/shrink | `certonly` |
@@ -59,11 +59,14 @@ For example, **test** create/expand/shrink with standalone server:
 
 ```sh
 docker run -it --rm --name certbot \
-  -v "./data/certbot/certs:/etc/letsencrypt" -v "./data/certbot/data:/var/lib/letsencrypt"` \
+  -v "./data/certbot/certs:/etc/letsencrypt" \
+  -v "./data/certbot/data:/var/lib/letsencrypt" \
   -p "0.0.0.0:80:80" \
+  certbot/certbot \
   certonly \
   --standalone \
-  -d crupest.life -d mail.crupest.life \
+  --cert-name crupest.life \
+  -d crupest.life -d mail.crupest.life -d timeline.crupest.life \
   --test-cert --dry-run
 ```
 
