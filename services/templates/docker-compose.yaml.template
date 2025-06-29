@@ -15,7 +15,6 @@ services:
     env_file:
       - "./@@CRUPEST_GENERATED_DIR@@/envs/nginx.env"
       - "./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env"
-      - "./@@CRUPEST_GENERATED_DIR@@/envs/mail-server-common.env"
     volumes:
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/certs:/etc/letsencrypt"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/data:/var/lib/letsencrypt"
@@ -25,37 +24,6 @@ services:
       default:
         ipv4_address: "172.21.5.2"
     restart: "on-failure:3"
-
-  mail-server:
-    pull_policy: build
-    build:
-      context: "./@@CRUPEST_DOCKER_DIR@@/mail-server"
-      additional_contexts:
-        - "deno=./deno"
-      dockerfile: Dockerfile
-      pull: true
-    container_name: mail-server
-    hostname: mail
-    domainname: "@@CRUPEST_DOMAIN@@"
-    env_file:
-      - "./@@CRUPEST_GENERATED_DIR@@/envs/mail-server-common.env"
-      - "./@@CRUPEST_GENERATED_DIR@@/envs/mail-server.env"
-    ports:
-      - "143:143" # IMAP4 (explicit TLS => STARTTLS)
-      - "993:993" # IMAP4 (implicit TLS)
-      - "587:587" # ESMTP (explicit TLS => STARTTLS)
-      - "465:465" # ESMTP (implicit TLS)
-      - "4190:4190" # manage sieve protocol
-    volumes:
-      - "./@@CRUPEST_DATA_MAIL_SERVER_DIR@@:/data"
-      - "./@@CRUPEST_SSL_FULLCHAIN_FILE@@:/etc/dovecot/ssl/tls.crt"
-      - "./@@CRUPEST_SSL_PRIVATE_KEY_FILE@@:/etc/dovecot/ssl/tls.key"
-      - "/etc/localtime:/etc/localtime:ro"
-    networks:
-      default:
-        ipv4_address: "172.21.5.3"
-    restart: "on-failure:3"
-    stop_grace_period: 1m
 
   git-server:
     pull_policy: build
@@ -70,7 +38,7 @@ services:
       - "./@@CRUPEST_DATA_GIT_DIR@@:/git"
     networks:
       default:
-        ipv4_address: "172.21.5.4"
+        ipv4_address: "172.21.5.3"
     restart: on-failure:3
 
   roundcubemail:
@@ -80,14 +48,14 @@ services:
     env_file:
       - "./@@CRUPEST_GENERATED_DIR@@/envs/roundcubemail.env"
     volumes:
-      - "./@@CRUPEST_DATA_SECRET_DIR@@/gnupg:/gnupg"
+      - "./@@CRUPEST_DATA_SECRET_DIR@@/gnupg:/var/roundcube/enigma"
       - "./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/www/html:/var/www/html"
       - "./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/db:/var/roundcube/db"
-      - "./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/config:/var/roundcube/config"
+      - "./@@CRUPEST_GENERATED_DIR@@/roundcube.inc.php:/var/roundcube/config"
       - "roundcubemail-temp:/tmp/roundcube-temp"
     networks:
       default:
-        ipv4_address: "172.21.5.5"
+        ipv4_address: "172.21.5.4"
     restart: on-failure:3
 
   v2ray:
@@ -102,7 +70,7 @@ services:
       - "./@@CRUPEST_GENERATED_DIR@@/envs/v2ray.env"
     networks:
       default:
-        ipv4_address: "172.21.5.6"
+        ipv4_address: "172.21.5.5"
     restart: "on-failure:3"
 
   auto-backup:
