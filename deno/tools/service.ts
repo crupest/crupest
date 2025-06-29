@@ -1,6 +1,5 @@
 import { dirname, join, relative } from "@std/path";
 import { copySync, existsSync, walkSync } from "@std/fs";
-import { parse } from "@std/dotenv";
 import { distinct } from "@std/collections";
 // @ts-types="npm:@types/mustache"
 import Mustache from "mustache";
@@ -36,8 +35,20 @@ function loadTemplatedConfigFiles(
   for (const file of files) {
     console.log(`  from file ${file}`);
     const text = Deno.readTextFileSync(file);
-    for (const [key, valueText] of Object.entries(parse(text))) {
-      // TODO: dotenv silently override old values, so everything will be new for now.
+    let lineNumber = 0;
+    for (const rawLine of text.split("\n")) {
+      lineNumber++;
+      const line = rawLine.trim();
+      if (line.length === 0) continue;
+      if (line.startsWith("#")) continue;
+      const equalSymbolIndex = line.indexOf("=");
+      if (equalSymbolIndex === -1) {
+        throw new Error(`Line ${lineNumber} of ${file} is invalid.`);
+      }
+      const [key, valueText] = [
+        line.slice(0, equalSymbolIndex).trim(),
+        line.slice(equalSymbolIndex + 1).trim(),
+      ];
       console.log(`    (${key in config ? "override" : "new"}) ${key}`);
       getVariableKeysOfTemplate(valueText).forEach((name) => {
         if (!(name in config)) {

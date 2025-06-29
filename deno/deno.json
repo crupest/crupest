@@ -11,7 +11,6 @@
     "@std/io": "jsr:@std/io@^0.225.2",
     "@std/path": "jsr:@std/path@^1.1.0",
     "@std/testing": "jsr:@std/testing@^1.0.13",
-    "@std/dotenv": "jsr:@std/dotenv@^0.225.5",
     "@std/fs": "jsr:@std/fs@^1.0.18",
     "yargs": "npm:yargs@^18.0.0",
     "@types/yargs": "npm:@types/yargs@^17.0.33"
