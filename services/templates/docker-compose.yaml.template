@@ -41,23 +41,6 @@ services:
         ipv4_address: "172.21.5.3"
     restart: on-failure:3
 
-  roundcubemail:
-    image: "roundcube/roundcubemail"
-    pull_policy: always
-    hostname: roundcubemail
-    env_file:
-      - "./@@CRUPEST_GENERATED_DIR@@/envs/roundcubemail.env"
-    volumes:
-      - "./@@CRUPEST_DATA_SECRET_DIR@@/gnupg:/var/roundcube/enigma"
-      - "./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/www/html:/var/www/html"
-      - "./@@CRUPEST_DATA_ROUNDCUBE_DIR@@/db:/var/roundcube/db"
-      - "./@@CRUPEST_GENERATED_DIR@@/roundcube.inc.php:/var/roundcube/config"
-      - "roundcubemail-temp:/tmp/roundcube-temp"
-    networks:
-      default:
-        ipv4_address: "172.21.5.4"
-    restart: on-failure:3
-
   v2ray:
     pull_policy: build
     build:
@@ -85,9 +68,6 @@ services:
       - "./data:/data:ro"
       - "./data/auto-backup:/data/auto-backup"
     restart: "on-failure:3"
-
-volumes:
-  roundcubemail-temp:
 
 networks:
   default:

@@ -10,8 +10,6 @@ esmtp
 healthcheck
 
 certbot
-roundcube
-roundcubemail
 gerrit
 gohugoio
 pwsh
