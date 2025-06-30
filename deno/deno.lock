@@ -1306,7 +1306,7 @@
       "npm:yargs@18"
     ],
     "members": {
-      "mail-relay": {
+      "mail": {
         "dependencies": [
           "jsr:@db/sqlite@0.12",
           "npm:@aws-sdk/client-s3@^3.821.0",
