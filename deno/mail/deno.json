@@ -2,7 +2,7 @@
   "version": "0.1.0",
   "tasks": {
     "run": "deno run -A aws/app.ts",
-    "compile": "deno compile -o out/crupest-relay -A aws/app.ts"
+    "compile": "deno compile -o out/crupest-mail -A aws/app.ts"
   },
   "imports": {
     "@aws-sdk/client-s3": "npm:@aws-sdk/client-s3@^3.821.0",
