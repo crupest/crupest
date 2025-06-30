@@ -6,9 +6,9 @@ server {
         root /srv/mail;
     }
 
-    location = /@@CRUPEST_MAIL_SERVER_MAILEROO_INBOUND_PATH@@ {
+    location = /@@CRUPEST_MAIL_SERVER_AWS_INBOUND_PATH@@ {
         include conf.d/common/reverse-proxy;
-        proxy_pass http://mail-server:2345/@@CRUPEST_MAIL_SERVER_MAILEROO_INBOUND_PATH@@;
+        proxy_pass http://mail-server:2345/@@CRUPEST_MAIL_SERVER_AWS_INBOUND_PATH@@;
     }
 
     location / {
