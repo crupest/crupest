@@ -1,6 +1,0 @@
-server {
-    server_name mail.${CRUPEST_DOMAIN};
-    include common/http-listen;
-
-    include common/acme-challenge;
-}

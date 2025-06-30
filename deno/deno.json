@@ -1,7 +1,7 @@
 {
-  "workspace": ["./base", "./mail-relay", "./tools"],
+  "workspace": ["./base", "./mail", "./tools"],
   "tasks": {
-    "compile:mail-relay": "deno task --cwd=mail-relay compile"
+    "compile:mail": "deno task --cwd=mail compile"
   },
   "imports": {
     "@std/collections": "jsr:@std/collections@^1.1.1",

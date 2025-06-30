@@ -10,6 +10,8 @@ esmtp
 healthcheck
 
 certbot
+roundcube
+roundcubemail
 gerrit
 gohugoio
 pwsh
@@ -42,6 +44,7 @@ ustc
 sourceware
 sesv2
 amazonses
+maileroo
 
 geodata
 geoip
