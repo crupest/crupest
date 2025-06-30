@@ -13,7 +13,6 @@ services:
       - "443:443"
       - "443:443/udp"
     env_file:
-      - "./@@CRUPEST_GENERATED_DIR@@/envs/nginx.env"
       - "./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env"
       - "./@@CRUPEST_GENERATED_DIR@@/envs/mail-server-common.env"
     volumes:
