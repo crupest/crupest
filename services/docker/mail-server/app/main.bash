@@ -7,7 +7,6 @@ die() {
   exit 1
 }
 
-# TODO: restore this.
-# /app/crupest-mail serve --real &
+/app/crupest-mail serve --real &
 
 /dovecot/sbin/dovecot -F
