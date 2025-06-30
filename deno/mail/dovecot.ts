@@ -17,6 +17,7 @@ async function runCommand(
     logTag: string;
     args: string[];
     stdin?: Uint8Array;
+    suppressStartLog?: boolean;
     suppressResultLog?: boolean;
     errorCodeMessageMap?: Map<number, string>;
   },
@@ -24,7 +25,9 @@ async function runCommand(
   const { logTag, args, stdin, suppressResultLog, errorCodeMessageMap } =
     options;
 
-  console.info(logTag, `Run external command ${bin} ${args.join(" ")}`);
+  if (options.suppressResultLog !== true) {
+    console.info(logTag, `Run external command ${bin} ${args.join(" ")}`);
+  }
 
   try {
     // Create and spawn process.
@@ -129,10 +132,13 @@ export class DovecotMailDeliverer extends MailDeliverer {
     user: string,
     mailbox: string,
     messageId: string,
+    noLog?: boolean,
   ): Promise<void> {
     await runCommand(this.#doveadmPath, {
       logTag,
       args: ["expunge", "-u", user, ...this.#queryArgs(mailbox, messageId)],
+      suppressStartLog: noLog,
+      suppressResultLog: noLog,
     });
   }
 
@@ -202,11 +208,11 @@ export class DovecotMailDeliverer extends MailDeliverer {
 
     console.info(
       logTag,
-      "Schedule deletion of old mails at 15,30,60 seconds later.",
+      "Schedule deletion of old mails (no logging) at 5,15,30,60 seconds later.",
     );
-    [15, 30, 60].forEach((seconds) =>
+    [5, 15, 30, 60].forEach((seconds) =>
       setTimeout(() => {
-        void this.#deleteMail(logTag, from, "Sent", messageIdToDelete);
+        void this.#deleteMail(logTag, from, "Sent", messageIdToDelete, true);
       }, 1000 * seconds)
     );
   }
