@@ -239,8 +239,11 @@ function createServerServices() {
   return { ...services, smtp, hono };
 }
 
-function serve(cron: boolean = false) {
-  const { config, fetcher, inbound, smtp, hono } = createServerServices();
+async function serve(cron: boolean = false) {
+  const { config, fetcher, inbound, smtp, dbService, hono } = createServerServices();
+
+  await dbService.migrate();
+
   smtp.serve({
     hostname: config.get("smtpHost"),
     port: config.getInt("smtpPort"),
