@@ -1,0 +1,6 @@
+server {
+    server_name timeline.@@CRUPEST_DOMAIN@@;
+    include conf.d/common/http-listen;
+
+    include conf.d/common/acme-challenge;
+}

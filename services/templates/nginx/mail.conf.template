@@ -1,0 +1,29 @@
+server {
+    server_name mail.@@CRUPEST_DOMAIN@@;
+    include conf.d/common/https-listen;
+
+    location = /robots.txt {
+        root /srv/mail;
+    }
+
+    location = /@@CRUPEST_MAIL_SERVER_MAILEROO_INBOUND_PATH@@ {
+        include conf.d/common/reverse-proxy;
+        proxy_pass http://mail-server:2345/@@CRUPEST_MAIL_SERVER_MAILEROO_INBOUND_PATH@@;
+    }
+
+    location / {
+        include conf.d/common/reverse-proxy;
+        proxy_pass http://roundcubemail:80/;
+    }
+
+    client_max_body_size 5G;
+}
+
+
+server {
+    server_name mail.@@CRUPEST_DOMAIN@@;
+    include conf.d/common/http-listen;
+
+    include conf.d/common/https-redirect;
+    include conf.d/common/acme-challenge;
+}

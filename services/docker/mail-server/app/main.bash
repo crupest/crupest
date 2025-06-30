@@ -7,5 +7,7 @@ die() {
   exit 1
 }
 
-/app/crupest-relay serve --real &
+# TODO: restore this.
+# /app/crupest-mail serve --real &
+
 /dovecot/sbin/dovecot -F

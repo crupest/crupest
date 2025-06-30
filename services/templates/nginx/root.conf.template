@@ -1,23 +1,23 @@
 server {
-    server_name ${CRUPEST_DOMAIN};
-    include common/https-listen;
+    server_name @@CRUPEST_DOMAIN@@;
+    include conf.d/common/https-listen;
 
     location / {
         root /srv/www;
     }
 
     location /git/ {
-        include common/proxy-common;
+        include conf.d/common/reverse-proxy;
         client_max_body_size 5G;
         proxy_pass http://git-server:3636;
     }
 
     location = /github {
-        return 301 ${CRUPEST_GITHUB};
+        return 301 @@CRUPEST_GITHUB@@;
     }
 
     location = /github/ {
-        return 301 ${CRUPEST_GITHUB};
+        return 301 @@CRUPEST_GITHUB@@;
     }
 
     location /_${CRUPEST_V2RAY_PATH} {
@@ -26,15 +26,15 @@ server {
         }
 
         proxy_redirect off;
-        include common/proxy-common;
+        include conf.d/common/reverse-proxy;
         proxy_pass http://v2ray:10000;
     }
 }
 
 server {
-    server_name ${CRUPEST_DOMAIN};
-    include common/http-listen;
+    server_name @@CRUPEST_DOMAIN@@;
+    include conf.d/common/http-listen;
 
-    include common/https-redirect;
-    include common/acme-challenge;
+    include conf.d/common/https-redirect;
+    include conf.d/common/acme-challenge;
 }

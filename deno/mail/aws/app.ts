@@ -274,7 +274,7 @@ async function recycleLives() {
 
 if (import.meta.main) {
   await yargs(Deno.args)
-    .scriptName("mail-relay")
+    .scriptName("mail")
     .command({
       command: "sendmail",
       describe: "send mail via this server's endpoint",

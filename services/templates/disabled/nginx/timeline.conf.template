@@ -2,9 +2,9 @@ server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
     server_name timeline.@@CRUPEST_DOMAIN@@;
-    
+
     location / {
-        include common/reverse-proxy;
+        include conf.d/common/reverse-proxy;
         proxy_pass http://timeline:5000/;
     }
 
@@ -16,6 +16,6 @@ server {
     listen [::]:80;
     server_name timeline.@@CRUPEST_DOMAIN@@;
 
-    include common/https-redirect;
-    include common/acme-challenge;
+    include conf.d/common/https-redirect;
+    include conf.d/common/acme-challenge;
 }
