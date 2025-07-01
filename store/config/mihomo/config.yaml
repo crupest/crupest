@@ -50,19 +50,19 @@ sniffer:
 rule-providers:
   cn:
     type: file
-    path: has-rule
+    path: has-rule.txt
     behavior: classical
     format: text
 
   non-cn:
     type: file
-    path: not-has-rule
+    path: not-has-rule.txt
     behavior: classical
     format: text
 
   need:
     type: file
-    path: need-rule
+    path: need-rule.txt
     behavior: classical
     format: text
 
@@ -71,15 +71,6 @@ rules:
   - RULE-SET,non-cn,node-select
   - RULE-SET,need,node-select
 #  - NOT,((GEOIP,CN)),node-select
-  - DOMAIN-SUFFIX,gnu.org,node-select
-  - DOMAIN-SUFFIX,nongnu.org,node-select
-  - DOMAIN-SUFFIX,ietf.org,node-select
-  - DOMAIN-SUFFIX,metacubex.one,node-select
-  - DOMAIN-SUFFIX,winehq.org,node-select
-  - DOMAIN-SUFFIX,freedesktop.org,node-select
-  - DOMAIN-SUFFIX,eff.org,node-select
-  - DOMAIN-SUFFIX,typescriptlang.org,node-select
-  - DOMAIN-SUFFIX,arxiv.org,node-select
 #  - MATCH,node-select
   - MATCH,DIRECT
 
