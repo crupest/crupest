@@ -13,13 +13,9 @@ import { DbService } from "../db.ts";
 import { createHono, createInbound, createSmtp, sendMail } from "../app.ts";
 import { DovecotMailDeliverer } from "../dovecot.ts";
 import { MailDeliverer } from "../mail.ts";
-import {
-  AwsMailMessageIdRewriteHook,
-  AwsMailMessageIdSaveHook,
-} from "./mail.ts";
+import { MessageIdRewriteHook, MessageIdSaveHook } from "../mail.ts";
 import { AwsMailDeliverer } from "./deliver.ts";
 import { AwsMailFetcher, LiveMailNotFoundError } from "./fetch.ts";
-
 
 const PREFIX = "crupest-mail-server";
 const CONFIG_DEFINITIONS = {
@@ -105,12 +101,12 @@ function createOutbound(
 ) {
   const deliverer = new AwsMailDeliverer(awsOptions);
   deliverer.preHooks.push(
-    new AwsMailMessageIdRewriteHook(db.messageIdToAws.bind(db)),
+    new MessageIdRewriteHook(db.messageIdToNew.bind(db)),
   );
   deliverer.postHooks.push(
-    new AwsMailMessageIdSaveHook(
-      async (original, aws, context) => {
-        await db.addMessageIdMap({ message_id: original, aws_message_id: aws });
+    new MessageIdSaveHook(
+      async (original, new_message_id, context) => {
+        await db.addMessageIdMap({ message_id: original, new_message_id });
         void local?.saveNewSent(context.logTag, context.mail, original);
       },
     ),
@@ -240,7 +236,8 @@ function createServerServices() {
 }
 
 async function serve(cron: boolean = false) {
-  const { config, fetcher, inbound, smtp, dbService, hono } = createServerServices();
+  const { config, fetcher, inbound, smtp, dbService, hono } =
+    createServerServices();
 
   await dbService.migrate();
 

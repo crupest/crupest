@@ -6,12 +6,6 @@ import {
 
 import { Mail, MailDeliverContext, MailDeliverer } from "../mail.ts";
 
-declare module "../mail.ts" {
-  interface MailDeliverResult {
-    awsMessageId?: string;
-  }
-}
-
 export class AwsMailDeliverer extends MailDeliverer {
   readonly name = "aws";
   readonly #aws;
@@ -42,12 +36,12 @@ export class AwsMailDeliverer extends MailDeliverer {
           "AWS send-email returned null message id.",
         );
       } else {
-        context.result.awsMessageId =
+        context.result.newMessageId =
           `${res.MessageId}@${this.#aws.region}.amazonses.com`;
       }
 
-      context.result.smtpMessage =
-        `AWS Message ID: ${context.result.awsMessageId}`;
+      context.result.messageForSmtp =
+        `AWS Message ID: ${context.result.newMessageId}`;
       context.result.recipients.set("*", {
         kind: "success",
         message: `Succeeded to call aws send-email api.`,
