@@ -91,8 +91,8 @@ export class DumbSmtpServer {
           if (line === ".") {
             try {
               console.info(logTag, "Mail data received, begin to relay...");
-              const { smtpMessage } = await this.#deliverer.deliverRaw(rawMail);
-              await send(`250 2.6.0 ${smtpMessage}`);
+              const result = await this.#deliverer.deliverRaw(rawMail);
+              await send(`250 2.6.0 ${result.generateMessageForSmtp()}`);
               rawMail = null;
             } catch (err) {
               console.error(logTag, "Relay failed.", err);

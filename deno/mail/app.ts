@@ -49,7 +49,7 @@ export function createHono(outbound: MailDeliverer, inbound: MailDeliverer) {
     } else {
       const result = await outbound.deliverRaw(body);
       return context.json({
-        awsMessageId: result.awsMessageId,
+        newMessageId: result.newMessageId,
       });
     }
   });

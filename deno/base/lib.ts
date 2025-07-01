@@ -3,7 +3,7 @@ function camelCaseToKebabCase(str: string): string {
 }
 
 function prependNonEmpty<T>(
-  object: T,
+  object: T | null | undefined,
   prefix: string = " ",
 ): string {
   if (object == null) return "";
