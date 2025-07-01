@@ -20,7 +20,7 @@ server {
         return 301 @@CRUPEST_GITHUB@@;
     }
 
-    location /_${CRUPEST_V2RAY_PATH} {
+    location /_@@CRUPEST_V2RAY_PATH@@ {
         if ($http_upgrade != "websocket") {
             return 404;
         }
