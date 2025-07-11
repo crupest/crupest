@@ -22,7 +22,7 @@ vim.cmd([[
     endif
 ]])
 
-if vim.g.neovide then
+if vim.g.neovide or vim.env.ALACRITTY_WINDOW_ID then
     vim.opt.guifont = "Maple Mono";
     vim.g.neovide_normal_opacity = 0.95;
     vim.g.neovide_input_ime = false;
