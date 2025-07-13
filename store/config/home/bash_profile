@@ -1,1 +1,5 @@
+if [ -r ~/.profile ]; then . ~/.profile; fi
+
 export PATH="$HOME/.local/bin:$PATH"
+
+case "$-" in *i*) if [ -r ~/.bashrc ]; then . ~/.bashrc; fi;; esac
