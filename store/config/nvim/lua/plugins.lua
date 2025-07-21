@@ -31,10 +31,12 @@ return {
         dependencies = { 'nvim-lua/plenary.nvim' }
     },
     { "lewis6991/gitsigns.nvim" },
+    { "sindrets/diffview.nvim" },
     { "hrsh7th/nvim-cmp" },
     { "hrsh7th/cmp-nvim-lsp" },
     { "hrsh7th/cmp-buffer" },
     { "hrsh7th/cmp-path" },
+    { "echasnovski/mini.bufremove" },
     { "windwp/nvim-autopairs" },
     { "mfussenegger/nvim-lint" },
 }
