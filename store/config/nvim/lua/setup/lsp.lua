@@ -13,19 +13,10 @@ local function client_name_is(ev, name)
 end
 
 local function setup_clangd()
-    local clangd = "clangd"
-    local brew_clangd_path = "/usr/local/opt/llvm/bin/clangd"
-
-    if vim.uv.fs_stat(brew_clangd_path) ~= nil then
-        clangd = brew_clangd_path
-    end
-
-    vim.lsp.config("clangd", { cmd = { clangd } })
-
     vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(ev)
             if client_name_is(ev, "clangd") then
-                vim.keymap.set("n", "grs", "<cmd>ClangdSwitchSourceHeader<cr>", {
+                vim.keymap.set("n", "grs", "<cmd>LspClangdSwitchSourceHeader<cr>", {
                     buffer = ev.buf
                 })
             end
