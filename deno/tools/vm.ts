@@ -20,7 +20,10 @@ function normalizeArch(generalName: GeneralArch): Arch {
 interface GeneralVmSetup {
   name?: string[];
   arch: GeneralArch;
+  cpuNumber?: number;
+  memory?: number;
   disk: string;
+  usbTablet?: boolean;
   sshForwardPort?: number;
   tpm?: boolean;
   kvm?: boolean;
@@ -28,7 +31,10 @@ interface GeneralVmSetup {
 
 interface VmSetup {
   arch: Arch;
+  cpuNumber: number;
+  memory: number;
   disk: string;
+  usbTablet: boolean;
   sshForwardPort?: number;
   tpm: boolean;
   kvm: boolean;
@@ -56,16 +62,27 @@ const MY_VMS: GeneralVmSetup[] = [
   {
     name: ["win"],
     arch: "x86_64",
+    cpuNumber: 4,
+    memory: 16,
     disk: getDiskFilePath("win"),
+    usbTablet: true,
     tpm: true,
   },
 ];
 
 function normalizeVmSetup(generalSetup: GeneralVmSetup): VmSetup {
-  const { arch, disk, sshForwardPort, tpm, kvm } = generalSetup;
+  const { arch, cpuNumber, memory, disk, usbTablet, sshForwardPort, tpm, kvm } =
+    generalSetup;
+
+  const normalizedArch = normalizeArch(arch);
+  const is64 = normalizedArch === "x86_64";
+
   return {
-    arch: normalizeArch(arch),
+    arch: normalizedArch,
     disk,
+    cpuNumber: cpuNumber ?? 1,
+    memory: memory ?? (is64 ? 8 : 4),
+    usbTablet: usbTablet ?? false,
     sshForwardPort,
     tpm: tpm ?? false,
     kvm: kvm ?? Deno.build.os === "linux",
@@ -95,11 +112,15 @@ function getLinuxHostArgs(kvm: boolean): string[] {
   return kvm ? ["-enable-kvm"] : [];
 }
 
-function getMachineArgs(arch: Arch): string[] {
-  const is64 = arch === "x86_64";
+function getMachineArgs(vm: VmSetup): string[] {
+  const is64 = vm.arch === "x86_64";
   const machineArgs = is64 ? ["-machine", "q35"] : [];
-  const memory = is64 ? 8 : 4;
-  return [...machineArgs, "-m", `${memory}G`];
+  return [...machineArgs, "-smp", String(vm.cpuNumber), "-m", `${vm.memory}G`];
+}
+
+function getDeviceArgs(vm: VmSetup): string[] {
+  const { usbTablet } = vm;
+  return usbTablet ? ["-usb", "-device", "usb-tablet"] : [];
 }
 
 function getNetworkArgs(sshForwardPort?: number): string[] {
@@ -158,7 +179,8 @@ function createQemuArgs(setup: VmSetup): string[] {
   return [
     getQemuBin(arch),
     ...getLinuxHostArgs(setup.kvm),
-    ...getMachineArgs(arch),
+    ...getMachineArgs(setup),
+    ...getDeviceArgs(setup),
     ...getDisplayArgs(),
     ...getNetworkArgs(sshForwardPort),
     ...getDiskArgs(disk),
