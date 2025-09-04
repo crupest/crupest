@@ -21,38 +21,53 @@ interface GeneralVmSetup {
   name?: string[];
   arch: GeneralArch;
   disk: string;
-  sshForwardPort: number;
+  sshForwardPort?: number;
+  tpm?: boolean;
   kvm?: boolean;
 }
 
 interface VmSetup {
   arch: Arch;
   disk: string;
-  sshForwardPort: number;
+  sshForwardPort?: number;
+  tpm: boolean;
   kvm: boolean;
+}
+
+const VM_DIR = join(os.homedir(), "vms");
+
+function getDiskFilePath(name: string): string {
+  return join(VM_DIR, `${name}.qcow2`);
 }
 
 const MY_VMS: GeneralVmSetup[] = [
   {
     name: ["hurd", ...arches.i386.map((a) => `hurd-${a}`)],
     arch: "i386",
-    disk: join(os.homedir(), "vms/hurd-i386.qcow2"),
+    disk: getDiskFilePath("hurd-i386"),
     sshForwardPort: 3222,
   },
   {
     name: [...arches.x86_64.map((a) => `hurd-${a}`)],
     arch: "x86_64",
-    disk: join(os.homedir(), "vms/hurd-x86_64.qcow2"),
+    disk: getDiskFilePath("hurd-x86_64"),
     sshForwardPort: 3223,
+  },
+  {
+    name: ["win"],
+    arch: "x86_64",
+    disk: getDiskFilePath("win"),
+    tpm: true,
   },
 ];
 
 function normalizeVmSetup(generalSetup: GeneralVmSetup): VmSetup {
-  const { arch, disk, sshForwardPort, kvm } = generalSetup;
+  const { arch, disk, sshForwardPort, tpm, kvm } = generalSetup;
   return {
     arch: normalizeArch(arch),
     disk,
     sshForwardPort,
+    tpm: tpm ?? false,
     kvm: kvm ?? Deno.build.os === "linux",
   };
 }
@@ -87,8 +102,12 @@ function getMachineArgs(arch: Arch): string[] {
   return [...machineArgs, "-m", `${memory}G`];
 }
 
-function getNetworkArgs(sshForwardPort: number): string[] {
-  return ["-net", "nic", "-net", `user,hostfwd=tcp::${sshForwardPort}-:22`];
+function getNetworkArgs(sshForwardPort?: number): string[] {
+  const args = ["-net", "nic"];
+  if (sshForwardPort != null) {
+    args.push("-net", `user,hostfwd=tcp::${sshForwardPort}-:22`);
+  }
+  return args;
 }
 
 function getDisplayArgs(): string[] {
@@ -99,8 +118,43 @@ function getDiskArgs(disk: string): string[] {
   return ["-drive", `cache=writeback,file=${disk}`];
 }
 
+function getTpmControlSocketPath(): string {
+  return join(VM_DIR, "tpm2/swtpm-sock");
+}
+
+function getTpmArgs(tpm: boolean): string[] {
+  if (!tpm) return [];
+  return [
+    "-chardev",
+    `socket,id=chrtpm,path=${getTpmControlSocketPath()}`,
+    "-tpmdev",
+    "emulator,id=tpm0,chardev=chrtpm",
+    "-device",
+    "tpm-tis,tpmdev=tpm0",
+  ];
+}
+
+function getTpmPreCommand(): string[] {
+  return [
+    "swtpm",
+    "socket",
+    "--tpm2",
+    "--tpmstate",
+    `dir=${join(VM_DIR, "tpm2")}`,
+    "--ctrl",
+    `type=unixio,path=${getTpmControlSocketPath()}`,
+  ];
+}
+
+function createPreCommands(setup: VmSetup): string[][] {
+  const { tpm } = setup;
+  const result = [];
+  if (tpm) result.push(getTpmPreCommand());
+  return result;
+}
+
 function createQemuArgs(setup: VmSetup): string[] {
-  const { arch, disk, sshForwardPort } = setup;
+  const { arch, disk, sshForwardPort, tpm } = setup;
   return [
     getQemuBin(arch),
     ...getLinuxHostArgs(setup.kvm),
@@ -108,6 +162,7 @@ function createQemuArgs(setup: VmSetup): string[] {
     ...getDisplayArgs(),
     ...getNetworkArgs(sshForwardPort),
     ...getDiskArgs(disk),
+    ...getTpmArgs(tpm),
   ];
 }
 
@@ -129,7 +184,11 @@ const gen = defineYargsModule({
       console.error(`No vm called ${argv.name} is found.`);
       Deno.exit(-1);
     }
+    const preCommands = createPreCommands(vm);
     const cli = createQemuArgs(vm);
+    for (const command of preCommands) {
+      console.log(`${command.join(" ")} &`);
+    }
     console.log(`${cli.join(" ")}`);
   },
 });
