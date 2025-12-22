@@ -215,11 +215,57 @@ const gen = defineYargsModule({
   },
 });
 
+function runVm(name: string) {
+  const vm = resolveVmSetup(name, MY_VMS);
+  if (vm == null) {
+    console.error(`No vm called ${name} is found.`);
+    Deno.exit(-1);
+  }
+  const preCommands = createPreCommands(vm);
+  const cli = createQemuArgs(vm);
+  const commands = [...preCommands, cli];
+  const processes = commands.map((command) => {
+    console.log("Run command:", command.join(" "));
+    return new Deno.Command(command[0], {
+      args: command.slice(1),
+      stdin: "null",
+      stdout: "inherit",
+      stderr: "inherit",
+    }).spawn();
+  });
+  Deno.addSignalListener("SIGINT", () => {
+    processes.forEach((process) => process.kill("SIGINT"));
+  });
+  Deno.addSignalListener("SIGTERM", () => {
+    processes.forEach((process) => process.kill("SIGTERM"));
+  });
+}
+
+export const run = defineYargsModule({
+  command: "run <name>",
+  describe: "run the vm",
+  builder: (builder) => {
+    return builder
+      .positional("name", {
+        describe: "name of the vm to run",
+        type: "string",
+      })
+      .demandOption("name")
+      .strict();
+  },
+  handler: (argv) => {
+    runVm(argv.name);
+  },
+});
+
 export default defineYargsModule({
   command: "vm",
   describe: "Manage (qemu) virtual machines.",
   builder: (builder) => {
-    return builder.command(gen).demandCommand(1, DEMAND_COMMAND_MESSAGE);
+    return builder.command(gen).command(run).demandCommand(
+      1,
+      DEMAND_COMMAND_MESSAGE,
+    );
   },
   handler: () => {},
 });

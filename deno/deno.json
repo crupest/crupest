@@ -1,7 +1,8 @@
 {
   "workspace": ["./base", "./mail", "./tools"],
   "tasks": {
-    "compile:mail": "deno task --cwd=mail compile"
+    "compile:mail": "deno task --cwd=mail compile",
+    "compile:tools": "deno task --cwd=tools compile"
   },
   "imports": {
     "@std/collections": "jsr:@std/collections@^1.1.1",

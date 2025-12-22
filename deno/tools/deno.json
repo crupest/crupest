@@ -1,6 +1,7 @@
 {
   "version": "0.1.0",
   "tasks": {
+    "compile": "deno compile -o out/crupest-tools -A main.ts"
   },
   "imports": {
     "mustache": "npm:mustache@^4.2.0"
