@@ -81,7 +81,7 @@ Now, run `debootstrap` to create a minimal filesystem. Update the command with
 the target distribution's codename and one of its mirrors you select.
 
 ```bash-session
-# debootstrap --include=dbus,libpam-systemd [codename] \
+# debootstrap --include=dbus,libpam-systemd,libnss-systemd [codename] \
     /var/lib/machines/[name] [mirror]
 ```
 
@@ -133,7 +133,8 @@ Now, inside the VM, you can do whatever you like. In my configuration, a correct
 user must be created manually.
 
 ```bash-session
-# apt install locales sudo nano vim less man bash-completion curl wget \
+# apt install locales lsb-release sudo \
+    nano vim less man bash-completion curl wget \
     build-essential git
 # dpkg-reconfigure locales
 

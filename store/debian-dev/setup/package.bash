@@ -5,6 +5,6 @@ set -e -o pipefail
 echo "install packages"
 apt-get update
 apt-get install -y \
-    locales lsb-release software-properties-common  \
+    locales lsb-release \
     sudo procps bash-completion man less gnupg curl wget \
     vim build-essential git devscripts debhelper quilt
