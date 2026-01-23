@@ -1,13 +1,11 @@
 services:
 
   nginx:
-    pull_policy: build
     build:
       context: "./@@CRUPEST_DOCKER_DIR@@/nginx"
       additional_contexts:
         - "www=./www"
       dockerfile: Dockerfile
-      pull: true
     ports:
       - "80:80"
       - "443:443"
@@ -26,13 +24,11 @@ services:
     restart: "on-failure:3"
 
   mail-server:
-    pull_policy: build
     build:
       context: "./@@CRUPEST_DOCKER_DIR@@/mail-server"
       additional_contexts:
         - "deno=./deno"
       dockerfile: Dockerfile
-      pull: true
     container_name: mail-server
     hostname: mail
     domainname: "@@CRUPEST_DOMAIN@@"
@@ -53,15 +49,14 @@ services:
     networks:
       default:
         ipv4_address: "172.21.5.3"
+    mem_limit: 600mb
     restart: "on-failure:3"
     stop_grace_period: 1m
 
   git-server:
-    pull_policy: build
     build:
       context: "./@@CRUPEST_DOCKER_DIR@@/git-server"
       dockerfile: Dockerfile
-      pull: true
     hostname: git-server
     environment:
       - "CRUPEST_ROOT_URL=@@CRUPEST_ROOT_URL@@"
@@ -74,7 +69,6 @@ services:
 
   roundcubemail:
     image: "roundcube/roundcubemail"
-    pull_policy: always
     hostname: roundcubemail
     env_file:
       - "./@@CRUPEST_GENERATED_DIR@@/envs/roundcubemail.env"
@@ -90,11 +84,9 @@ services:
     restart: on-failure:3
 
   v2ray:
-    pull_policy: build
     build:
       context: "./@@CRUPEST_DOCKER_DIR@@/v2ray"
       dockerfile: Dockerfile
-      pull: true
     hostname: v2ray
     env_file:
       - "./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env"
@@ -105,11 +97,9 @@ services:
     restart: "on-failure:3"
 
   auto-backup:
-    pull_policy: build
     build:
       context: "./@@CRUPEST_DOCKER_DIR@@/auto-backup"
       dockerfile: Dockerfile
-      pull: true
     env_file:
       - "./@@CRUPEST_GENERATED_DIR@@/envs/auto-backup.env"
     volumes:
