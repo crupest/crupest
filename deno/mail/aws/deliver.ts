@@ -17,6 +17,10 @@ export class AwsMailDeliverer extends MailDeliverer {
     this.#ses = new SESv2Client(aws);
   }
 
+  destroy(): void {
+    this.#ses.destroy();
+  }
+
   protected override async doDeliver(
     mail: Mail,
     context: MailDeliverContext,

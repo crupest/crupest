@@ -112,6 +112,10 @@ export class DbService {
     });
   }
 
+  async close(): Promise<void> {
+    await this.#kysely.destroy();
+  }
+
   async migrate(): Promise<void> {
     await this.#migrator.migrateToLatest();
   }

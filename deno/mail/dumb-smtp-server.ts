@@ -19,9 +19,15 @@ function createResponses(host: string, port: number | string) {
 
 export class DumbSmtpServer {
   #deliverer;
+  #listener?: Deno.Listener;
 
   constructor(deliverer: MailDeliverer) {
     this.#deliverer = deliverer;
+  }
+
+  close(): void {
+    this.#listener?.close();
+    this.#listener = undefined;
   }
 
   async #handleConnection(
@@ -109,7 +115,7 @@ export class DumbSmtpServer {
   }
 
   async serve(options: { hostname: string; port: number }) {
-    const listener = Deno.listen(options);
+    this.#listener = Deno.listen(options);
     const responses = createResponses(options.hostname, options.port);
     console.info(
       `Dumb SMTP server starts to listen on ${responses.serverName}.`,
@@ -117,7 +123,7 @@ export class DumbSmtpServer {
 
     let counter = 1;
 
-    for await (const conn of listener) {
+    for await (const conn of this.#listener) {
       const logTag = `[outbound ${counter++}]`;
       try {
         await this.#handleConnection(logTag, conn, responses);

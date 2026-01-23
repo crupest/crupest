@@ -48,6 +48,10 @@ export class AwsMailFetcher {
     this.#bucket = bucket;
   }
 
+  destroy(): void {
+    this.#s3.destroy();
+  }
+
   async listLiveMails(): Promise<string[]> {
     const listCommand = new ListObjectsV2Command({
       Bucket: this.#bucket,

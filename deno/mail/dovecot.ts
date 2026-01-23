@@ -73,6 +73,7 @@ export class DovecotMailDeliverer extends MailDeliverer {
   readonly name = "dovecot";
   readonly #ldaPath;
   readonly #doveadmPath;
+  readonly #pendingTimers: Set<number> = new Set();
 
   constructor(
     ldaPath: string,
@@ -81,6 +82,13 @@ export class DovecotMailDeliverer extends MailDeliverer {
     super(false);
     this.#ldaPath = ldaPath;
     this.#doveadmPath = doveadmPath;
+  }
+
+  clearPendingTimers(): void {
+    for (const timer of this.#pendingTimers) {
+      clearTimeout(timer);
+    }
+    this.#pendingTimers.clear();
   }
 
   protected override async doDeliver(
@@ -210,10 +218,12 @@ export class DovecotMailDeliverer extends MailDeliverer {
       logTag,
       "Schedule deletion of old mails (no logging) at 5,15,30,60 seconds later.",
     );
-    [5, 15, 30, 60].forEach((seconds) =>
-      setTimeout(() => {
+    [5, 15, 30, 60].forEach((seconds) => {
+      const timer = setTimeout(() => {
+        this.#pendingTimers.delete(timer);
         void this.#deleteMail(logTag, from, "Sent", messageIdToDelete, true);
-      }, 1000 * seconds)
-    );
+      }, 1000 * seconds);
+      this.#pendingTimers.add(timer);
+    });
   }
 }
