@@ -12,6 +12,7 @@ const SITES = [
   "reddit",
   "twitch",
   "quora",
+  "medium",
   "telegram",
   "imgur",
   "stackexchange",
@@ -20,6 +21,7 @@ const SITES = [
   "wikimedia",
   "gitbook",
   "gitlab",
+  "anthropic",
   "creativecommons",
   "archive",
   "matrix",
@@ -153,8 +155,8 @@ if (import.meta.main) {
   const [has, notHas] = toNewFormat(rules, ATTR);
   const resultDir = tmpDir + "/result";
   Deno.mkdirSync(resultDir);
-  const hasFile = resultDir + "/has-rule";
-  const notHasFile = resultDir + "/not-has-rule";
+  const hasFile = resultDir + "/has-rule.txt";
+  const notHasFile = resultDir + "/not-has-rule.txt";
   console.log("Write result to: " + hasFile + " , " + notHasFile);
   Deno.writeTextFileSync(hasFile, has);
   Deno.writeTextFileSync(notHasFile, notHas);
