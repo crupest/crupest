@@ -3,6 +3,7 @@
   "specifiers": {
     "jsr:@db/sqlite@0.12": "0.12.0",
     "jsr:@denosaurs/plug@1": "1.1.0",
+    "jsr:@hono/hono@^4.12.8": "4.12.8",
     "jsr:@std/assert@0.217": "0.217.0",
     "jsr:@std/assert@^1.0.13": "1.0.13",
     "jsr:@std/async@^1.0.13": "1.0.13",
@@ -14,11 +15,11 @@
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "jsr:@std/expect@^1.0.16": "1.0.16",
     "jsr:@std/fmt@1": "1.0.8",
-    "jsr:@std/fs@1": "1.0.17",
-    "jsr:@std/fs@^1.0.17": "1.0.17",
+    "jsr:@std/fs@1": "1.0.18",
+    "jsr:@std/fs@^1.0.17": "1.0.18",
     "jsr:@std/fs@^1.0.18": "1.0.18",
-    "jsr:@std/internal@^1.0.6": "1.0.7",
-    "jsr:@std/internal@^1.0.7": "1.0.7",
+    "jsr:@std/internal@^1.0.6": "1.0.8",
+    "jsr:@std/internal@^1.0.7": "1.0.8",
     "jsr:@std/internal@^1.0.8": "1.0.8",
     "jsr:@std/io@~0.225.2": "0.225.2",
     "jsr:@std/path@0.217": "0.217.0",
@@ -59,6 +60,9 @@
         "jsr:@std/fs@1",
         "jsr:@std/path@1"
       ]
+    },
+    "@hono/hono@4.12.8": {
+      "integrity": "1997fde8abf28e84d821c9c867229be020e268d4749397aec071305bf54db297"
     },
     "@std/assert@0.217.0": {
       "integrity": "c98e279362ca6982d5285c3b89517b757c1e3477ee9f14eb2fdf80a45aaa9642"
@@ -1306,6 +1310,11 @@
       "npm:yargs@18"
     ],
     "members": {
+      "gateway": {
+        "dependencies": [
+          "jsr:@hono/hono@^4.12.8"
+        ]
+      },
       "mail": {
         "dependencies": [
           "jsr:@db/sqlite@0.12",

@@ -1,20 +1,21 @@
 services:
 
-  nginx:
+  gateway:
     build:
-      context: "./@@CRUPEST_DOCKER_DIR@@/nginx"
+      context: "./@@CRUPEST_DOCKER_DIR@@/gateway"
       additional_contexts:
         - "www=./www"
+        - "deno=./deno"
       dockerfile: Dockerfile
     ports:
       - "80:80"
       - "443:443"
       - "443:443/udp"
     env_file:
+      - "./@@CRUPEST_GENERATED_DIR@@/envs/gateway.env"
       - "./@@CRUPEST_GENERATED_DIR@@/envs/v2ray-common.env"
       - "./@@CRUPEST_GENERATED_DIR@@/envs/mail-server-common.env"
     volumes:
-      - "./@@CRUPEST_GENERATED_DIR@@/nginx:/etc/nginx/conf.d"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/certs:/etc/letsencrypt"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/data:/var/lib/letsencrypt"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/webroot:/var/www/certbot"

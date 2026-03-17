@@ -1,6 +1,7 @@
 {
-  "workspace": ["./base", "./mail", "./tools"],
+  "workspace": ["./base", "./gateway", "./mail", "./tools"],
   "tasks": {
+    "compile:gateway": "deno task --cwd=gateway compile",
     "compile:mail": "deno task --cwd=mail compile",
     "compile:tools": "deno task --cwd=tools compile"
   },

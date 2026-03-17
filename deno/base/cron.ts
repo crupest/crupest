@@ -1,4 +1,4 @@
-export type CronCallback = (task: CronTask) => Promise<void>;
+export type CronCallback = (task: CronTask) => Promise<void> | void;
 
 export interface CronTaskConfig {
   readonly name: string;
