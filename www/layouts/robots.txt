@@ -1,4 +1,2 @@
 User-agent: *
-Disallow: /git/*/snapshot/*
-Disallow: /git/*/blame/*
-Allow: /
+Disallow: /git/
