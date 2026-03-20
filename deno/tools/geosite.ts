@@ -51,9 +51,12 @@ interface Rule {
   attrs: string[];
 }
 
-type FileProvider = (name: string) => string;
+type FileProvider = (name: string) => string | Promise<string>;
 
-function extract(starts: string[], provider: FileProvider): Rule[] {
+async function extract(
+  starts: string[],
+  provider: FileProvider,
+): Promise<Rule[]> {
   function parseLine(line: string): Rule {
     let kind = prefixes.find((p) => line.startsWith(p + ":"));
     if (kind != null) {
@@ -81,8 +84,8 @@ function extract(starts: string[], provider: FileProvider): Rule[] {
   const visited = [] as string[];
   const rules = [] as Rule[];
 
-  function add(name: string) {
-    const text = provider(name);
+  async function add(name: string) {
+    const text = await provider(name);
     for (const rule of parse(text)) {
       if (rule.kind === "include") {
         if (visited.includes(rule.value)) {
@@ -90,7 +93,7 @@ function extract(starts: string[], provider: FileProvider): Rule[] {
           continue;
         } else {
           visited.push(rule.value);
-          add(rule.value);
+          await add(rule.value);
         }
       } else {
         rules.push(rule);
@@ -99,7 +102,7 @@ function extract(starts: string[], provider: FileProvider): Rule[] {
   }
 
   for (const start of starts) {
-    add(start);
+    await add(start);
   }
 
   return rules;
@@ -130,34 +133,89 @@ function toNewFormat(rules: Rule[], attr: string): [string, string] {
   return [toLines(has), toLines(notHas)];
 }
 
-if (import.meta.main) {
-  const tmpDir = Deno.makeTempDirSync({ prefix: "geosite-rules-" });
-  console.log("Work dir is ", tmpDir);
-  const zipFilePath = tmpDir + "/repo.zip";
+async function generate(
+  options: {
+    hasPath: string;
+    notHasPath: string;
+    attr?: string;
+    log?: boolean;
+    workDir?: string;
+    cleanup?: boolean;
+  },
+) {
+  const log = (...args: unknown[]) => {
+    if (options.log !== false) {
+      console.log(...args);
+    }
+  };
+
+  await using disposableStack = new AsyncDisposableStack();
+  const addCleanup = (fn: () => Promise<void> | void) => {
+    if (options.cleanup !== false) {
+      disposableStack.defer(fn);
+    }
+  };
+
+  const workDir = options.workDir ??
+    await Deno.makeTempDir({ prefix: "geosite-rules-" });
+  if (options.workDir == null) {
+    addCleanup(async () => {
+      log("Cleaning up work dir: " + workDir);
+      await Deno.remove(workDir, { recursive: true });
+    });
+  }
+  log("Work dir is ", workDir);
+
+  const zipFilePath = workDir + "/repo.zip";
+  log("Downloading repo from " + URL + " ...");
   const res = await fetch(URL);
   if (!res.ok) {
     throw new Error("Failed to download repo.");
   }
-  Deno.writeFileSync(zipFilePath, await res.bytes());
+  await Deno.writeFile(zipFilePath, await res.bytes());
+  addCleanup(async () => {
+    log("Cleaning up zip file: " + zipFilePath);
+    await Deno.remove(zipFilePath);
+  });
+
+  log("Unzipping repo ...");
   const unzip = new Deno.Command("unzip", {
     args: ["-q", zipFilePath],
-    cwd: tmpDir,
+    cwd: workDir,
   });
   if (!(await unzip.spawn().status).success) {
     throw new Error("Failed to unzip");
   }
+  const dataDir = workDir + "/" + REPO_NAME + "-master/data";
+  addCleanup(async () => {
+    log("Cleaning up unzipped data dir: " + dataDir);
+    await Deno.remove(dataDir, { recursive: true });
+  });
 
-  const dataDir = tmpDir + "/" + REPO_NAME + "-master/data";
-  const provider = (name: string) =>
-    Deno.readTextFileSync(dataDir + "/" + name);
+  log("Calculating rules ...");
+  const provider = (name: string) => Deno.readTextFile(dataDir + "/" + name);
+  const rules = await extract(SITES, provider);
+  const [has, notHas] = toNewFormat(rules, options.attr ?? ATTR);
 
-  const rules = extract(SITES, provider);
-  const [has, notHas] = toNewFormat(rules, ATTR);
+  log(
+    "Write result to: " + options.hasPath + " , " + options.notHasPath,
+  );
+  await Deno.writeTextFile(options.hasPath, has);
+  await Deno.writeTextFile(options.notHasPath, notHas);
+}
+
+if (import.meta.main) {
+  const tmpDir = await Deno.makeTempDir({ prefix: "geosite-rules-" });
   const resultDir = tmpDir + "/result";
-  Deno.mkdirSync(resultDir);
+  await Deno.mkdir(resultDir);
   const hasFile = resultDir + "/has-rule.txt";
   const notHasFile = resultDir + "/not-has-rule.txt";
-  console.log("Write result to: " + hasFile + " , " + notHasFile);
-  Deno.writeTextFileSync(hasFile, has);
-  Deno.writeTextFileSync(notHasFile, notHas);
+
+  await generate({
+    hasPath: hasFile,
+    notHasPath: notHasFile,
+    log: true,
+    workDir: tmpDir,
+    cleanup: false,
+  });
 }
