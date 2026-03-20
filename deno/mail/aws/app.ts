@@ -42,11 +42,11 @@ const CONFIG_DEFINITIONS = {
   },
   ldaPath: {
     description: "full path of lda executable",
-    default: "/dovecot/libexec/dovecot/dovecot-lda",
+    default: "/usr/lib/dovecot/dovecot-lda",
   },
   doveadmPath: {
     description: "full path of doveadm executable",
-    default: "/dovecot/bin/doveadm",
+    default: "/usr/bin/doveadm",
   },
   inboundFallback: {
     description: "comma separated addresses used as fallback recipients",

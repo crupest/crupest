@@ -38,6 +38,7 @@ services:
       - "./@@CRUPEST_GENERATED_DIR@@/envs/mail-server-common.env"
       - "./@@CRUPEST_GENERATED_DIR@@/envs/mail-server.env"
     ports:
+      - "25:25" # SMTP (inbound)
       - "143:143" # IMAP4 (explicit TLS => STARTTLS)
       - "993:993" # IMAP4 (implicit TLS)
       - "587:587" # ESMTP (explicit TLS => STARTTLS)
@@ -45,8 +46,9 @@ services:
       - "4190:4190" # manage sieve protocol
     volumes:
       - "./@@CRUPEST_DATA_MAIL_SERVER_DIR@@:/data"
-      - "./@@CRUPEST_SSL_FULLCHAIN_FILE@@:/etc/dovecot/ssl/tls.crt"
-      - "./@@CRUPEST_SSL_PRIVATE_KEY_FILE@@:/etc/dovecot/ssl/tls.key"
+      - "./@@CRUPEST_SSL_FULLCHAIN_FILE@@:/etc/ssl/mail/tls.crt:ro"
+      - "./@@CRUPEST_SSL_PRIVATE_KEY_FILE@@:/etc/ssl/mail/tls.key:ro"
+      - "./@@CRUPEST_GENERATED_DIR@@/postfix-main.cf:/etc/postfix/main.cf:ro"
       - "/etc/localtime:/etc/localtime:ro"
     networks:
       default:
