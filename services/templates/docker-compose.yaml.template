@@ -19,6 +19,7 @@ services:
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/certs:/etc/letsencrypt"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/data:/var/lib/letsencrypt"
       - "./@@CRUPEST_DATA_CERTBOT_DIR@@/webroot:/var/www/certbot"
+      - "./@@CRUPEST_STATE_GATEWAY_DIR@@:/app/state"
     networks:
       default:
         ipv4_address: "172.21.5.2"

@@ -63,9 +63,11 @@ function createReverseProxyHandler({ originServer }: { originServer: string }) {
   };
 }
 
-function createHttpHono() {
+type PrintFunc = (str: string, ...rest: string[]) => void;
+
+function createHttpHono(options?: { customLogger?: PrintFunc }) {
   const app = new Hono();
-  app.use(logger());
+  app.use(logger(options?.customLogger));
 
   // Serve static files for ACME challenge
   app.get(
@@ -140,11 +142,13 @@ function createMailHono(
   return app;
 }
 
-function createHttpsHono({ config }: { config: Config }) {
+function createHttpsHono(
+  { config, customLogger }: { config: Config; customLogger?: PrintFunc },
+) {
   const app = new Hono({
     getPath: (req) => req.url.replace(/^https?:\/([^?]+).*$/, "$1"),
   });
-  app.use(logger());
+  app.use(logger(customLogger));
 
   const rootBasePath = `/${config.get("domain")}`;
   app.route(
@@ -161,64 +165,113 @@ function createHttpsHono({ config }: { config: Config }) {
   return app;
 }
 
-let servers: {
-  httpServer: Deno.HttpServer<Deno.NetAddr>;
-  httpsServer: Deno.HttpServer<Deno.NetAddr>;
-} | null = null;
+class DenoHttpServerWrapper {
+  #name: string;
+  #abortController: AbortController;
+  #server: Deno.HttpServer;
 
-async function restartServer() {
-  if (servers) {
-    await Promise.all([
-      servers.httpServer.shutdown(),
-      servers.httpsServer.shutdown(),
-    ]);
+  constructor(
+    name: string,
+    hono: Hono,
+    options:
+      | Deno.ServeTcpOptions
+      | (Deno.ServeTcpOptions & Deno.TlsCertifiedKeyPem),
+  ) {
+    this.#name = name;
+    this.#abortController = new AbortController();
+    this.#server = Deno.serve({
+      signal: this.#abortController.signal,
+      ...options,
+    }, (req, info) => {
+      return hono.fetch(req, info);
+    });
   }
 
-  const httpApp = createHttpHono();
-  const httpsApp = createHttpsHono({ config: configProvider });
+  async stop() {
+    console.log(`Try to shutdown server "${this.#name}" gracefully...`);
+    const result = await Promise.any([
+      this.#server.shutdown().then(() => true),
+      new Promise((resolve) => setTimeout(() => resolve(false), 5000)),
+    ]);
+    if (!result) {
+      console.warn(
+        `Failed to shutdown server "${this.#name}" gracefully, force to abort.`,
+      );
+      this.#abortController.abort();
+      await this.#server.finished;
+    }
+    console.log(`Server "${this.#name}" stopped.`);
+  }
+}
 
-  const httpServer = Deno.serve({
-    port: 80,
-  }, (req, info) => {
-    return httpApp.fetch(req, info);
+async function startHttpServer() {
+  const accessLogFile = await Deno.open("/app/state/http-access.log", {
+    create: true,
+    append: true,
   });
-
-  const httpsServer = Deno.serve({
-    port: 443,
-    cert: await Deno.readTextFile(
-      `/etc/letsencrypt/live/${configProvider.get("domain")}/fullchain.pem`,
-    ),
-    key: await Deno.readTextFile(
-      `/etc/letsencrypt/live/${configProvider.get("domain")}/privkey.pem`,
-    ),
-  }, (req, info) => {
-    return httpsApp.fetch(req, info);
+  const textEncoder = new TextEncoder();
+  const httpApp = createHttpHono({
+    customLogger: (str, ...rest) => {
+      accessLogFile.write(textEncoder.encode([str, ...rest].join(" ") + "\n"));
+    },
   });
-
-  servers = { httpServer, httpsServer };
-  return servers;
+  return await Promise.resolve(
+    new DenoHttpServerWrapper("HTTP", httpApp, { port: 80 }),
+  );
 }
 
 async function certbotRenew() {
+  console.log("Start certbot renewal...");
   const command = new Deno.Command("certbot", {
     args: ["renew", "--webroot", "-w", "/var/www/certbot"],
   });
   const process = command.spawn();
   await process.status;
-  await restartServer();
+  console.log("Certbot renewal completed.");
 }
 
-function main() {
-  restartServer();
+async function main() {
+  const httpsAccessLogFile = await Deno.open("/app/state/https-access.log", {
+    create: true,
+    append: true,
+  });
+  const httpsAccessLogTextEncoder = new TextEncoder();
+
+  async function startHttpsServer() {
+    const httpsApp = createHttpsHono({
+      config: configProvider,
+      customLogger: (str, ...rest) => {
+        httpsAccessLogFile.write(
+          httpsAccessLogTextEncoder.encode([str, ...rest].join(" ") + "\n"),
+        );
+      },
+    });
+    return new DenoHttpServerWrapper("HTTPS", httpsApp, {
+      port: 443,
+      cert: await Deno.readTextFile(
+        `/etc/letsencrypt/live/${configProvider.get("domain")}/fullchain.pem`,
+      ),
+      key: await Deno.readTextFile(
+        `/etc/letsencrypt/live/${configProvider.get("domain")}/privkey.pem`,
+      ),
+    });
+  }
+
+  const _httpServer = await startHttpServer();
+  let httpsServer = await startHttpsServer();
 
   setTimeout(() => {
     new CronTask({
       name: "certbot-renewal",
       interval: 1000 * 60 * 60 * 12,
-      callback: certbotRenew,
+      callback: async () => {
+        await certbotRenew();
+        await httpsServer.stop();
+        httpsServer = await startHttpsServer();
+      },
       startNow: true,
     });
   }, 5000);
 }
 
-main();
+await main();
