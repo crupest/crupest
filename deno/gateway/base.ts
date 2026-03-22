@@ -26,3 +26,8 @@ export interface Bindings {
 export interface Env {
   Bindings: Bindings;
 }
+
+export const GEOSITE_PATH = {
+  has: "/srv/www/magic/has-rule.txt",
+  notHas: "/srv/www/magic/not-has-rule.txt",
+} as const;

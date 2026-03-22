@@ -4,7 +4,7 @@
   },
   "tasks": {
     "start": "deno run --allow-net main.ts",
-    "compile": "deno compile -o out/crupest-gateway -A main.ts"
+    "compile": "deno compile -o out/crupest-gateway -A --include worker main.ts"
   },
   "compilerOptions": {
     "jsx": "precompile",

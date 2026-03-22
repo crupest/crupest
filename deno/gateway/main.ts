@@ -176,6 +176,14 @@ async function certbotRenew() {
 }
 
 async function main() {
+  const _geositeWorker = new Worker(
+    new URL("./worker/geosite.ts", import.meta.url).href,
+    {
+      name: "GeoSite Worker",
+      type: "module",
+    },
+  );
+
   const httpsAccessLogFile = await Deno.open("/app/state/https-access.log", {
     create: true,
     append: true,
