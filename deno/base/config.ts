@@ -79,7 +79,7 @@ export class ConfigProvider<K extends string> {
     return value.split(separator);
   }
 
-  [Symbol.for("Deno.customInspect")]() {
+  [Symbol.for("Deno.customInspect")](): string {
     const getValueString = (item: ConfigMapItem): string => {
       if (item.value == null) return "(unresolved)";
       if (item.secret === true) return "***";

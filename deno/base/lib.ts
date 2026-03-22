@@ -11,10 +11,10 @@ function prependNonEmpty<T>(
   return string.length === 0 ? "" : prefix + string;
 }
 
-export const StringUtils = Object.freeze({
+export const StringUtils = {
   camelCaseToKebabCase,
   prependNonEmpty,
-});
+} as const;
 
 function toFileNameString(date: Date, dateOnly?: boolean): string {
   const str = date.toISOString();
@@ -23,8 +23,6 @@ function toFileNameString(date: Date, dateOnly?: boolean): string {
     : str.replaceAll(/:|\./g, "-");
 }
 
-export const DateUtils = Object.freeze(
-  {
-    toFileNameString,
-  } as const,
-);
+export const DateUtils = {
+  toFileNameString,
+} as const;
