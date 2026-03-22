@@ -1,0 +1,28 @@
+import { ConfigDefinition, ConfigProvider } from "@crupest/base/config";
+
+export const PREFIX = "crupest";
+export const CONFIG_DEFINITION: ConfigDefinition = {
+  domain: {
+    description: "the root domain",
+  },
+  github: {
+    description: "site owner's github url",
+  },
+  v2rayPath: {
+    description: "the path for v2ray websocket",
+  },
+  mailServerAwsInboundPath: {
+    description: "the path for mail server aws inbound webhook",
+  },
+} as const satisfies ConfigDefinition;
+
+export const configProvider = new ConfigProvider(PREFIX, CONFIG_DEFINITION);
+export type Config = typeof configProvider;
+
+export interface Bindings {
+  remoteAddr: string;
+}
+
+export interface Env {
+  Bindings: Bindings;
+}

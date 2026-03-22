@@ -1,87 +1,12 @@
 import { Context, Hono } from "hono";
 import { serveStatic } from "hono/deno";
-import { logger } from "hono/logger";
-import { createMiddleware } from "hono/factory";
 
-import { ConfigDefinition, ConfigProvider } from "@crupest/base/config";
 import { CronTask } from "@crupest/base/cron";
 
-const PREFIX = "crupest";
-const CONFIG_DEFINITION: ConfigDefinition = {
-  domain: {
-    description: "the root domain",
-  },
-  github: {
-    description: "site owner's github url",
-  },
-  v2rayPath: {
-    description: "the path for v2ray websocket",
-  },
-  mailServerAwsInboundPath: {
-    description: "the path for mail server aws inbound webhook",
-  },
-} as const satisfies ConfigDefinition;
-
-const configProvider = new ConfigProvider(PREFIX, CONFIG_DEFINITION);
-type Config = typeof configProvider;
-
-interface Bindings {
-  remoteAddr: string;
-}
-
-interface Env {
-  Bindings: Bindings;
-}
-
-interface RateLimitConfig {
-  requestsPerMinute: number;
-}
-
-function isCrawlerAgent(agent: string): boolean {
-  agent = agent.toLowerCase();
-  for (const botAgentSubstr of ["bot", "crawler", "spider", "scrapy"]) {
-    if (agent.includes(botAgentSubstr)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function createRateLimitMiddleware(options?: Partial<RateLimitConfig>) {
-  const { requestsPerMinute } = {
-    requestsPerMinute: 30,
-    ...options,
-  };
-
-  const agentMap = new Map<string, number>();
-
-  return createMiddleware(async (c, next) => {
-    const agent = c.req.header("user-agent");
-    if (agent == null || !isCrawlerAgent(agent)) {
-      await next();
-      return;
-    }
-
-    const count = agentMap.get(agent) ?? 0;
-    agentMap.set(agent, count + 1);
-    setTimeout(() => {
-      const count = agentMap.get(agent) ?? 0;
-      if (count <= 1) {
-        agentMap.delete(agent);
-      } else {
-        agentMap.set(agent, count - 1);
-      }
-    }, 60000);
-
-    if (count >= requestsPerMinute) {
-      c.header("Retry-After", String(60));
-      return c.text("Too Many Requests", 429);
-    } else {
-      await next();
-      return;
-    }
-  });
-}
+import { Env } from "./base.ts";
+import { Config, configProvider } from "./base.ts";
+import { createRateLimitMiddleware } from "./ratelimit.ts";
+import { createLogMiddleware, PrintFunc } from "./log.ts";
 
 function createReverseProxyHandler({ originServer }: { originServer: string }) {
   return async (c: Context<Env>) => {
@@ -114,11 +39,9 @@ function createReverseProxyHandler({ originServer }: { originServer: string }) {
   };
 }
 
-type PrintFunc = (str: string, ...rest: string[]) => void;
-
 function createHttpHono(options?: { customLogger?: PrintFunc }) {
   const app = new Hono();
-  app.use(logger(options?.customLogger));
+  app.use(createLogMiddleware({ printFunc: options?.customLogger }));
   app.use(createRateLimitMiddleware());
 
   // Serve static files for ACME challenge
@@ -200,7 +123,7 @@ function createHttpsHono(
   const app = new Hono({
     getPath: (req) => req.url.replace(/^https?:\/([^?]+).*$/, "$1"),
   });
-  app.use(logger(customLogger));
+  app.use(createLogMiddleware({ printFunc: customLogger }));
   app.use(createRateLimitMiddleware());
 
   const rootBasePath = `/${config.get("domain")}`;
@@ -264,8 +187,8 @@ async function startHttpServer() {
   });
   const textEncoder = new TextEncoder();
   const httpApp = createHttpHono({
-    customLogger: (str, ...rest) => {
-      accessLogFile.write(textEncoder.encode([str, ...rest].join(" ") + "\n"));
+    customLogger: async (str) => {
+      await accessLogFile.write(textEncoder.encode(str + "\n"));
     },
   });
   return await Promise.resolve(
@@ -293,10 +216,8 @@ async function main() {
   async function startHttpsServer() {
     const httpsApp = createHttpsHono({
       config: configProvider,
-      customLogger: (str, ...rest) => {
-        httpsAccessLogFile.write(
-          httpsAccessLogTextEncoder.encode([str, ...rest].join(" ") + "\n"),
-        );
+      customLogger: async (str) => {
+        await httpsAccessLogFile.write(httpsAccessLogTextEncoder.encode(str + "\n"));
       },
     });
     return new DenoHttpServerWrapper("HTTPS", httpsApp, {
