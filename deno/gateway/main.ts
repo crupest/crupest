@@ -260,15 +260,18 @@ async function main() {
   const _httpServer = await startHttpServer();
   let httpsServer = await startHttpsServer();
 
-  setTimeout(() => {
+  const renewCertbotAndRestartHttpsServer = async () => {
+    await certbotRenew();
+    await httpsServer.stop();
+    httpsServer = await startHttpsServer();
+  };
+
+  setTimeout(async () => {
+    await renewCertbotAndRestartHttpsServer();
     new CronTask({
       name: "certbot-renewal",
       interval: 1000 * 60 * 60 * 12,
-      callback: async () => {
-        await certbotRenew();
-        await httpsServer.stop();
-        httpsServer = await startHttpsServer();
-      },
+      callback: renewCertbotAndRestartHttpsServer,
       startNow: true,
     });
   }, 5000);
