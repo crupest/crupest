@@ -1,47 +1,16 @@
-import { Context, Hono } from "hono";
+import { Hono } from "hono";
 import { serveStatic } from "hono/deno";
 
 import { CronTask } from "@crupest/base/cron";
 
-import { Env } from "./base.ts";
 import { Config, configProvider } from "./base.ts";
-import { createRateLimitMiddleware } from "./ratelimit.ts";
-import { createLogMiddleware, PrintFunc } from "./log.ts";
+import { createRateLimitMiddleware } from "./middleware/rate-limit.ts";
+import { createLogMiddleware, LogWriter } from "./middleware/log.ts";
+import { createReverseProxyHandler } from "./helper/reverse-proxy.ts";
 
-function createReverseProxyHandler({ originServer }: { originServer: string }) {
-  return async (c: Context<Env>) => {
-    const url = new URL(c.req.url);
-    const { host, protocol } = url;
-
-    let forwardedFor = c.req.header("x-forwarded-for");
-    if (forwardedFor) forwardedFor += `, ${c.env.remoteAddr}`;
-    else forwardedFor = c.env.remoteAddr;
-
-    const connection = c.req.header("upgrade") ? "upgrade" : "close";
-
-    url.protocol = "http:";
-    url.host = originServer;
-
-    return await fetch(url, {
-      method: c.req.method,
-      headers: {
-        ...c.req.header(),
-        "Connection": connection,
-        "Host": host,
-        "X-Forwarded-For": forwardedFor,
-        "X-Forwarded-Host": host,
-        "X-Forwarded-Proto": protocol.slice(0, -1),
-        "X-Real-IP": c.env.remoteAddr,
-      },
-      body: c.req.raw.body,
-      redirect: "manual",
-    });
-  };
-}
-
-function createHttpHono(options?: { customLogger?: PrintFunc }) {
+function createHttpHono(options?: { logWriter?: LogWriter }) {
   const app = new Hono();
-  app.use(createLogMiddleware({ printFunc: options?.customLogger }));
+  app.use(createLogMiddleware({ writer: options?.logWriter }));
   app.use(createRateLimitMiddleware());
 
   // Serve static files for ACME challenge
@@ -118,12 +87,12 @@ function createMailHono(
 }
 
 function createHttpsHono(
-  { config, customLogger }: { config: Config; customLogger?: PrintFunc },
+  { config, logWriter }: { config: Config; logWriter?: LogWriter },
 ) {
   const app = new Hono({
     getPath: (req) => req.url.replace(/^https?:\/([^?]+).*$/, "$1"),
   });
-  app.use(createLogMiddleware({ printFunc: customLogger }));
+  app.use(createLogMiddleware({ writer: logWriter }));
   app.use(createRateLimitMiddleware());
 
   const rootBasePath = `/${config.get("domain")}`;
@@ -187,7 +156,7 @@ async function startHttpServer() {
   });
   const textEncoder = new TextEncoder();
   const httpApp = createHttpHono({
-    customLogger: async (str) => {
+    logWriter: async (str) => {
       await accessLogFile.write(textEncoder.encode(str + "\n"));
     },
   });
@@ -216,8 +185,10 @@ async function main() {
   async function startHttpsServer() {
     const httpsApp = createHttpsHono({
       config: configProvider,
-      customLogger: async (str) => {
-        await httpsAccessLogFile.write(httpsAccessLogTextEncoder.encode(str + "\n"));
+      logWriter: async (str) => {
+        await httpsAccessLogFile.write(
+          httpsAccessLogTextEncoder.encode(str + "\n"),
+        );
       },
     });
     return new DenoHttpServerWrapper("HTTPS", httpsApp, {
