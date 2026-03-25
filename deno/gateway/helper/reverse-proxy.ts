@@ -1,34 +1,34 @@
 import { Context } from "hono";
-
-import { Env } from "../base.ts";
+import { getConnInfo } from "hono/deno";
 
 export function createReverseProxyHandler(
   { originServer }: { originServer: string },
 ) {
-  return async (c: Context<Env>) => {
+  return async (c: Context) => {
     const url = new URL(c.req.url);
     const { host, protocol } = url;
-
-    let forwardedFor = c.req.header("x-forwarded-for");
-    if (forwardedFor) forwardedFor += `, ${c.env.remoteAddr}`;
-    else forwardedFor = c.env.remoteAddr;
-
-    const connection = c.req.header("upgrade") ? "upgrade" : "close";
+    const remoteAddr = getConnInfo(c).remote.address;
 
     url.protocol = "http:";
     url.host = originServer;
 
+    const headers = new Headers(c.req.header());
+    headers.set("Connection", headers.get("upgrade") ? "upgrade" : "close");
+    headers.set("Host", host);
+    headers.set("X-Forwarded-Host", host);
+    headers.set("X-Forwarded-Proto", protocol.slice(0, -1));
+    if (remoteAddr) {
+      headers.set("X-Real-IP", remoteAddr);
+      const forwardedFor = headers.get("x-forwarded-for");
+      headers.set(
+        "X-Forwarded-For",
+        forwardedFor ? `${forwardedFor}, ${remoteAddr}` : remoteAddr,
+      );
+    }
+
     return await fetch(url, {
       method: c.req.method,
-      headers: {
-        ...c.req.header(),
-        "Connection": connection,
-        "Host": host,
-        "X-Forwarded-For": forwardedFor,
-        "X-Forwarded-Host": host,
-        "X-Forwarded-Proto": protocol.slice(0, -1),
-        "X-Real-IP": c.env.remoteAddr,
-      },
+      headers,
       body: c.req.raw.body,
       redirect: "manual",
     });
