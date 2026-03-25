@@ -2,11 +2,28 @@
 
 set -e -o pipefail
 
-die() {
-  echo "$@" >&2
-  exit 1
-}
+mkdir -p /var/spool/postfix/private
+chown postfix:postfix /var/spool/postfix/private
 
 /app/crupest-mail serve --real &
 
-/dovecot/sbin/dovecot -F
+/usr/sbin/dovecot -F &
+
+tries=0
+while [[ ! -S /var/spool/postfix/private/auth || ! -S /var/spool/postfix/private/dovecot-lmtp ]]; do
+  if [[ $tries -ge 10 ]]; then
+    echo "Error: Dovecot auth and lmtp sockets are not found after 10 seconds!"
+    exit 1
+  fi
+  sleep 1
+  ((tries++))
+done
+
+if [[ ! -f /data/postfix-virtual ]]; then
+  touch /data/postfix-virtual
+  chmod 644 /data/postfix-virtual
+fi
+
+postmap /data/postfix-virtual
+
+postfix start-fg
