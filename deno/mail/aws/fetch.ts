@@ -99,7 +99,7 @@ export class AwsMailFetcher {
       if (cause instanceof NoSuchKey) {
         const message =
           `Live mail  ${s3Key} is not found. Perhaps already delivered?`;
-        console.error(message, cause);
+        console.warn(message);
         throw new LiveMailNotFoundError(message);
       }
       throw cause;
