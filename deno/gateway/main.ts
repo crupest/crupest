@@ -127,9 +127,7 @@ class DenoHttpServerWrapper {
     this.#server = Deno.serve({
       signal: this.#abortController.signal,
       ...options,
-    }, (req, info) => {
-      return hono.fetch(req, info);
-    });
+    }, hono.fetch);
   }
 
   async stop() {

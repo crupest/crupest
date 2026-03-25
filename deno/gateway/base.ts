@@ -19,14 +19,6 @@ export const CONFIG_DEFINITION: ConfigDefinition = {
 export const configProvider = new ConfigProvider(PREFIX, CONFIG_DEFINITION);
 export type Config = typeof configProvider;
 
-export interface Bindings {
-  remoteAddr: string;
-}
-
-export interface Env {
-  Bindings: Bindings;
-}
-
 export const GEOSITE_PATH = {
   has: "/srv/www/magic/has-rule.txt",
   notHas: "/srv/www/magic/not-has-rule.txt",
