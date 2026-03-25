@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { serveStatic } from "hono/deno";
 
+import { Utils } from "@crupest/base";
 import { CronTask } from "@crupest/base/cron";
 
 import { Config, configProvider } from "./base.ts";
@@ -132,10 +133,10 @@ class DenoHttpServerWrapper {
 
   async stop() {
     console.log(`Try to shutdown server "${this.#name}" gracefully...`);
-    const result = await Promise.any([
-      this.#server.shutdown().then(() => true),
-      new Promise((resolve) => setTimeout(() => resolve(false), 5000)),
-    ]);
+    const result = await Utils.timeout(
+      this.#server.shutdown(),
+      Temporal.Duration.from({ seconds: 5 }),
+    );
     if (!result) {
       console.warn(
         `Failed to shutdown server "${this.#name}" gracefully, force to abort.`,

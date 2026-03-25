@@ -26,3 +26,32 @@ function toFileNameString(date: Date, dateOnly?: boolean): string {
 export const DateUtils = {
   toFileNameString,
 } as const;
+
+function delay(duration: number | Temporal.Duration): Promise<void>;
+function delay<T>(duration: number | Temporal.Duration, value: T): Promise<T>;
+function delay<T>(
+  duration: number | Temporal.Duration,
+  value?: T,
+): Promise<T | void> {
+  if (duration instanceof Temporal.Duration) {
+    duration = duration.total("milliseconds");
+  }
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(value), duration);
+  });
+}
+
+function timeout(
+  promise: Promise<unknown>,
+  duration: number | Temporal.Duration,
+): Promise<boolean> {
+  return Promise.any([
+    promise.then(() => true),
+    delay(duration, false),
+  ]);
+}
+
+export const Utils = {
+  delay,
+  timeout,
+};
