@@ -32,7 +32,7 @@ export class DumbSmtpServer {
     using disposeStack = new DisposableStack();
     disposeStack.defer(() => {
       console.info(logTag, "Close tcp connection.");
-      conn.close();
+      conn[Symbol.dispose]();
     });
 
     console.info(logTag, "New tcp connection established.");
