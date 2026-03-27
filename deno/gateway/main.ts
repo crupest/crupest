@@ -45,11 +45,6 @@ function createRootHono(
     createReverseProxyHandler({ originServer: "git-server:3636" }),
   );
 
-  app.all(
-    `/${config.get("v2rayPath")}`,
-    createReverseProxyHandler({ originServer: "v2ray:10000" }),
-  );
-
   app.get(
     "*",
     serveStatic({

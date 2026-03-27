@@ -8,9 +8,6 @@ export const CONFIG_DEFINITION: ConfigDefinition = {
   github: {
     description: "site owner's github url",
   },
-  v2rayPath: {
-    description: "the path for v2ray websocket",
-  },
   mailServerAwsInboundPath: {
     description: "the path for mail server aws inbound webhook",
   },
