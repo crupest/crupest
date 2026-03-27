@@ -56,6 +56,7 @@ type FileProvider = (name: string) => string | Promise<string>;
 async function extract(
   starts: string[],
   provider: FileProvider,
+  logger?: (message: string) => Promise<void> | void,
 ): Promise<Rule[]> {
   function parseLine(line: string): Rule {
     let kind = prefixes.find((p) => line.startsWith(p + ":"));
@@ -89,7 +90,11 @@ async function extract(
     for (const rule of parse(text)) {
       if (rule.kind === "include") {
         if (visited.includes(rule.value)) {
-          console.warn(`circular refs found: ${name} includes ${rule.value}.`);
+          if (logger) {
+            await logger(
+              `circular refs found: ${name} includes ${rule.value}.`,
+            );
+          }
           continue;
         } else {
           visited.push(rule.value);
@@ -138,14 +143,14 @@ export async function generateGeoSiteFiles(
     hasPath: string;
     notHasPath: string;
     attr?: string;
-    log?: boolean;
+    logger?: (message: string) => Promise<void> | void;
     workDir?: string;
     cleanup?: boolean;
   },
 ) {
-  const log = (...args: unknown[]) => {
-    if (options.log !== false) {
-      console.log(...args);
+  const log = async (message: string) => {
+    if (options.logger) {
+      await options.logger(message);
     }
   };
 
@@ -164,21 +169,21 @@ export async function generateGeoSiteFiles(
       await Deno.remove(workDir, { recursive: true });
     });
   }
-  log("Work dir is ", workDir);
+  await log("Work dir is " + workDir);
 
   const zipFilePath = workDir + "/repo.zip";
-  log("Downloading repo from " + URL + " ...");
+  await log("Downloading repo from " + URL + " ...");
   const res = await fetch(URL);
   if (!res.ok) {
     throw new Error("Failed to download repo.");
   }
   await Deno.writeFile(zipFilePath, await res.bytes());
   addCleanup(async () => {
-    log("Cleaning up zip file: " + zipFilePath);
+    await log("Cleaning up zip file: " + zipFilePath);
     await Deno.remove(zipFilePath);
   });
 
-  log("Unzipping repo ...");
+  await log("Unzipping repo ...");
   const unzip = new Deno.Command("unzip", {
     args: ["-q", zipFilePath],
     cwd: workDir,
@@ -188,16 +193,16 @@ export async function generateGeoSiteFiles(
   }
   const dataDir = workDir + "/" + REPO_NAME + "-master/data";
   addCleanup(async () => {
-    log("Cleaning up unzipped data dir: " + dataDir);
+    await log("Cleaning up unzipped data dir: " + dataDir);
     await Deno.remove(dataDir, { recursive: true });
   });
 
-  log("Calculating rules ...");
+  await log("Calculating rules ...");
   const provider = (name: string) => Deno.readTextFile(dataDir + "/" + name);
-  const rules = await extract(SITES, provider);
+  const rules = await extract(SITES, provider, log);
   const [has, notHas] = toNewFormat(rules, options.attr ?? ATTR);
 
-  log(
+  await log(
     "Write result to: " + options.hasPath + " , " + options.notHasPath,
   );
   await Deno.writeTextFile(options.hasPath, has);

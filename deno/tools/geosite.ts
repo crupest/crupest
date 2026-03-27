@@ -10,7 +10,7 @@ if (import.meta.main) {
   await generateGeoSiteFiles({
     hasPath: hasFile,
     notHasPath: notHasFile,
-    log: true,
+    logger: console.log,
     workDir: tmpDir,
     cleanup: false,
   });

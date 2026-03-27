@@ -7,7 +7,7 @@ async function generate() {
   await generateGeoSiteFiles({
     hasPath: GEOSITE_PATH.has,
     notHasPath: GEOSITE_PATH.notHas,
-    log: true,
+    logger: (message: string) => console.log(`[worker:geosite] ${message}`),
   });
 }
 
