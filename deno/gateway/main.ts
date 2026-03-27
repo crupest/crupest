@@ -111,10 +111,23 @@ function createHttpsHono(
   return app;
 }
 
+function createControllerHono(options: {
+  restartHttpsServer: () => Promise<void>;
+}) {
+  const app = new Hono();
+
+  app.get("/restart-https-server", async (c) => {
+    await options.restartHttpsServer();
+    return c.text("HTTPS server restarted.", 200);
+  });
+
+  return app;
+}
+
 class DenoHttpServerWrapper {
   #name: string;
   #abortController: AbortController;
-  #server: Deno.HttpServer;
+  #server: Deno.HttpServer<Deno.NetAddr>;
 
   constructor(
     name: string,
@@ -125,10 +138,14 @@ class DenoHttpServerWrapper {
   ) {
     this.#name = name;
     this.#abortController = new AbortController();
+    console.log(`Starting server "${this.#name}" ...`);
     this.#server = Deno.serve({
       signal: this.#abortController.signal,
       ...options,
     }, hono.fetch);
+    console.log(
+      `Server "${this.#name}" started on ${this.#server.addr.hostname}:${this.#server.addr.port}.`,
+    );
   }
 
   async stop() {
@@ -164,10 +181,53 @@ async function startHttpServer() {
   );
 }
 
+async function startHttpsServer() {
+  const accessLogFile = await Deno.open("/app/state/https-access.log", {
+    create: true,
+    append: true,
+  });
+  const textEncoder = new TextEncoder();
+
+  const httpsApp = createHttpsHono({
+    config: configProvider,
+    logWriter: async (str) => {
+      await accessLogFile.write(textEncoder.encode(str + "\n"));
+    },
+  });
+  return new DenoHttpServerWrapper("HTTPS", httpsApp, {
+    port: 443,
+    cert: await Deno.readTextFile(
+      `/etc/letsencrypt/live/${configProvider.get("domain")}/fullchain.pem`,
+    ),
+    key: await Deno.readTextFile(
+      `/etc/letsencrypt/live/${configProvider.get("domain")}/privkey.pem`,
+    ),
+  });
+}
+
+async function startControllerServer(
+  options: { restartHttpsServer: () => Promise<void> },
+) {
+  const controllerApp = createControllerHono(options);
+  return await Promise.resolve(
+    new DenoHttpServerWrapper("Controller", controllerApp, {
+      hostname: "127.0.0.1",
+      port: 2266,
+    }),
+  );
+}
+
 async function certbotRenew() {
   console.log("Start certbot renewal...");
   const command = new Deno.Command("certbot", {
-    args: ["renew", "--webroot", "-w", "/var/www/certbot"],
+    args: [
+      "renew",
+      "--webroot",
+      "-w",
+      "/var/www/certbot",
+      "--deploy-hook",
+      "curl -s http://127.0.0.1:2266/restart-https-server",
+    ],
   });
   const process = command.spawn();
   await process.status;
@@ -183,47 +243,21 @@ async function main() {
     },
   );
 
-  const httpsAccessLogFile = await Deno.open("/app/state/https-access.log", {
-    create: true,
-    append: true,
-  });
-  const httpsAccessLogTextEncoder = new TextEncoder();
-
-  async function startHttpsServer() {
-    const httpsApp = createHttpsHono({
-      config: configProvider,
-      logWriter: async (str) => {
-        await httpsAccessLogFile.write(
-          httpsAccessLogTextEncoder.encode(str + "\n"),
-        );
-      },
-    });
-    return new DenoHttpServerWrapper("HTTPS", httpsApp, {
-      port: 443,
-      cert: await Deno.readTextFile(
-        `/etc/letsencrypt/live/${configProvider.get("domain")}/fullchain.pem`,
-      ),
-      key: await Deno.readTextFile(
-        `/etc/letsencrypt/live/${configProvider.get("domain")}/privkey.pem`,
-      ),
-    });
-  }
-
   const _httpServer = await startHttpServer();
   let httpsServer = await startHttpsServer();
+  const _controllerServer = await startControllerServer({ restartHttpsServer });
 
-  const renewCertbotAndRestartHttpsServer = async () => {
-    await certbotRenew();
+  async function restartHttpsServer() {
     await httpsServer.stop();
     httpsServer = await startHttpsServer();
-  };
+  }
 
   setTimeout(async () => {
-    await renewCertbotAndRestartHttpsServer();
+    await certbotRenew();
     new CronTask({
       name: "certbot-renewal",
       interval: 1000 * 60 * 60 * 12,
-      callback: renewCertbotAndRestartHttpsServer,
+      callback: certbotRenew,
       startNow: true,
     });
   }, 5000);
