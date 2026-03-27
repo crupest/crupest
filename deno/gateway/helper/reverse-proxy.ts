@@ -5,6 +5,16 @@ function isWebSocketRequest(headers: Headers) {
   return headers.get("upgrade")?.toLowerCase() === "websocket";
 }
 
+function splitWebSocketProtocols(protocolHeader: string | null) {
+  if (!protocolHeader) {
+    return [];
+  }
+  return protocolHeader
+    .split(",")
+    .map((protocol) => protocol.trim())
+    .filter((protocol) => protocol.length > 0);
+}
+
 type WebSocketData = string | Blob | ArrayBufferLike | ArrayBufferView;
 
 function forwardWebSocket(from: WebSocket, to: WebSocket) {
@@ -61,12 +71,24 @@ export function createReverseProxyHandler(
     }
 
     if (isWebSocket) {
+      const wsProtocol = splitWebSocketProtocols(
+        headers.get("sec-websocket-protocol"),
+      );
+
+      headers.delete("connection");
+      headers.delete("upgrade");
+      headers.delete("sec-websocket-key");
+      headers.delete("sec-websocket-version");
+      headers.delete("sec-websocket-extensions");
+      headers.delete("sec-websocket-protocol");
+
       const { socket: downstreamSocket, response } = Deno.upgradeWebSocket(
         c.req.raw,
       );
       const upstreamSocket = new WebSocket(
         url.toString(),
         {
+          protocols: wsProtocol,
           headers,
         },
       );
