@@ -2,8 +2,8 @@ compatibility_level = 3.10
 
 maillog_file = /dev/stdout
 
-myhostname = mail.@@CRUPEST_DOMAIN@@
-mydomain = @@CRUPEST_DOMAIN@@
+myhostname = mail.{{CRUPEST_DOMAIN}}
+mydomain = {{CRUPEST_DOMAIN}}
 myorigin = $mydomain
 
 inet_interfaces = all
@@ -16,9 +16,9 @@ local_transport = error:local delivery is disabled
 alias_maps =
 alias_database =
 
-# Virtual mailbox domain: accept mail addressed to at@@CRUPEST_DOMAIN@@ and
+# Virtual mailbox domain: accept mail addressed to at{{CRUPEST_DOMAIN}} and
 # deliver directly to Dovecot via LMTP.
-virtual_mailbox_domains = @@CRUPEST_DOMAIN@@
+virtual_mailbox_domains = {{CRUPEST_DOMAIN}}
 virtual_transport = lmtp:unix:private/dovecot-lmtp
 virtual_mailbox_maps =
 virtual_alias_maps = hash:/data/postfix-virtual

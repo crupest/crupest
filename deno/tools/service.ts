@@ -7,12 +7,11 @@ import Mustache from "mustache";
 import { defineYargsModule, DEMAND_COMMAND_MESSAGE } from "./yargs.ts";
 
 const MUSTACHE_RENDER_OPTIONS: Mustache.RenderOptions = {
-  tags: ["@@", "@@"],
   escape: (value: unknown) => String(value),
 };
 
 function mustacheParse(template: string) {
-  return Mustache.parse(template, MUSTACHE_RENDER_OPTIONS.tags);
+  return Mustache.parse(template);
 }
 
 function mustacheRender(template: string, view: Record<string, string>) {
@@ -63,7 +62,7 @@ function loadTemplatedConfigFiles(
   return config;
 }
 
-const TEMPLATE_FILE_EXT = ".template";
+const TEMPLATE_FILE_EXT = ".mustache";
 
 class TemplateDir {
   templates: { path: string; ext: string; text: string; vars: string[] }[] = [];
@@ -161,7 +160,7 @@ export default defineYargsModule({
           const config = loadTemplatedConfigFiles(
             [
               join(projectDir, "data/config"),
-              join(projectDir, "services/config.template"),
+              join(projectDir, "services/config.mustache"),
             ],
           );
 
