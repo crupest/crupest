@@ -251,9 +251,9 @@ async function main() {
     await certbotRenew();
     new CronTask({
       name: "certbot-renewal",
-      interval: 1000 * 60 * 60 * 12,
+      interval: Temporal.Duration.from({ hours: 12 }),
       callback: certbotRenew,
-      startNow: true,
+      enableNow: true,
     });
   }, 5000);
 }

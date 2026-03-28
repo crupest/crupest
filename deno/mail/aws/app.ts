@@ -165,11 +165,11 @@ function setupAwsHono(
 function createCron(fetcher: AwsMailFetcher, deliverer: MailDeliverer) {
   return new CronTask({
     name: "live-mail-recycler",
-    interval: 6 * 3600 * 1000,
+    interval: Temporal.Duration.from({ hours: 6 }),
     callback: () => {
       return fetcher.recycleLiveMails(deliverer);
     },
-    startNow: true,
+    enableNow: true,
   });
 }
 

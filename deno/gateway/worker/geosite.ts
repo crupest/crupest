@@ -15,7 +15,7 @@ await generate();
 
 const _cron = new CronTask({
   name: "GeoSite Generator",
-  interval: 24 * 60 * 60 * 1000, // 24 hours
+  interval: Temporal.Duration.from({ days: 1 }),
   callback: generate,
-  startNow: true,
+  enableNow: true,
 });

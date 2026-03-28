@@ -2,39 +2,61 @@ export type CronCallback = (task: CronTask) => Promise<void> | void;
 
 export interface CronTaskConfig {
   readonly name: string;
-  readonly interval: number;
+  readonly interval: number | Temporal.Duration;
   readonly callback: CronCallback;
-  readonly startNow?: boolean;
+  readonly enableNow?: boolean;
 }
 
 export class CronTask {
+  #name: string;
+  #interval_ms: number;
+  #callback: CronCallback;
   #timerTag: number | null = null;
 
-  constructor(public readonly config: CronTaskConfig) {
-    if (config.interval <= 0) {
+  constructor({ name, interval, callback, enableNow }: CronTaskConfig) {
+    this.#interval_ms = interval instanceof Temporal.Duration
+      ? interval.total("millisecond")
+      : interval;
+
+    if (this.#interval_ms <= 0) {
       throw new Error("Cron task interval must be positive.");
     }
 
-    if (config.startNow === true) {
-      this.start();
+    this.#name = name;
+    this.#callback = callback;
+
+    if (enableNow === true) {
+      this.enable();
     }
   }
 
-  get running(): boolean {
+  get name(): string {
+    return this.#name;
+  }
+
+  get interval(): Temporal.Duration {
+    return Temporal.Duration.from({ milliseconds: this.#interval_ms });
+  }
+
+  get enabled(): boolean {
     return this.#timerTag != null;
   }
 
-  start() {
+  get callback(): CronCallback {
+    return this.#callback;
+  }
+
+  enable() {
     if (this.#timerTag == null) {
       this.#timerTag = setInterval(
-        this.config.callback,
-        this.config.interval,
+        this.#callback,
+        this.#interval_ms,
         this,
       );
     }
   }
 
-  stop() {
+  disable() {
     if (this.#timerTag != null) {
       clearInterval(this.#timerTag);
       this.#timerTag = null;
