@@ -28,7 +28,7 @@ This repository has four main areas:
   - `bash services/manage gen-tmpl --no-dry-run` (writes to `services/generated/`)
 
 ## Conventions
-- Treat templating in `services/templates/` as simple variable replacement (for example `@@CRUPEST_VAR@@` -> value); do not introduce extra template logic or alternate delimiters.
+- Templates in `services/templates/` use standard mustache syntax (for example `{{CRUPEST_VAR}}` -> value). HTML escaping is disabled in the Deno rendering code (all values pass through as-is), so `{{` and `{{{` behave identically — always use `{{CRUPEST_VAR}}`. Do not introduce extra template logic or alternate delimiters.
 - Templated config loading is order-sensitive: referenced variables must be defined earlier in the config files.
 - Prefer not to couple `store/` changes to other subsystems unless the task explicitly requires integration.
 
