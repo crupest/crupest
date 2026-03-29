@@ -21,7 +21,7 @@ let defaultWorkerLogger: Logger | null = null;
 export function getDefaultWorkerLogger(): Logger {
   if (!defaultWorkerLogger) {
     defaultWorkerLogger = new Logger({
-      formatter: new DefaultLogFormatter(),
+      formatter: new DefaultLogFormatter(false),
       writer: new WorkerLogWriter(),
     });
   }

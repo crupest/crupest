@@ -95,8 +95,8 @@ describe("worker logger", () => {
       worker.postMessage("start");
       await donePromise;
       expect(writer.messages).toHaveLength(2);
-      expect(writer.messages[0]).toContain("msg-1");
-      expect(writer.messages[1]).toContain("msg-2");
+      expect(writer.messages[0]).toBe("msg-1");
+      expect(writer.messages[1]).toBe("msg-2");
     } finally {
       worker.terminate();
     }
