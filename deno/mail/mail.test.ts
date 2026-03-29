@@ -1,6 +1,8 @@
 import { describe, it } from "@std/testing/bdd";
 import { expect, fn } from "@std/expect";
 
+import { NULL_LOGGER } from "@crupest/base/log";
+
 import { Mail, MailDeliverContext, MailDeliverer } from "./mail.ts";
 
 const mockDate = "Fri, 02 May 2025 08:33:02 +0000";
@@ -51,7 +53,7 @@ const mockToAddresses = [
 
 describe("Mail", () => {
   it("simple parse", () => {
-    const { parsed } = new Mail(mockMailStr);
+    const { parsed } = new Mail(mockMailStr, NULL_LOGGER);
     expect(parsed.header).toEqual(mockHeaderStr);
     expect(parsed.body).toEqual(mockBodyStr);
     expect(parsed.sep).toBe("\n");
@@ -59,25 +61,25 @@ describe("Mail", () => {
   });
 
   it("simple parse crlf", () => {
-    const { parsed } = new Mail(mockCrlfMailStr);
+    const { parsed } = new Mail(mockCrlfMailStr, NULL_LOGGER);
     expect(parsed.sep).toBe("\r\n");
     expect(parsed.eol).toBe("\r\n");
   });
 
   it("simple parse date", () => {
     expect(
-      new Mail(mockMailStr).parsed.date,
+      new Mail(mockMailStr, NULL_LOGGER).parsed.date,
     ).toEqual(new Date(mockDate));
   });
 
   it("simple parse headers", () => {
     expect(
-      new Mail(mockMailStr).parsed.headers,
+      new Mail(mockMailStr, NULL_LOGGER).parsed.headers,
     ).toEqual(mockHeaders.map((h) => [h[0], " " + h[1].replaceAll("\n", "")]));
   });
 
   it("parse recipients", () => {
-    const mail = new Mail(mockMailStr);
+    const mail = new Mail(mockMailStr, NULL_LOGGER);
     expect([...mail.parsed.recipients]).toEqual([
       ...mockToAddresses,
       mockCcAddress,
@@ -85,7 +87,7 @@ describe("Mail", () => {
   });
 
   it("find all addresses", () => {
-    const mail = new Mail(mockMailStr);
+    const mail = new Mail(mockMailStr, NULL_LOGGER);
     expect(mail.simpleFindAllAddresses()).toEqual([
       "mock@from.mock",
       "john@example.com",
@@ -112,10 +114,13 @@ describe("MailDeliverer", () => {
       return Promise.resolve();
     }) as MailDeliverer["doDeliver"];
   }
-  const mockDeliverer = new MockMailDeliverer(false);
+  const mockDeliverer = new MockMailDeliverer({
+    sync: false,
+    logger: NULL_LOGGER,
+  });
 
   it("deliver success", async () => {
-    await mockDeliverer.deliverRaw(mockMailStr);
+    await mockDeliverer.deliver({ mail: mockMailStr });
     expect(mockDeliverer.doDeliver).toHaveBeenCalledTimes(1);
   });
 });

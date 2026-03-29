@@ -9,8 +9,8 @@ import {
 } from "@aws-sdk/client-s3";
 
 import { DateUtils } from "@crupest/base";
+import { ILogger } from "@crupest/base/log";
 
-import { Mail } from "../mail.ts";
 import { MailDeliverer } from "../mail.ts";
 
 export class LiveMailNotFoundError extends Error {}
@@ -42,10 +42,18 @@ export class AwsMailFetcher {
   readonly #archivePrefix = "mail/archive/";
   readonly #s3;
   readonly #bucket;
+  readonly #logger;
 
-  constructor(aws: S3ClientConfig, bucket: string) {
+  constructor(
+    { aws, bucket, logger }: {
+      aws: S3ClientConfig;
+      bucket: string;
+      logger: ILogger;
+    },
+  ) {
     this.#s3 = new S3Client(aws);
     this.#bucket = bucket;
+    this.#logger = logger;
   }
 
   async listLiveMails(): Promise<string[]> {
@@ -56,14 +64,14 @@ export class AwsMailFetcher {
     const res = await this.#s3.send(listCommand);
 
     if (res.Contents == null) {
-      console.warn("S3 API returned null Content.");
+      this.#logger.warn("S3 API returned null Content.");
       return [];
     }
 
     const result: string[] = [];
     for (const object of res.Contents) {
       if (object.Key == null) {
-        console.warn("S3 API returned null Key.");
+        this.#logger.warn("S3 API returned null Key.");
         continue;
       }
 
@@ -75,12 +83,11 @@ export class AwsMailFetcher {
   }
 
   async deliverLiveMail(
-    logTag: string,
     s3Key: string,
     deliverer: MailDeliverer,
     recipients?: string[],
   ) {
-    console.info(logTag, `Fetching live mail ${s3Key}...`);
+    this.#logger.info(`Fetching live mail ${s3Key}...`);
     const mailPath = `${this.#livePrefix}${s3Key}`;
     const command = new GetObjectCommand({
       Bucket: this.#bucket,
@@ -99,38 +106,32 @@ export class AwsMailFetcher {
       if (cause instanceof NoSuchKey) {
         const message =
           `Live mail  ${s3Key} is not found. Perhaps already delivered?`;
-        console.warn(message);
+        this.#logger.warn(message);
         throw new LiveMailNotFoundError(message);
       }
       throw cause;
     }
 
-    const mail = new Mail(rawMail);
-    await deliverer.deliver({ mail, recipients });
+    const result = await deliverer.deliver({ mail: rawMail, recipients });
 
-    const { date } = new Mail(rawMail).parsed;
+    const { date } = result.mail.parsed;
     const dateString = date != null
       ? DateUtils.toFileNameString(date, true)
       : "invalid-date";
     const newPath = `${this.#archivePrefix}${dateString}/${s3Key}`;
 
-    console.info(logTag, `Archiving live mail ${s3Key} to ${newPath}...`);
+    this.#logger.info(`Archiving live mail ${s3Key} to ${newPath}...`);
     await s3MoveObject(this.#s3, this.#bucket, mailPath, newPath);
 
-    console.info(logTag, `Done deliver live mail ${s3Key}.`);
+    this.#logger.info(`Done deliver live mail ${s3Key}.`);
   }
 
   async recycleLiveMails(deliverer: MailDeliverer) {
-    console.info("Begin to recycle live mails...");
+    this.#logger.info("Begin to recycle live mails...");
     const mails = await this.listLiveMails();
-    console.info(`Found ${mails.length} live mails`);
-    let counter = 1;
+    this.#logger.info(`Found ${mails.length} live mails`);
     for (const s3Key of mails) {
-      await this.deliverLiveMail(
-        `[${counter++}/${mails.length}]`,
-        s3Key,
-        deliverer,
-      );
+      await this.deliverLiveMail(s3Key, deliverer);
     }
   }
 }

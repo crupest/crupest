@@ -1,3 +1,5 @@
+import { ILogger } from "@crupest/base/log";
+
 import { MailDeliverer } from "./mail.ts";
 
 const CRLF = "\r\n";
@@ -18,24 +20,27 @@ function createResponses(host: string, port: number | string) {
 }
 
 export class DumbSmtpServer {
+  #logger;
   #deliverer;
+  #count = 1;
 
-  constructor(deliverer: MailDeliverer) {
+  constructor(logger: ILogger, deliverer: MailDeliverer) {
+    this.#logger = logger;
     this.#deliverer = deliverer;
   }
 
   async #handleConnection(
-    logTag: string,
+    logger: ILogger,
     conn: Deno.Conn,
     responses: ReturnType<typeof createResponses>,
   ) {
     using disposeStack = new DisposableStack();
     disposeStack.defer(() => {
-      console.info(logTag, "Close tcp connection.");
+      logger.info("Close tcp connection.");
       conn[Symbol.dispose]();
     });
 
-    console.info(logTag, "New tcp connection established.");
+    logger.info("New tcp connection established.");
 
     const writer = conn.writable.getWriter();
     disposeStack.defer(() => writer.releaseLock());
@@ -45,7 +50,7 @@ export class DumbSmtpServer {
     const [decoder, encoder] = [new TextDecoder(), new TextEncoder()];
     const decode = (data: Uint8Array) => decoder.decode(data);
     const send = async (s: string) => {
-      console.info(logTag, "Send line:", s);
+      logger.info("Send line:", s);
       await writer.write(encoder.encode(s + CRLF));
     };
 
@@ -68,7 +73,7 @@ export class DumbSmtpServer {
         buffer = buffer.slice(eolPos + CRLF.length);
 
         if (rawMail == null) {
-          console.info(logTag, "Received line:", line);
+          logger.info("Received line:", line);
           const upperLine = line.toUpperCase();
           if (upperLine.startsWith("EHLO") || upperLine.startsWith("HELO")) {
             await send(responses["EHLO"]);
@@ -78,7 +83,7 @@ export class DumbSmtpServer {
             await send(responses["RCPT"]);
           } else if (upperLine === "DATA") {
             await send(responses["DATA"]);
-            console.info(logTag, "Begin to receive mail data...");
+            logger.info("Begin to receive mail data...");
             rawMail = "";
           } else if (upperLine === "QUIT") {
             await send(responses["QUIT"]);
@@ -90,12 +95,12 @@ export class DumbSmtpServer {
         } else {
           if (line === ".") {
             try {
-              console.info(logTag, "Mail data received, begin to relay...");
-              const result = await this.#deliverer.deliverRaw(rawMail);
+              logger.info("Mail data received, begin to relay...");
+              const result = await this.#deliverer.deliver({ mail: rawMail });
               await send(`250 2.6.0 ${result.generateMessageForSmtp()}`);
               rawMail = null;
             } catch (err) {
-              console.error(logTag, "Relay failed.", err);
+              logger.error("Relay failed.", err);
               await send("554 5.3.0 Error: check server log");
             }
             await send(responses["ACTIVE_CLOSE"]);
@@ -111,18 +116,16 @@ export class DumbSmtpServer {
   async serve(options: { hostname: string; port: number }) {
     const listener = Deno.listen(options);
     const responses = createResponses(options.hostname, options.port);
-    console.info(
+    this.#logger.info(
       `Dumb SMTP server starts to listen on ${responses.serverName}.`,
     );
 
-    let counter = 1;
-
     for await (const conn of listener) {
-      const logTag = `[outbound ${counter++}]`;
+      const logger = this.#logger.withDefaultTag(`outbound ${this.#count++}`);
       try {
-        await this.#handleConnection(logTag, conn, responses);
+        await this.#handleConnection(logger, conn, responses);
       } catch (cause) {
-        console.error(logTag, "A JS error was thrown by handler:", cause);
+        logger.error("A JS error was thrown by handler:", cause);
       }
     }
   }
