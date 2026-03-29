@@ -3,6 +3,11 @@ import { serveStatic } from "hono/deno";
 
 import { Utils } from "@crupest/base";
 import { CronTask } from "@crupest/base/cron";
+import {
+  getDefaultLogger,
+  ILogger,
+  installLogHandlerForWorker,
+} from "@crupest/base/log";
 
 import { Config, configProvider } from "./base.ts";
 import { createRateLimitMiddleware } from "./middleware/rate-limit.ts";
@@ -123,44 +128,51 @@ class DenoHttpServerWrapper {
   #name: string;
   #abortController: AbortController;
   #server: Deno.HttpServer<Deno.NetAddr>;
+  #logger: ILogger;
 
   constructor(
     name: string,
     hono: Hono,
-    options:
-      | Deno.ServeTcpOptions
-      | (Deno.ServeTcpOptions & Deno.TlsCertifiedKeyPem),
+    { logger, ...options }:
+      & (
+        | Deno.ServeTcpOptions
+        | (Deno.ServeTcpOptions & Deno.TlsCertifiedKeyPem)
+      )
+      & {
+        logger: ILogger;
+      },
   ) {
     this.#name = name;
+    this.#logger = logger;
     this.#abortController = new AbortController();
-    console.log(`Starting server "${this.#name}" ...`);
+    this.#logger.info(`Starting server "${this.#name}" ...`);
     this.#server = Deno.serve({
       signal: this.#abortController.signal,
       ...options,
     }, hono.fetch);
-    console.log(
+    this.#logger.info(
       `Server "${this.#name}" started on ${this.#server.addr.hostname}:${this.#server.addr.port}.`,
     );
   }
 
   async stop() {
-    console.log(`Try to shutdown server "${this.#name}" gracefully...`);
+    this.#logger.info(`Try to shutdown server "${this.#name}" gracefully...`);
     const result = await Utils.timeout(
       this.#server.shutdown(),
       Temporal.Duration.from({ seconds: 5 }),
     );
     if (!result) {
-      console.warn(
+      this.#logger.warn(
         `Failed to shutdown server "${this.#name}" gracefully, force to abort.`,
       );
       this.#abortController.abort();
       await this.#server.finished;
     }
-    console.log(`Server "${this.#name}" stopped.`);
+    this.#logger.info(`Server "${this.#name}" stopped.`);
   }
 }
 
-async function startHttpServer() {
+async function startHttpServer({ logger }: { logger: ILogger }) {
   const accessLogFile = await Deno.open("/app/state/http-access.log", {
     create: true,
     append: true,
@@ -172,11 +184,11 @@ async function startHttpServer() {
     },
   });
   return await Promise.resolve(
-    new DenoHttpServerWrapper("HTTP", httpApp, { port: 80 }),
+    new DenoHttpServerWrapper("HTTP", httpApp, { port: 80, logger }),
   );
 }
 
-async function startHttpsServer() {
+async function startHttpsServer({ logger }: { logger: ILogger }) {
   const accessLogFile = await Deno.open("/app/state/https-access.log", {
     create: true,
     append: true,
@@ -197,23 +209,25 @@ async function startHttpsServer() {
     key: await Deno.readTextFile(
       `/etc/letsencrypt/live/${configProvider.get("domain")}/privkey.pem`,
     ),
+    logger,
   });
 }
 
 async function startControllerServer(
-  options: { restartHttpsServer: () => Promise<void> },
+  options: { restartHttpsServer: () => Promise<void>; logger: ILogger },
 ) {
   const controllerApp = createControllerHono(options);
   return await Promise.resolve(
     new DenoHttpServerWrapper("Controller", controllerApp, {
       hostname: "127.0.0.1",
       port: 2266,
+      logger: options.logger,
     }),
   );
 }
 
-async function certbotRenew() {
-  console.log("Start certbot renewal...");
+async function certbotRenew(logger: ILogger) {
+  logger.info("Start certbot renewal...");
   const command = new Deno.Command("certbot", {
     args: [
       "renew",
@@ -224,35 +238,44 @@ async function certbotRenew() {
       "curl -s http://127.0.0.1:2266/restart-https-server",
     ],
   });
-  const process = command.spawn();
-  await process.status;
-  console.log("Certbot renewal completed.");
+  const output = await command.output();
+  const decoder = new TextDecoder();
+  logger[output.success ? "info" : "error"](
+    "Certbot renewal completed with exit code " + output.code,
+  );
+  logger.info("Certbot stdout:\n" + decoder.decode(output.stdout));
+  logger.error("Certbot stderr:\n" + decoder.decode(output.stderr));
 }
 
 async function main() {
-  const _geositeWorker = new Worker(
+  const logger = getDefaultLogger();
+  const geositeWorker = new Worker(
     new URL("./worker/geosite.ts", import.meta.url).href,
     {
       name: "GeoSite Worker",
       type: "module",
     },
   );
+  installLogHandlerForWorker(geositeWorker, logger);
 
-  const _httpServer = await startHttpServer();
-  let httpsServer = await startHttpsServer();
-  const _controllerServer = await startControllerServer({ restartHttpsServer });
+  const _httpServer = await startHttpServer({ logger });
+  let httpsServer = await startHttpsServer({ logger });
+  const _controllerServer = await startControllerServer({
+    restartHttpsServer,
+    logger,
+  });
 
   async function restartHttpsServer() {
     await httpsServer.stop();
-    httpsServer = await startHttpsServer();
+    httpsServer = await startHttpsServer({ logger });
   }
 
   setTimeout(async () => {
-    await certbotRenew();
+    await certbotRenew(logger);
     new CronTask({
       name: "certbot-renewal",
       interval: Temporal.Duration.from({ hours: 12 }),
-      callback: certbotRenew,
+      callback: () => certbotRenew(logger),
       enableNow: true,
     });
   }, 5000);

@@ -1,3 +1,4 @@
+import { getDefaultLogger } from "@crupest/base/log";
 import { generateGeoSiteFiles } from "@crupest/base-contrib/geosite";
 
 if (import.meta.main) {
@@ -10,7 +11,7 @@ if (import.meta.main) {
   await generateGeoSiteFiles({
     hasPath: hasFile,
     notHasPath: notHasFile,
-    logger: console.log,
+    logger: getDefaultLogger(),
     workDir: tmpDir,
     cleanup: false,
   });

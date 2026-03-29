@@ -4,6 +4,9 @@
   "exports": {
     ".": "./lib.ts",
     "./config": "./config.ts",
-    "./cron": "./cron.ts"
+    "./cron": "./cron.ts",
+    "./log": "./log/index.ts",
+    "./log/worker": "./log/worker.ts",
+    "./task": "./task.ts"
   }
 }

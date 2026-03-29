@@ -44,6 +44,7 @@ describe("createReverseProxyHandler", () => {
         hostname: "127.0.0.1",
         port: 0,
         signal: upstreamAbort.signal,
+        onListen: () => {},
       },
       async (request: Request) => {
         upstreamAuthorization = request.headers.get("authorization");
@@ -71,6 +72,7 @@ describe("createReverseProxyHandler", () => {
         signal: proxyAbort.signal,
         hostname: "127.0.0.1",
         port: 0,
+        onListen: () => {},
       },
       proxyApp.fetch,
     );

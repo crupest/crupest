@@ -1,3 +1,5 @@
+import type { ILogger } from "@crupest/base/log";
+
 const ATTR = "cn";
 const REPO_NAME = "domain-list-community";
 const URL =
@@ -56,7 +58,7 @@ type FileProvider = (name: string) => string | Promise<string>;
 async function extract(
   starts: string[],
   provider: FileProvider,
-  logger?: (message: string) => Promise<void> | void,
+  logger: ILogger,
 ): Promise<Rule[]> {
   function parseLine(line: string): Rule {
     let kind = prefixes.find((p) => line.startsWith(p + ":"));
@@ -90,11 +92,7 @@ async function extract(
     for (const rule of parse(text)) {
       if (rule.kind === "include") {
         if (visited.includes(rule.value)) {
-          if (logger) {
-            await logger(
-              `circular refs found: ${name} includes ${rule.value}.`,
-            );
-          }
+          logger.warn(`circular refs found: ${name} includes ${rule.value}.`);
           continue;
         } else {
           visited.push(rule.value);
@@ -139,21 +137,15 @@ function toNewFormat(rules: Rule[], attr: string): [string, string] {
 }
 
 export async function generateGeoSiteFiles(
-  options: {
+  { logger, ...options }: {
     hasPath: string;
     notHasPath: string;
+    logger: ILogger;
     attr?: string;
-    logger?: (message: string) => Promise<void> | void;
     workDir?: string;
     cleanup?: boolean;
   },
 ) {
-  const log = async (message: string) => {
-    if (options.logger) {
-      await options.logger(message);
-    }
-  };
-
   await using disposableStack = new AsyncDisposableStack();
   const addCleanup = (fn: () => Promise<void> | void) => {
     if (options.cleanup !== false) {
@@ -165,25 +157,25 @@ export async function generateGeoSiteFiles(
     await Deno.makeTempDir({ prefix: "geosite-rules-" });
   if (options.workDir == null) {
     addCleanup(async () => {
-      log("Cleaning up work dir: " + workDir);
+      logger.info("Cleaning up work dir: " + workDir);
       await Deno.remove(workDir, { recursive: true });
     });
   }
-  await log("Work dir is " + workDir);
+  logger.info("Work dir is " + workDir);
 
   const zipFilePath = workDir + "/repo.zip";
-  await log("Downloading repo from " + URL + " ...");
+  logger.info("Downloading repo from " + URL + " ...");
   const res = await fetch(URL);
   if (!res.ok) {
     throw new Error("Failed to download repo.");
   }
   await Deno.writeFile(zipFilePath, await res.bytes());
   addCleanup(async () => {
-    await log("Cleaning up zip file: " + zipFilePath);
+    logger.info("Cleaning up zip file: " + zipFilePath);
     await Deno.remove(zipFilePath);
   });
 
-  await log("Unzipping repo ...");
+  logger.info("Unzipping repo ...");
   const unzip = new Deno.Command("unzip", {
     args: ["-q", zipFilePath],
     cwd: workDir,
@@ -193,18 +185,16 @@ export async function generateGeoSiteFiles(
   }
   const dataDir = workDir + "/" + REPO_NAME + "-master/data";
   addCleanup(async () => {
-    await log("Cleaning up unzipped data dir: " + dataDir);
+    logger.info("Cleaning up unzipped data dir: " + dataDir);
     await Deno.remove(dataDir, { recursive: true });
   });
 
-  await log("Calculating rules ...");
+  logger.info("Calculating rules ...");
   const provider = (name: string) => Deno.readTextFile(dataDir + "/" + name);
-  const rules = await extract(SITES, provider, log);
+  const rules = await extract(SITES, provider, logger);
   const [has, notHas] = toNewFormat(rules, options.attr ?? ATTR);
 
-  await log(
-    "Write result to: " + options.hasPath + " , " + options.notHasPath,
-  );
+  logger.info(`Write result to: ${options.hasPath} , ${options.notHasPath}`);
   await Deno.writeTextFile(options.hasPath, has);
   await Deno.writeTextFile(options.notHasPath, notHas);
 }
