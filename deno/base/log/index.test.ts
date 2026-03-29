@@ -3,12 +3,11 @@ import { expect } from "@std/expect";
 
 import { Utils } from "../lib.ts";
 import {
+  DefaultLogFormatter,
   type FormattedLogEntry,
   installLogHandlerForWorker,
   Logger,
-  type LogOptions,
   SynchronousLogWriterWrapper,
-  VanillaLogFormatter,
 } from "./index.ts";
 
 class MockLogWriter {
@@ -70,7 +69,7 @@ describe("worker logger", () => {
   it("forwards worker logs to main-thread logger with a real worker", async () => {
     const writer = new MockLogWriter();
     const logger = new Logger({
-      formatter: new VanillaLogFormatter(),
+      formatter: new DefaultLogFormatter(false),
       writer,
     });
     const worker = new Worker(

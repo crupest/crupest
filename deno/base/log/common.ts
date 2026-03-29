@@ -21,26 +21,24 @@ export interface ILogWriter {
 }
 
 export class DefaultLogFormatter implements ILogFormatter {
-  format({ level, time, tag, args }: LogEntry): Promise<string> {
-    const headList = [time, level.toUpperCase()];
-    if (tag) headList.push(tag);
-    return Promise.resolve(
-      `[${headList.join(" ")}] ${
-        args.map((arg) =>
-          typeof arg === "object"
-            ? Deno.inspect(arg, { depth: 3 })
-            : String(arg)
-        ).join(" ")
-      }`,
-    );
-  }
-}
+  #decorated: boolean;
 
-export class VanillaLogFormatter implements ILogFormatter {
-  format({ args }: LogEntry): Promise<string> {
-    return Promise.resolve(
-      args.map((arg) => String(arg)).join(" "),
-    );
+  constructor(decorated = true) {
+    this.#decorated = decorated;
+  }
+
+  format({ level, time, tag, args }: LogEntry): Promise<string> {
+    const message = args.map((arg) =>
+      typeof arg === "object" ? Deno.inspect(arg, { depth: 3 }) : String(arg)
+    ).join(" ");
+
+    if (!this.#decorated) {
+      return Promise.resolve(message);
+    }
+
+    const headList = [time.toISOString(), level.toUpperCase()];
+    if (tag) headList.push(tag);
+    return Promise.resolve(`[${headList.join(" ")}] ${message}`);
   }
 }
 
