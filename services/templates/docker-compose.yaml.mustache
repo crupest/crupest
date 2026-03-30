@@ -29,6 +29,7 @@ services:
       context: "./{{CRUPEST_DOCKER_DIR}}/mail-server"
       additional_contexts:
         - "deno=./deno"
+        - "generated=./{{CRUPEST_GENERATED_DIR}}"
       dockerfile: Dockerfile
     container_name: mail-server
     hostname: mail
@@ -47,7 +48,6 @@ services:
       - "./{{CRUPEST_DATA_MAIL_SERVER_DIR}}:/data"
       - "./{{CRUPEST_SSL_FULLCHAIN_FILE}}:/etc/ssl/mail/tls.crt:ro"
       - "./{{CRUPEST_SSL_PRIVATE_KEY_FILE}}:/etc/ssl/mail/tls.key:ro"
-      - "./{{CRUPEST_GENERATED_DIR}}/postfix-main.cf:/etc/postfix/main.cf:ro"
       - "/etc/localtime:/etc/localtime:ro"
     networks:
       default:
@@ -78,8 +78,8 @@ services:
     volumes:
       - "./{{CRUPEST_GENERATED_DIR}}/my-roundcube.inc.php:/var/roundcube/config/my-roundcube.inc.php"
       - "./{{CRUPEST_DATA_SECRET_DIR}}/gnupg:/var/roundcube/enigma"
-      - "./{{CRUPEST_DATA_ROUNDCUBE_DIR}}/www/html:/var/www/html"
       - "./{{CRUPEST_DATA_ROUNDCUBE_DIR}}/db:/var/roundcube/db"
+      - "roundcubemail-html:/var/www/html"
       - "roundcubemail-temp:/tmp/roundcube-temp"
     networks:
       default:
@@ -98,6 +98,7 @@ services:
     restart: "on-failure:3"
 
 volumes:
+  roundcubemail-html:
   roundcubemail-temp:
 
 networks:

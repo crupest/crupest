@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y ca-certificates\
     rm -rf /var/lib/apt/lists/*
 RUN groupadd -g 1000 vmail && useradd -u 1000 -g vmail -s /usr/sbin/nologin vmail
 COPY --from=deno-build /workdir/mail/out/crupest-mail /app/
-ADD dovecot.conf /etc/dovecot/dovecot.conf
-ADD postfix-master.cf /etc/postfix/master.cf
+COPY --from=generated --chmod=644 postfix-main.cf /etc/postfix/main.cf
+ADD --chmod=644 dovecot.conf /etc/dovecot/dovecot.conf
+ADD --chmod=644 postfix-master.cf /etc/postfix/master.cf
 ADD app/* /app/
 CMD ["/app/main.bash"]
