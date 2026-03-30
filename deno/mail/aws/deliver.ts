@@ -4,6 +4,8 @@ import {
   SESv2ClientConfig,
 } from "@aws-sdk/client-sesv2";
 
+import { ILogger } from "@crupest/base/log";
+
 import { Mail, MailDeliverContext, MailDeliverer } from "../mail.ts";
 
 export class AwsMailDeliverer extends MailDeliverer {
@@ -11,8 +13,11 @@ export class AwsMailDeliverer extends MailDeliverer {
   readonly #aws;
   readonly #ses;
 
-  constructor(aws: SESv2ClientConfig) {
-    super(true);
+  constructor({ aws, logger }: {
+    aws: SESv2ClientConfig;
+    logger: ILogger;
+  }) {
+    super({ sync: true, logger });
     this.#aws = aws;
     this.#ses = new SESv2Client(aws);
   }
@@ -28,13 +33,10 @@ export class AwsMailDeliverer extends MailDeliverer {
         },
       });
 
-      console.info(context.logTag, "Calling aws send-email api...");
+      context.logger.info("Calling aws send-email api...");
       const res = await this.#ses.send(sendCommand);
       if (res.MessageId == null) {
-        console.warn(
-          context.logTag,
-          "AWS send-email returned null message id.",
-        );
+        context.logger.warn("AWS send-email returned null message id.");
       } else {
         context.result.newMessageId =
           `${res.MessageId}@${this.#aws.region}.amazonses.com`;

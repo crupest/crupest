@@ -1,5 +1,7 @@
 import emailAddresses from "email-addresses";
 
+import { ILogger } from "@crupest/base/log";
+
 class MailParsingError extends Error {}
 
 function parseHeaderSection(section: string) {
@@ -45,7 +47,7 @@ function findFirst(fields: readonly [string, string][], key: string) {
   return undefined;
 }
 
-function findMessageId(fields: readonly [string, string][]) {
+function findMessageId(fields: readonly [string, string][], logger: ILogger) {
   const messageIdField = findFirst(fields, "message-id");
   if (messageIdField == null) return undefined;
 
@@ -53,18 +55,18 @@ function findMessageId(fields: readonly [string, string][]) {
   if (match != null) {
     return match[1];
   } else {
-    console.warn(`Invalid syntax in header 'message-id': ${messageIdField}`);
+    logger.warn(`Invalid syntax in header 'message-id': ${messageIdField}`);
     return undefined;
   }
 }
 
-function findDate(fields: readonly [string, string][]) {
+function findDate(fields: readonly [string, string][], logger: ILogger) {
   const dateField = findFirst(fields, "date");
   if (dateField == null) return undefined;
 
   const date = new Date(dateField);
   if (isNaN(date.getTime())) {
-    console.warn(`Invalid date string in header 'date': ${dateField}`);
+    logger.warn(`Invalid date string in header 'date': ${dateField}`);
     return undefined;
   }
   return date;
@@ -92,7 +94,7 @@ function findRecipients(fields: readonly [string, string][]) {
   return recipients;
 }
 
-function parseSections(raw: string) {
+function parseSections(raw: string, logger: ILogger) {
   const twoEolMatch = raw.match(/(\r?\n)(\r?\n)/);
   if (twoEolMatch == null) {
     throw new MailParsingError(
@@ -103,7 +105,7 @@ function parseSections(raw: string) {
   const [eol, sep] = [twoEolMatch[1], twoEolMatch[2]];
 
   if (eol !== sep) {
-    console.warn("Different EOLs (\\r\\n, \\n) found.");
+    logger.warn("Different EOLs (\\r\\n, \\n) found.");
   }
 
   return {
@@ -126,11 +128,11 @@ export type ParsedMail = Readonly<{
   recipients: readonly string[];
 }>;
 
-export function simpleParseMail(raw: string): ParsedMail {
-  const sections = Object.freeze(parseSections(raw));
+export function simpleParseMail(raw: string, logger: ILogger): ParsedMail {
+  const sections = Object.freeze(parseSections(raw, logger));
   const headers = Object.freeze(parseHeaderSection(sections.header));
-  const messageId = findMessageId(headers);
-  const date = findDate(headers);
+  const messageId = findMessageId(headers, logger);
+  const date = findDate(headers, logger);
   const from = findFrom(headers);
   const recipients = Object.freeze([...findRecipients(headers)]);
   return Object.freeze({

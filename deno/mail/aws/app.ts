@@ -8,6 +8,7 @@ import yargs from "yargs";
 
 import { ConfigDefinition, ConfigProvider } from "@crupest/base/config";
 import { CronTask } from "@crupest/base/cron";
+import { getDefaultLogger, ILogger } from "@crupest/base/log";
 
 import { DbService } from "../db.ts";
 import { createHono, createInbound, createSmtp, sendMail } from "../app.ts";
@@ -94,12 +95,13 @@ function createAwsOptions({
   };
 }
 
-function createOutbound(
-  awsOptions: ReturnType<typeof createAwsOptions>,
-  db: DbService,
-  local?: DovecotMailDeliverer,
-) {
-  const deliverer = new AwsMailDeliverer(awsOptions);
+function createOutbound({ logger, aws: awsOptions, db, local }: {
+  logger: ILogger;
+  aws: ReturnType<typeof createAwsOptions>;
+  db: DbService;
+  local: DovecotMailDeliverer;
+}) {
+  const deliverer = new AwsMailDeliverer({ logger, aws: awsOptions });
   deliverer.preHooks.push(
     new MessageIdRewriteHook(db.messageIdToNew.bind(db)),
   );
@@ -107,7 +109,7 @@ function createOutbound(
     new MessageIdSaveHook(
       async (original, new_message_id, context) => {
         await db.addMessageIdMap({ message_id: original, new_message_id });
-        void local?.saveNewSent(context.logTag, context.mail, original);
+        void local.saveNewSent(context.logger, context.mail, original);
       },
     ),
   );
@@ -123,8 +125,6 @@ function setupAwsHono(
     deliverer: MailDeliverer;
   },
 ) {
-  let counter = 1;
-
   hono.post(
     `/${options.path}`,
     async (ctx, next) => {
@@ -146,7 +146,6 @@ function setupAwsHono(
       const { key, recipients } = ctx.req.valid("json");
       try {
         await fetcher.deliverLiveMail(
-          `[inbound ${counter++}]`,
           key,
           deliverer,
           recipients,
@@ -176,28 +175,33 @@ function createCron(fetcher: AwsMailFetcher, deliverer: MailDeliverer) {
 function createBaseServices() {
   const config = new ConfigProvider(PREFIX, CONFIG_DEFINITIONS);
   Deno.mkdirSync(config.get("dataPath"), { recursive: true });
-  return { config };
+  return { config, logger: getDefaultLogger() };
 }
 
 function createAwsFetchOnlyServices() {
   const services = createBaseServices();
-  const { config } = services;
+  const { config, logger } = services;
 
-  const awsOptions = createAwsOptions({
+  const aws = createAwsOptions({
     user: config.get("awsUser"),
     password: config.get("awsPassword"),
     region: config.get("awsRegion"),
   });
-  const fetcher = new AwsMailFetcher(awsOptions, config.get("awsMailBucket"));
+  const fetcher = new AwsMailFetcher({
+    logger,
+    aws,
+    bucket: config.get("awsMailBucket"),
+  });
 
-  return { ...services, awsOptions, fetcher };
+  return { ...services, aws, fetcher };
 }
 
 function createAwsRecycleOnlyServices() {
   const services = createAwsFetchOnlyServices();
-  const { config } = services;
+  const { config, logger } = services;
 
   const inbound = createInbound({
+    logger,
     fallback: config.getList("inboundFallback"),
     ldaPath: config.get("ldaPath"),
     doveadmPath: config.get("doveadmPath"),
@@ -210,20 +214,25 @@ function createAwsRecycleOnlyServices() {
 
 function createAwsServices() {
   const services = createAwsRecycleOnlyServices();
-  const { config, awsOptions, inbound } = services;
+  const { logger, config, aws, inbound } = services;
 
-  const dbService = new DbService(join(config.get("dataPath"), "db.sqlite"));
-  const outbound = createOutbound(awsOptions, dbService, inbound);
+  const db = new DbService(join(config.get("dataPath"), "db.sqlite"));
+  const outbound = createOutbound({
+    logger: logger,
+    aws,
+    db,
+    local: inbound,
+  });
 
-  return { ...services, dbService, outbound };
+  return { ...services, db, outbound };
 }
 
 function createServerServices() {
   const services = createAwsServices();
-  const { config, outbound, inbound, fetcher } = services;
+  const { logger, config, outbound, inbound, fetcher } = services;
 
-  const smtp = createSmtp(outbound);
-  const hono = createHono(outbound, inbound);
+  const smtp = createSmtp({ logger, outbound });
+  const hono = createHono({ logger, outbound, inbound });
 
   setupAwsHono(hono, {
     path: config.get("awsInboundPath"),
@@ -236,10 +245,9 @@ function createServerServices() {
 }
 
 async function serve(cron: boolean = false) {
-  const { config, fetcher, inbound, smtp, dbService, hono } =
-    createServerServices();
+  const { config, fetcher, inbound, smtp, db, hono } = createServerServices();
 
-  await dbService.migrate();
+  await db.migrate();
 
   smtp.serve({
     hostname: config.get("smtpHost"),
