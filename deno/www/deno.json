@@ -1,0 +1,14 @@
+{
+  "imports": {
+    "@std/front-matter": "jsr:@std/front-matter@^1.0.5",
+    "jsdom": "npm:jsdom@^29.0.1",
+    "marked": "npm:marked@^17.0.5",
+    "marked-highlight": "npm:marked-highlight@^2.2.3",
+    "shiki": "npm:shiki@^4.0.2"
+  },
+  "tasks": {
+    "dev": "deno run -A --watch main.ts",
+    "generate": "deno run -A generate.ts",
+    "compile": "deno compile -o out/crupest-www -A main.ts"
+  }
+}

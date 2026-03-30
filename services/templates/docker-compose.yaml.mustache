@@ -4,7 +4,6 @@ services:
     build:
       context: "./{{CRUPEST_DOCKER_DIR}}/gateway"
       additional_contexts:
-        - "www=./www"
         - "deno=./deno"
       dockerfile: Dockerfile
     ports:

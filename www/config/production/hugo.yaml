@@ -1,4 +1,0 @@
-cleanDestinationDir: true
-
-minify:
-  minifyOutput: true
