@@ -5,6 +5,10 @@ set -e -o pipefail
 mkdir -p /var/spool/postfix/private
 chown postfix:postfix /var/spool/postfix/private
 
+postconf "myhostname=mail.${CRUPEST_MAIL_SERVER_MAIL_DOMAIN}"
+postconf "mydomain=${CRUPEST_MAIL_SERVER_MAIL_DOMAIN}"
+postconf "virtual_mailbox_domains=${CRUPEST_MAIL_SERVER_MAIL_DOMAIN}"
+
 /app/crupest-mail serve --real &
 
 /usr/sbin/dovecot -F &

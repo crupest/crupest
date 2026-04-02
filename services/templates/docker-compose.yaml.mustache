@@ -29,7 +29,6 @@ services:
       context: "./{{CRUPEST_DOCKER_DIR}}/mail-server"
       additional_contexts:
         - "deno=./deno"
-        - "generated=./{{CRUPEST_GENERATED_DIR}}"
       dockerfile: Dockerfile
     container_name: mail-server
     hostname: mail

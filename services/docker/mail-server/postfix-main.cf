@@ -2,8 +2,8 @@ compatibility_level = 3.10
 
 maillog_file = /dev/stdout
 
-myhostname = mail.{{CRUPEST_DOMAIN}}
-mydomain = {{CRUPEST_DOMAIN}}
+myhostname =
+mydomain =
 myorigin = $mydomain
 
 inet_interfaces = all
@@ -16,9 +16,8 @@ local_transport = error:local delivery is disabled
 alias_maps =
 alias_database =
 
-# Virtual mailbox domain: accept mail addressed to at{{CRUPEST_DOMAIN}} and
-# deliver directly to Dovecot via LMTP.
-virtual_mailbox_domains = {{CRUPEST_DOMAIN}}
+# Virtual mailbox domain: deliver directly to Dovecot via LMTP.
+virtual_mailbox_domains =
 virtual_transport = lmtp:unix:private/dovecot-lmtp
 virtual_mailbox_maps =
 virtual_alias_maps = hash:/data/postfix-virtual
@@ -48,4 +47,3 @@ smtpd_sasl_auth_enable = no
 # Relay restrictions for port 25 (inbound): only accept mail for our domain
 smtpd_relay_restrictions =
     reject_unauth_destination
-
