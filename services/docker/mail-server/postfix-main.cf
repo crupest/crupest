@@ -2,9 +2,7 @@ compatibility_level = 3.10
 
 maillog_file = /dev/stdout
 
-# myhostname, mydomain, and virtual_mailbox_domains are set at container startup
-# via postconf using the CRUPEST_MAIL_SERVER_MAIL_DOMAIN environment variable.
-myhostname = localhost
+myhostname =
 mydomain =
 myorigin = $mydomain
 
@@ -19,7 +17,6 @@ alias_maps =
 alias_database =
 
 # Virtual mailbox domain: deliver directly to Dovecot via LMTP.
-# virtual_mailbox_domains is set at container startup (see comment above).
 virtual_mailbox_domains =
 virtual_transport = lmtp:unix:private/dovecot-lmtp
 virtual_mailbox_maps =
