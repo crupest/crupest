@@ -1,6 +1,8 @@
 {
   "imports": {
     "@std/front-matter": "jsr:@std/front-matter@^1.0.5",
+    "esbuild": "npm:esbuild@^0.25.0",
+    "html-minifier-terser": "npm:html-minifier-terser@^7.2.0",
     "jsdom": "npm:jsdom@^29.0.1",
     "marked": "npm:marked@^17.0.5",
     "marked-highlight": "npm:marked-highlight@^2.2.3",

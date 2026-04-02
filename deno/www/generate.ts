@@ -1,7 +1,10 @@
 import { toSSG } from "hono/ssg";
 import { createApp } from "./app.ts";
 import { walk } from "@std/fs/walk";
-import { dirname, fromFileUrl, join, relative } from "@std/path";
+import { basename, dirname, fromFileUrl, join, relative } from "@std/path";
+import { transform as cssTransform } from "lightningcss";
+import * as esbuild from "esbuild";
+import { minify as minifyHtml } from "html-minifier-terser";
 
 const app = await createApp();
 
@@ -28,7 +31,7 @@ if (!result.success) {
 
 console.log(`Generated ${result.files?.length ?? 0} HTML pages`);
 
-// Copy static assets (images, JS, etc.)
+// Copy static assets
 const staticDir = fromFileUrl(new URL("./static", import.meta.url));
 let staticCount = 0;
 for await (const entry of walk(staticDir, { includeDirs: false })) {
@@ -40,16 +43,46 @@ for await (const entry of walk(staticDir, { includeDirs: false })) {
 }
 console.log(`Copied ${staticCount} static files`);
 
-// Copy CSS files
-const cssDir = fromFileUrl(new URL("./css", import.meta.url));
+// Post-process: minify CSS
 let cssCount = 0;
-for await (const entry of walk(cssDir, { includeDirs: false })) {
-  const rel = relative(cssDir, entry.path);
-  const dest = join(outDir, "css", rel);
-  await Deno.mkdir(dirname(dest), { recursive: true });
-  await Deno.copyFile(entry.path, dest);
+for await (const entry of walk(outDir, { exts: [".css"], includeDirs: false })) {
+  const src = await Deno.readFile(entry.path);
+  const { code } = cssTransform({
+    filename: basename(entry.path),
+    code: src,
+    minify: true,
+  });
+  await Deno.writeFile(entry.path, code);
   cssCount++;
 }
-console.log(`Copied ${cssCount} CSS files`);
+console.log(`Minified ${cssCount} CSS files`);
 
-console.log(`Total output in ${outDir}/`);
+// Post-process: minify JS
+let jsCount = 0;
+for await (const entry of walk(outDir, { exts: [".js"], includeDirs: false })) {
+  const src = await Deno.readTextFile(entry.path);
+  const { code } = await esbuild.transform(src, { minify: true, loader: "js" });
+  await Deno.writeTextFile(entry.path, code);
+  jsCount++;
+}
+await esbuild.stop();
+console.log(`Minified ${jsCount} JS files`);
+
+// Post-process: minify HTML
+let htmlCount = 0;
+for await (
+  const entry of walk(outDir, { exts: [".html"], includeDirs: false })
+) {
+  const src = await Deno.readTextFile(entry.path);
+  const minified = await minifyHtml(src, {
+    collapseWhitespace: true,
+    removeComments: true,
+    minifyCSS: false,
+    minifyJS: false,
+  });
+  await Deno.writeTextFile(entry.path, minified);
+  htmlCount++;
+}
+console.log(`Minified ${htmlCount} HTML files`);
+
+console.log(`Output in ${outDir}/`);

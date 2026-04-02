@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { serveStatic } from "hono/deno";
-import { basename, fromFileUrl, join } from "@std/path";
-import { transform } from "lightningcss";
+import { fromFileUrl } from "@std/path";
 
 import { loadContent } from "./content.ts";
 import type { Page, SiteContent } from "./content.ts";
@@ -11,33 +10,9 @@ export async function createApp(): Promise<Hono> {
   const app = new Hono();
   const site = await loadContent();
 
-  // Serve static files (avatar.png, favicon.ico, gh.png, magic/, color-scheme.js)
+  // Serve static files (avatar.png, favicon.ico, gh.png, magic/, color-scheme.js, CSS, JS)
   const staticDir = fromFileUrl(new URL("./static", import.meta.url));
   app.get("/favicon.ico", serveStatic({ root: staticDir }));
-  app.get("/assets/*.css", async (c) => {
-    const path = join(staticDir, c.req.path);
-    try {
-      if (!(await Deno.stat(path)).isFile) {
-        return c.text("Not found", 404);
-      }
-    } catch (e) {
-      if (e instanceof Deno.errors.NotFound) {
-        return c.text("Not found", 404);
-      }
-      throw e;
-    }
-
-    const { code } = transform({
-      filename: basename(path),
-      code: await Deno.readFile(path),
-      minify: true,
-    });
-    return c.body(code as Uint8Array<ArrayBuffer>, {
-      headers: {
-        "Content-Type": "text/css",
-      },
-    });
-  });
   app.get("/assets/*", serveStatic({ root: staticDir }));
   app.get("/magic/*", serveStatic({ root: staticDir }));
 
