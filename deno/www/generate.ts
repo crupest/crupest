@@ -1,22 +1,34 @@
 import { toSSG } from "hono/ssg";
-import { createApp } from "./app.ts";
 import { walk } from "@std/fs/walk";
 import { basename, dirname, join, relative } from "@std/path";
-
 import { transform as transformCss } from "lightningcss";
 import { transform as transformJs } from "esbuild";
 // @ts-types="npm:@types/html-minifier-terser"
 import { minify as minifyHtml } from "html-minifier-terser";
 
-class StaticFile {
+import { createApp, STATIC_LIST, STATIC_ROOT } from "./app.ts";
+
+class File {
   readonly #src: string;
   readonly #dest: string;
   #content: Uint8Array | null = null;
   #textContent: string | null = null;
+  #contentCanGetFromSrc: boolean;
 
-  constructor(src: string, dest: string) {
+  constructor(
+    src: string,
+    dest: string,
+    content: string | Uint8Array | null,
+    contentCanGetFromSrc: boolean,
+  ) {
     this.#src = src;
     this.#dest = dest;
+    if (typeof content === "string") {
+      this.#textContent = content;
+    } else {
+      this.#content = content;
+    }
+    this.#contentCanGetFromSrc = contentCanGetFromSrc;
   }
 
   get src(): string {
@@ -29,25 +41,36 @@ class StaticFile {
 
   async getContent(): Promise<Uint8Array> {
     if (this.#content == null) {
-      this.#content = await Deno.readFile(this.#src);
+      if (this.#textContent != null) {
+        const encoder = new TextEncoder();
+        this.#content = encoder.encode(this.#textContent);
+      } else if (this.#contentCanGetFromSrc) {
+        this.#content = await Deno.readFile(this.#src);
+      } else {
+        throw new Error("Content is not available");
+      }
     }
     return this.#content;
   }
 
   async getTextContent(): Promise<string> {
     if (this.#textContent == null) {
-      const bytes = await this.getContent();
-      const decoder = new TextDecoder();
-      this.#textContent = decoder.decode(bytes);
+      if (this.#content != null) {
+        const decoder = new TextDecoder();
+        this.#textContent = decoder.decode(this.#content);
+      } else if (this.#contentCanGetFromSrc) {
+        this.#textContent = await Deno.readTextFile(this.#src);
+      } else {
+        throw new Error("Content is not available");
+      }
     }
     return this.#textContent;
   }
 
   setContent(content: string | Uint8Array): Promise<void> {
     if (typeof content === "string") {
-      const encoder = new TextEncoder();
-      this.#content = encoder.encode(content);
       this.#textContent = content;
+      this.#content = null;
     } else {
       this.#content = content;
       this.#textContent = null;
@@ -56,26 +79,30 @@ class StaticFile {
   }
 
   async writeToDest(): Promise<void> {
-    return Deno.writeFile(this.#dest, await this.getContent());
+    await Deno.mkdir(dirname(this.#dest), { recursive: true });
+    if (this.#content != null) {
+      await Deno.writeFile(this.#dest, this.#content);
+    } else if (this.#textContent != null) {
+      await Deno.writeTextFile(this.#dest, this.#textContent);
+    } else if (this.#contentCanGetFromSrc && this.#src !== this.#dest) {
+      await Deno.copyFile(this.#src, this.#dest);
+    } else {
+      throw new Error("Content is not available");
+    }
   }
 }
 
-interface Processer {
-  needProcess(file: StaticFile): Promise<boolean>;
-  process(file: StaticFile): Promise<string | Uint8Array>;
+interface Processor {
+  needProcess(file: File): Promise<boolean>;
+  process(file: File): Promise<string | Uint8Array>;
 }
 
-class ProcesserBase {
-  count = 0;
-}
-
-class CssProcesser extends ProcesserBase implements Processer {
-  needProcess(file: StaticFile): Promise<boolean> {
+class CssProcessor implements Processor {
+  needProcess(file: File): Promise<boolean> {
     return Promise.resolve(file.src.endsWith(".css"));
   }
 
-  async process(file: StaticFile): Promise<Uint8Array> {
-    this.count++;
+  async process(file: File): Promise<Uint8Array> {
     const { code } = transformCss({
       filename: basename(file.src),
       code: await file.getContent(),
@@ -85,13 +112,12 @@ class CssProcesser extends ProcesserBase implements Processer {
   }
 }
 
-class JsProcesser extends ProcesserBase implements Processer {
-  needProcess(file: StaticFile): Promise<boolean> {
+class JsProcessor implements Processor {
+  needProcess(file: File): Promise<boolean> {
     return Promise.resolve(file.src.endsWith(".js"));
   }
 
-  async process(file: StaticFile): Promise<string> {
-    this.count++;
+  async process(file: File): Promise<string> {
     const { code } = await transformJs(await file.getContent(), {
       minify: true,
       loader: "js",
@@ -100,13 +126,12 @@ class JsProcesser extends ProcesserBase implements Processer {
   }
 }
 
-class HtmlProcesser extends ProcesserBase implements Processer {
-  needProcess(file: StaticFile): Promise<boolean> {
+class HtmlProcessor implements Processor {
+  needProcess(file: File): Promise<boolean> {
     return Promise.resolve(file.src.endsWith(".html"));
   }
 
-  async process(file: StaticFile): Promise<string> {
-    this.count++;
+  async process(file: File): Promise<string> {
     return await minifyHtml(await file.getTextContent(), {
       collapseWhitespace: true,
       removeComments: true,
@@ -116,24 +141,61 @@ class HtmlProcesser extends ProcesserBase implements Processer {
   }
 }
 
-const cssProcesser = new CssProcesser();
-const jsProcesser = new JsProcesser();
-const htmlProcesser = new HtmlProcesser();
+class CounterProcessorWrapper implements Processor {
+  readonly #processor: Processor;
+  #count = 0;
 
-const processers: Processer[] = [cssProcesser, jsProcesser, htmlProcesser];
+  constructor(processor: Processor) {
+    this.#processor = processor;
+  }
 
-const outDir = "./out";
-const staticDir = join(import.meta.dirname!, "static");
+  get processor(): Processor {
+    return this.#processor;
+  }
 
-await Deno.remove(outDir, { recursive: true });
+  get count(): number {
+    return this.#count;
+  }
+
+  needProcess(file: File): Promise<boolean> {
+    return this.#processor.needProcess(file);
+  }
+
+  async process(file: File): Promise<string | Uint8Array> {
+    this.#count++;
+    return await this.#processor.process(file);
+  }
+}
+
+const cssProcessor = new CounterProcessorWrapper(new CssProcessor());
+const jsProcessor = new CounterProcessorWrapper(new JsProcessor());
+const htmlProcessor = new CounterProcessorWrapper(new HtmlProcessor());
+
+const processors: Processor[] = [cssProcessor, jsProcessor, htmlProcessor];
+
+async function process(file: File): Promise<void> {
+  for (const processor of processors) {
+    if (await processor.needProcess(file)) {
+      await file.setContent(await processor.process(file));
+    }
+  }
+}
+
+const outDir = "./dist";
+
+if (await Deno.stat(outDir).catch(() => false)) {
+  await Deno.remove(outDir, { recursive: true });
+}
 
 // Generate HTML pages via SSG
 const app = await createApp();
 const result = await toSSG(app, {
-  writeFile: (path: string, data: string | Uint8Array) =>
-    typeof data === "string"
-      ? Deno.writeTextFile(path, data)
-      : Deno.writeFile(path, data),
+  writeFile: async (path: string, data: string | Uint8Array) => {
+    const file = new File(path, path, data, false);
+    await process(file);
+    await file.writeToDest();
+    console.log(`generated ${path}`);
+  },
   mkdir: Deno.mkdir,
 }, { dir: outDir });
 
@@ -142,30 +204,17 @@ if (!result.success) {
   Deno.exit(1);
 }
 
-console.log(`SSG generated ${result.files.length} files.`);
-
-let staticFileCount = 0;
-for await (const entry of walk(staticDir, { includeDirs: false })) {
-  const relativePath = relative(staticDir, entry.path);
+for await (const entry of walk(STATIC_ROOT, { includeDirs: false })) {
+  const relativePath = relative(STATIC_ROOT, entry.path);
   const destPath = join(outDir, relativePath);
-  await Deno.mkdir(dirname(destPath), { recursive: true });
-  await Deno.copyFile(entry.path, destPath);
-  staticFileCount++;
-}
-
-console.log(`Copied ${staticFileCount} static files.`);
-
-for await (const entry of walk(outDir, { includeDirs: false })) {
-  const file = new StaticFile(entry.path, entry.path);
-  for (const processer of processers) {
-    if (await processer.needProcess(file)) {
-      await file.setContent(await processer.process(file));
-    }
-  }
+  const file = new File(entry.path, destPath, null, true);
+  await process(file);
   await file.writeToDest();
+  console.log(`processed ${relativePath}`);
 }
+
 console.log(
-  `Transformed HTML: ${htmlProcesser.count}, CSS: ${cssProcesser.count}, JS: ${jsProcesser.count}`,
+  `\nTransformed HTML: ${htmlProcessor.count}, CSS: ${cssProcessor.count}, JS: ${jsProcessor.count}`,
 );
 
 console.log(`Output in ${outDir}/`);

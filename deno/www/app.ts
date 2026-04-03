@@ -3,27 +3,40 @@ import { serveStatic } from "hono/deno";
 import { fromFileUrl } from "@std/path";
 
 import { loadContent } from "./content.ts";
-import type { Page, SiteContent } from "./content.ts";
+import type { Site } from "./content.ts";
 import { homePage, listPage, singlePage } from "./templates.ts";
+
+export const STATIC_LIST = [
+  "/favicon.ico",
+  "/robots.txt",
+  "/assets/",
+  "/magic/",
+];
+export const STATIC_ROOT = fromFileUrl(new URL("./static", import.meta.url));
 
 export async function createApp(): Promise<Hono> {
   const app = new Hono();
   const site = await loadContent();
 
-  // Serve static files (avatar.png, favicon.ico, gh.png, magic/, color-scheme.js, CSS, JS)
-  const staticDir = fromFileUrl(new URL("./static", import.meta.url));
-  app.get("/favicon.ico", serveStatic({ root: staticDir }));
-  app.get("/assets/*", serveStatic({ root: staticDir }));
-  app.get("/magic/*", serveStatic({ root: staticDir }));
-
-  // robots.txt
-  app.get("/robots.txt", (c) => {
-    return c.text("User-agent: *\nDisallow: /git/\n");
-  });
+  for (const prefix of STATIC_LIST) {
+    app.get(
+      prefix.endsWith("/") ? `${prefix}*` : prefix,
+      serveStatic({ root: STATIC_ROOT }),
+    );
+  }
 
   // Home page
   app.get("/", (c) => {
-    return c.html(homePage(site.posts));
+    return c.html(homePage(site));
+  });
+
+  app.get("/posts/", (c) => {
+    return c.html(listPage({
+      slug: "/posts/",
+      title: "Posts",
+      articles: site.posts,
+      site,
+    }));
   });
 
   // Register routes for all pages
@@ -32,62 +45,14 @@ export async function createApp(): Promise<Hono> {
   return app;
 }
 
-function registerPageRoutes(app: Hono, site: SiteContent): void {
-  for (const [slug, page] of site.pages) {
-    if (slug === "/") continue; // Home already handled
-
-    // Determine layout
-    const isListPage = slug === "/posts/" ||
-      (slug.endsWith("/") && !page.layout && hasChildPages(slug, site));
-
-    // Register with trailing slash
+function registerPageRoutes(app: Hono, site: Site): void {
+  for (const [slug, article] of site.articles) {
     app.get(slug, (c) => {
-      if (isListPage) {
-        const children = getChildPages(slug, site);
-        return c.html(listPage(page, children, site.pages));
-      }
-      // Single page (or pages with layout: single like notes index)
-      return c.html(singlePage(page, site.pages));
+      return c.html(singlePage(article, site));
     });
 
-    // Redirect non-trailing-slash to trailing slash for non-root paths
     if (slug.endsWith("/") && slug !== "/") {
-      const noSlash = slug.slice(0, -1);
-      app.get(noSlash, (c) => c.redirect(slug, 301));
+      app.get(slug.slice(0, -1), (c) => c.redirect(slug, 301));
     }
   }
-}
-
-function hasChildPages(slug: string, site: SiteContent): boolean {
-  for (const [otherSlug, otherPage] of site.pages) {
-    if (
-      otherSlug !== slug && otherSlug.startsWith(slug) &&
-      !otherSlug.slice(slug.length).includes("/")
-    ) {
-      if (otherPage.date) return true;
-    }
-  }
-  return false;
-}
-
-function getChildPages(slug: string, site: SiteContent): Page[] {
-  const children: Page[] = [];
-  for (const [otherSlug, page] of site.pages) {
-    // Direct children only (not nested deeper), exclude _index pages
-    if (otherSlug !== slug && otherSlug.startsWith(slug)) {
-      const rest = otherSlug.slice(slug.length);
-      // Direct child: no additional "/" in the remaining path (except trailing)
-      const parts = rest.split("/").filter(Boolean);
-      if (parts.length === 1) {
-        children.push(page);
-      }
-    }
-  }
-  // Sort by date descending
-  children.sort((a, b) => {
-    const dateA = a.date?.getTime() ?? 0;
-    const dateB = b.date?.getTime() ?? 0;
-    return dateB - dateA;
-  });
-  return children;
 }

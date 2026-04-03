@@ -10,41 +10,38 @@ import { JSDOM } from "jsdom";
 
 export interface Frontmatter {
   title: string;
-  date?: Date | string;
-  lastmod?: Date | string;
+  date: string;
+  lastmod?: string;
   description?: string;
   categories?: string;
   tags?: string[];
-  layout?: string;
   params?: { css?: string[] };
 }
 
-export interface Page {
+export interface Article {
   slug: string;
   title: string;
-  date?: Date;
+  date: Date;
   lastmod?: Date;
   description?: string;
   categories?: string;
   tags?: string[];
-  layout?: string;
   extraCss?: string[];
-  content: string;
+  renderedHtml: string;
   plainText: string;
   wordCount: number;
   summary: string;
 }
 
-export interface SiteContent {
-  pages: Map<string, Page>;
-  posts: Page[];
+export interface Site {
+  articles: Map<string, Article>;
+  posts: Article[];
 }
 
 // --- Helpers ---
 
-function toDate(value: Date | string | undefined): Date | undefined {
-  if (value == null) return undefined;
-  return value instanceof Date ? value : new Date(value);
+function toDate(value: string | undefined): Date | undefined {
+  return value != null ? new Date(value) : undefined;
 }
 
 function countWords(text: string): number {
@@ -52,14 +49,10 @@ function countWords(text: string): number {
 }
 
 function filePathToSlug(filePath: string): string {
-  let slug = filePath.replace(/\\/g, "/");
-  if (slug === "_index.md") return "/";
-  if (slug.endsWith("/_index.md")) {
-    slug = slug.slice(0, -"/_index.md".length);
-  } else if (slug.endsWith(".md")) {
-    slug = slug.slice(0, -".md".length);
-  }
-  return `/${slug}/`;
+  let slug = filePath.replaceAll("\\", "/");
+  if (slug.endsWith(".md")) slug = slug.slice(0, -".md".length);
+  if (slug.endsWith("/index")) slug = slug.slice(0, -"/index".length);
+  return slug.length === 0 ? "/" : `/${slug}/`;
 }
 
 // --- Marked instance ---
@@ -98,34 +91,32 @@ function extractSummary(plaintext: string): string {
 
 // --- Page parsing ---
 
-async function parsePage(
+async function parseArticle(
   relPath: string,
   contentDir: string,
-): Promise<Page> {
+): Promise<Article> {
   const fullPath = `${contentDir}/${relPath}`;
   const raw = await Deno.readTextFile(fullPath);
 
   const { attrs, body } = extract<Frontmatter>(raw);
 
-  const content = await marked.parse(body, { async: true });
-
-  const plainText = new JSDOM(content).window.document.body
+  const slug = filePathToSlug(relPath);
+  const renderedHtml = await marked.parse(body, { async: true });
+  const plainText = new JSDOM(renderedHtml).window.document.body
     .textContent as string;
   const wordCount = countWords(plainText);
   const summary = extractSummary(plainText);
-  const slug = filePathToSlug(relPath);
 
   return {
     slug,
     title: attrs.title,
-    date: toDate(attrs.date),
+    date: new Date(attrs.date),
     lastmod: toDate(attrs.lastmod),
     description: attrs.description,
     categories: attrs.categories,
     tags: attrs.tags,
-    layout: attrs.layout,
     extraCss: attrs.params?.css,
-    content,
+    renderedHtml,
     plainText,
     wordCount,
     summary,
@@ -136,12 +127,11 @@ async function parsePage(
 
 export async function loadContent(
   contentDir?: string,
-): Promise<SiteContent> {
+): Promise<Site> {
   const dir = contentDir ??
     fromFileUrl(new URL("./content", import.meta.url));
 
-  const pages = new Map<string, Page>();
-  const posts: Page[] = [];
+  const articles: Map<string, Article> = new Map();
 
   for await (
     const entry of walk(dir, {
@@ -149,25 +139,14 @@ export async function loadContent(
       includeDirs: false,
     })
   ) {
-    const relPath = relative(dir, entry.path);
-    const page = await parsePage(relPath, dir);
-    pages.set(page.slug, page);
-
-    const normalized = relPath.replace(/\\/g, "/");
-    if (
-      normalized.startsWith("posts/") &&
-      !normalized.endsWith("_index.md")
-    ) {
-      posts.push(page);
-    }
+    const article = await parseArticle(relative(dir, entry.path), dir);
+    articles.set(article.slug, article);
   }
 
   // Sort posts by date descending
-  posts.sort((a, b) => {
-    const dateA = a.date?.getTime() ?? 0;
-    const dateB = b.date?.getTime() ?? 0;
-    return dateB - dateA;
-  });
+  const posts = Array.from(articles.values()).filter((p) =>
+    p.slug !== "/posts/" && p.slug.startsWith("/posts/")
+  ).sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  return { pages, posts };
+  return { articles, posts };
 }
