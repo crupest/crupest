@@ -1,3 +1,5 @@
+// deno-lint-ignore-file no-window
+
 // Color scheme (dark/light theme) switcher
 // This script runs in the browser and manages theme switching
 

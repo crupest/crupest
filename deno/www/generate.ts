@@ -6,7 +6,7 @@ import { transform as transformJs } from "esbuild";
 // @ts-types="npm:@types/html-minifier-terser"
 import { minify as minifyHtml } from "html-minifier-terser";
 
-import { createApp, STATIC_LIST, STATIC_ROOT } from "./app.ts";
+import { createApp, STATIC_ROOT } from "./app.ts";
 
 class File {
   readonly #src: string;

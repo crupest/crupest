@@ -117,40 +117,40 @@ export class Logger implements ILogger {
     await this.#writer.write({ time, tag, level, message });
   }
 
-  debug(...args: unknown[]) {
+  debug(...args: unknown[]): Promise<void> {
     return this.log({ level: "debug", args });
   }
 
-  info(...args: unknown[]) {
+  info(...args: unknown[]): Promise<void> {
     return this.log({ level: "info", args });
   }
 
-  warn(...args: unknown[]) {
+  warn(...args: unknown[]): Promise<void> {
     return this.log({ level: "warn", args });
   }
 
-  error(...args: unknown[]) {
+  error(...args: unknown[]): Promise<void> {
     return this.log({ level: "error", args });
   }
 
-  tagDebug(tag: string, ...args: unknown[]) {
+  tagDebug(tag: string, ...args: unknown[]): Promise<void> {
     return this.log({ level: "debug", tag, args });
   }
 
-  tagInfo(tag: string, ...args: unknown[]) {
+  tagInfo(tag: string, ...args: unknown[]): Promise<void> {
     return this.log({ level: "info", tag, args });
   }
 
-  tagWarn(tag: string, ...args: unknown[]) {
+  tagWarn(tag: string, ...args: unknown[]): Promise<void> {
     return this.log({ level: "warn", tag, args });
   }
 
-  tagError(tag: string, ...args: unknown[]) {
+  tagError(tag: string, ...args: unknown[]): Promise<void> {
     return this.log({ level: "error", tag, args });
   }
 }
 
-export const NULL_LOGGER = new Logger({
+export const NULL_LOGGER: Logger = new Logger({
   formatter: new NullLogFormatter(),
   writer: new NullLogWriter(),
 });
