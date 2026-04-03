@@ -6,13 +6,13 @@ import { loadContent } from "./content.ts";
 import type { Site } from "./content.ts";
 import { homePage, listPage, singlePage } from "./templates.ts";
 
-export const STATIC_LIST = [
+const STATIC_LIST = [
   "/favicon.ico",
   "/robots.txt",
   "/assets/",
   "/magic/",
 ];
-export const STATIC_ROOT = fromFileUrl(new URL("./static", import.meta.url));
+const STATIC_ROOT = fromFileUrl(new URL("./static", import.meta.url));
 
 export async function createApp(): Promise<Hono> {
   const app = new Hono();

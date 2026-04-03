@@ -1,12 +1,14 @@
 import { toSSG } from "hono/ssg";
 import { walk } from "@std/fs/walk";
-import { basename, dirname, join, relative } from "@std/path";
+import { basename, dirname, fromFileUrl, join, relative } from "@std/path";
 import { transform as transformCss } from "lightningcss";
 import { transform as transformJs } from "esbuild";
 // @ts-types="npm:@types/html-minifier-terser"
 import { minify as minifyHtml } from "html-minifier-terser";
 
-import { createApp, STATIC_ROOT } from "./app.ts";
+import { createApp } from "./app.ts";
+
+const STATIC_ROOT = fromFileUrl(new URL("./static", import.meta.url));
 
 class File {
   readonly #src: string;

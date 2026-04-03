@@ -76,13 +76,16 @@ const marked = new Marked(
 
 // --- Summary extraction ---
 
-function extractSummary(plaintext: string): string {
-  const moreIndex = plaintext.indexOf("<!--more-->");
+function extractSummary(renderedHtml: string, plainText: string): string {
+  const moreIndex = renderedHtml.indexOf("<!--more-->");
   if (moreIndex !== -1) {
-    return plaintext.slice(0, moreIndex).trim();
+    const preMoreHtml = renderedHtml.slice(0, moreIndex);
+    return (
+      new JSDOM(preMoreHtml).window.document.body.textContent ?? ""
+    ).trim();
   }
 
-  return plaintext
+  return plainText
     .split("\n")
     .filter((l) => l.trim().length > 0)
     .slice(0, 5)
@@ -105,7 +108,7 @@ async function parseArticle(
   const plainText = new JSDOM(renderedHtml).window.document.body
     .textContent as string;
   const wordCount = countWords(plainText);
-  const summary = extractSummary(plainText);
+  const summary = extractSummary(renderedHtml, plainText);
 
   return {
     slug,

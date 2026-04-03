@@ -282,7 +282,7 @@ function friendHtml(friend: FriendData): Html {
           height="80"
         /><br />${friend.name}</a>
       <a rel="noopener noreferrer" href="${ghUrl}">
-        <img class="friend-github" src="/assets/gh.png" />
+        <img class="friend-github" src="/assets/gh.png" alt="" />
       </a><br />
       ${friend.tag
         ? html`
