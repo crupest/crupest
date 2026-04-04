@@ -67,7 +67,7 @@ table {
 
 .shiki {
   overflow-x: auto;
-  padding: 1em 0.8em;
+  padding: 0.8em;
   border-radius: 6px;
 }
 
@@ -83,11 +83,7 @@ nav {
   padding: 0 1em;
   margin-top: 1em;
 
-  > pre {
-    white-space: normal;
-  }
-
-  code:not(.code-block, .code-block code) {
+  code:not(.shiki code) {
     border-radius: 4px;
     color: var(--code-fg-color);
     background-color: var(--code-bg-color);

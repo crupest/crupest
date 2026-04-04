@@ -12,7 +12,7 @@ const STATIC_LIST = [
   "/assets/",
   "/magic/",
 ];
-const STATIC_ROOT = fromFileUrl(new URL("./static", import.meta.url));
+export const STATIC_ROOT = fromFileUrl(new URL("./static", import.meta.url));
 
 export async function createApp(): Promise<Hono> {
   const app = new Hono();

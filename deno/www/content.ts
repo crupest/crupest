@@ -2,8 +2,8 @@ import { extract } from "@std/front-matter/yaml";
 import { walk } from "@std/fs/walk";
 import { fromFileUrl, relative } from "@std/path";
 import { Marked } from "marked";
-import { markedHighlight } from "marked-highlight";
 import { codeToHtml } from "shiki/bundle/full";
+// @ts-types="npm:@types/jsdom"
 import { JSDOM } from "jsdom";
 
 // --- Types ---
@@ -58,20 +58,26 @@ function filePathToSlug(filePath: string): string {
 // --- Marked instance ---
 
 const marked = new Marked(
-  markedHighlight({
+  {
     async: true,
-    langPrefix: "code-block language-",
-    highlight(code, lang) {
-      return codeToHtml(code, {
-        lang,
-        themes: {
-          light: "vitesse-light",
-          dark: "vitesse-dark",
-        },
-      });
+    walkTokens: async (token) => {
+      if (token.type === "code") {
+        token.text = await codeToHtml(token.text, {
+          lang: token.lang,
+          themes: {
+            light: "vitesse-light",
+            dark: "vitesse-dark",
+          },
+        });
+      }
     },
-  }),
-  { gfm: true },
+    gfm: true,
+    renderer: {
+      code(token) {
+        return token.text;
+      },
+    },
+  },
 );
 
 // --- Summary extraction ---
@@ -80,16 +86,15 @@ function extractSummary(renderedHtml: string, plainText: string): string {
   const moreIndex = renderedHtml.indexOf("<!--more-->");
   if (moreIndex !== -1) {
     const preMoreHtml = renderedHtml.slice(0, moreIndex);
-    return (
-      new JSDOM(preMoreHtml).window.document.body.textContent ?? ""
-    ).trim();
+    return new JSDOM(preMoreHtml).window.document.body.textContent.trim();
   }
 
   return plainText
     .split("\n")
     .filter((l) => l.trim().length > 0)
     .slice(0, 5)
-    .join(" ");
+    .join("\n")
+    .slice(0, 300);
 }
 
 // --- Page parsing ---
@@ -106,7 +111,7 @@ async function parseArticle(
   const slug = filePathToSlug(relPath);
   const renderedHtml = await marked.parse(body, { async: true });
   const plainText = new JSDOM(renderedHtml).window.document.body
-    .textContent as string;
+    .textContent;
   const wordCount = countWords(plainText);
   const summary = extractSummary(renderedHtml, plainText);
 

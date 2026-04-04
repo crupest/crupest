@@ -227,8 +227,8 @@ export function homePage(
           <ul>
             <li><a href="/git/">git</a></li>
             <li><a href="/notes/">notes</a></li>
-            <li><a href="/notes/hurd/">hurd</a></li>
             <li><a href="/notes/cheat-sheet/">cheat-sheet</a></li>
+            <li><a href="/notes/hurd/">hurd</a></li>
           </ul>
         </div>
       </section>
@@ -282,7 +282,7 @@ function friendHtml(friend: FriendData): Html {
           height="80"
         /><br />${friend.name}</a>
       <a rel="noopener noreferrer" href="${ghUrl}">
-        <img class="friend-github" src="/assets/gh.png" alt="" />
+        <img class="friend-github" src="/assets/gh.png" alt="github logo" />
       </a><br />
       ${friend.tag
         ? html`
