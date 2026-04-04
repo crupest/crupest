@@ -205,7 +205,7 @@ function createAwsRecycleOnlyServices() {
     fallback: config.getList("inboundFallback"),
     ldaPath: config.get("ldaPath"),
     doveadmPath: config.get("doveadmPath"),
-    aliasFile: join(config.get("dataPath"), "aliases.csv"),
+    aliasFile: join(config.get("dataPath"), "postfix-virtual"),
     mailDomain: config.get("mailDomain"),
   });
 
@@ -216,7 +216,7 @@ function createAwsServices() {
   const services = createAwsRecycleOnlyServices();
   const { logger, config, aws, inbound } = services;
 
-  const db = new DbService(join(config.get("dataPath"), "db.sqlite"));
+  const db = new DbService(join(config.get("dataPath"), "crupest-mail.sqlite"));
   const outbound = createOutbound({
     logger: logger,
     aws,

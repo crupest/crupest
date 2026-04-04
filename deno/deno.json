@@ -15,17 +15,16 @@
     "generate:www": "deno task --cwd=www generate"
   },
   "imports": {
-    "@std/collections": "jsr:@std/collections@^1.1.1",
-    "@std/csv": "jsr:@std/csv@^1.0.6",
+    "@std/collections": "jsr:@std/collections@^1.1.6",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
-    "@std/expect": "jsr:@std/expect@^1.0.16",
-    "@std/io": "jsr:@std/io@^0.225.2",
-    "@std/path": "jsr:@std/path@^1.1.0",
-    "@std/testing": "jsr:@std/testing@^1.0.13",
-    "@std/fs": "jsr:@std/fs@^1.0.18",
-    "hono": "npm:hono@^4.12.9",
+    "@std/expect": "jsr:@std/expect@^1.0.18",
+    "@std/io": "jsr:@std/io@^0.225.3",
+    "@std/path": "jsr:@std/path@^1.1.4",
+    "@std/testing": "jsr:@std/testing@^1.0.17",
+    "@std/fs": "jsr:@std/fs@^1.0.23",
+    "hono": "npm:hono@^4.12.10",
     "lightningcss": "npm:lightningcss@^1.32.0",
     "yargs": "npm:yargs@^18.0.0",
-    "@types/yargs": "npm:@types/yargs@^17.0.33"
+    "@types/yargs": "npm:@types/yargs@^17.0.35"
   }
 }

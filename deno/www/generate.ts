@@ -1,6 +1,6 @@
 import { toSSG } from "hono/ssg";
 import { walk } from "@std/fs/walk";
-import { basename, dirname, fromFileUrl, join, relative } from "@std/path";
+import { basename, dirname, join, relative } from "@std/path";
 import { transform as transformCss } from "lightningcss";
 import { transform as transformJs } from "esbuild";
 // @ts-types="npm:@types/html-minifier-terser"

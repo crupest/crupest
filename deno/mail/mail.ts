@@ -1,5 +1,4 @@
 import { encodeBase64 } from "@std/encoding/base64";
-import { parse } from "@std/csv/parse";
 
 import { StringUtils } from "@crupest/base";
 import type { ILogger } from "@crupest/base/log";
@@ -206,6 +205,7 @@ export class FallbackRecipientHook implements MailDeliverHook {
   }
 }
 
+// Use postfix virtual alias file as recipient alias mapping.
 export class AliasRecipientMailHook implements MailDeliverHook {
   #aliasFile;
 
@@ -217,16 +217,30 @@ export class AliasRecipientMailHook implements MailDeliverHook {
     context: MailDeliverContext,
   ): Promise<Map<string, string>> {
     const result = new Map();
-    if ((await Deno.stat(this.#aliasFile)).isFile) {
-      const text = await Deno.readTextFile(this.#aliasFile);
-      const csv = parse(text);
-      for (const [real, ...aliases] of csv) {
-        aliases.forEach((a) => result.set(a, real));
+    try {
+      if ((await Deno.stat(this.#aliasFile)).isFile) {
+        const text = await Deno.readTextFile(this.#aliasFile);
+        for (const line of text.split("\n")) {
+          const trimmed = line.trim();
+          if (trimmed.length === 0 || trimmed.startsWith("#")) continue;
+          const [alias, real] = trimmed.split(/\s+/, 2);
+          if (alias != null && real != null) {
+            result.set(alias, real);
+          }
+        }
+      } else {
+        context.logger.warn(
+          `Recipient alias file ${this.#aliasFile} is not a regular file.`,
+        );
       }
-    } else {
-      context.logger.warn(
-        `Recipient alias file ${this.#aliasFile} is not found.`,
-      );
+    } catch (e) {
+      if (e instanceof Deno.errors.NotFound) {
+        context.logger.warn(
+          `Recipient alias file ${this.#aliasFile} is not found.`,
+        );
+      } else {
+        throw e;
+      }
     }
     return result;
   }

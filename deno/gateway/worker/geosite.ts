@@ -1,5 +1,4 @@
 /// <reference no-default-lib="true" />
-/// <reference lib="esnext" />
 /// <reference lib="deno.worker" />
 
 import { CronTask } from "@crupest/base/cron";
