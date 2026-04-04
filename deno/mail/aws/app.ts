@@ -22,7 +22,7 @@ const PREFIX = "crupest-mail-server";
 const CONFIG_DEFINITIONS = {
   dataPath: {
     description: "Path to save app persistent data.",
-    default: "/data",
+    default: ".",
   },
   mailDomain: {
     description:

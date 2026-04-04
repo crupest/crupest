@@ -3,8 +3,11 @@
 set -e -o pipefail
 
 # clean stale dovecot pid file if exists
-if [[ -f /var/run/dovecot/master.pid && ! -d /proc/$(cat /var/run/dovecot/master.pid) ]]; then
-  rm -f /var/run/dovecot/master.pid
+if [[ -f /var/run/dovecot/master.pid ]]; then
+  dovecot_pid="$(cat /var/run/dovecot/master.pid)"
+  if [[ ! "$dovecot_pid" =~ ^[0-9]+$ || ! -d "/proc/$dovecot_pid" ]]; then
+    rm -f /var/run/dovecot/master.pid
+  fi
 fi
 
 mkdir -p /var/spool/postfix/private
