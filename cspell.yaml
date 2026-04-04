@@ -30,5 +30,4 @@ patterns:
 ignoreRegExpList:
   - libs
 
-ignorePaths:
-  - www/layouts/index.html
+ignorePaths: []

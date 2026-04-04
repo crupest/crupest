@@ -4,6 +4,9 @@ Yuqian
 Yang
 fxxking
 
+# people
+wushuming
+
 # general
 aarch64
 esmtp
@@ -54,6 +57,10 @@ vnext
 
 catppuccin
 macchiato
+vitesse
+
+lightningcss
+shiki
 
 # vim/nvim
 nvim
@@ -94,4 +101,3 @@ createchroot
 sbuild
 sbuildrc
 schroot
-

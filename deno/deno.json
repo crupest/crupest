@@ -1,9 +1,18 @@
 {
-  "workspace": ["./base", "./base-contrib", "./gateway", "./mail", "./tools"],
+  "workspace": [
+    "./base",
+    "./base-contrib",
+    "./gateway",
+    "./mail",
+    "./tools",
+    "./www"
+  ],
   "tasks": {
     "compile:gateway": "deno task --cwd=gateway compile",
     "compile:mail": "deno task --cwd=mail compile",
-    "compile:tools": "deno task --cwd=tools compile"
+    "compile:tools": "deno task --cwd=tools compile",
+    "compile:www": "deno task --cwd=www compile",
+    "generate:www": "deno task --cwd=www generate"
   },
   "imports": {
     "@std/collections": "jsr:@std/collections@^1.1.1",
@@ -14,6 +23,8 @@
     "@std/path": "jsr:@std/path@^1.1.0",
     "@std/testing": "jsr:@std/testing@^1.0.13",
     "@std/fs": "jsr:@std/fs@^1.0.18",
+    "hono": "npm:hono@^4.12.9",
+    "lightningcss": "npm:lightningcss@^1.32.0",
     "yargs": "npm:yargs@^18.0.0",
     "@types/yargs": "npm:@types/yargs@^17.0.33"
   }

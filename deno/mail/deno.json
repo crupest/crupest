@@ -11,7 +11,6 @@
     "@hono/zod-validator": "npm:@hono/zod-validator@^0.7.0",
     "@smithy/fetch-http-handler": "npm:@smithy/fetch-http-handler@^5.0.4",
     "email-addresses": "npm:email-addresses@^5.0.0",
-    "hono": "npm:hono@^4.7.11",
     "kysely": "npm:kysely@^0.28.2",
     "zod": "npm:zod@^3.25.48"
   }
