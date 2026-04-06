@@ -12,4 +12,4 @@ RUN deno install
 ADD --chmod=644 postfix/* /etc/postfix/
 ADD --chmod=644 dovecot.conf /etc/dovecot/dovecot.conf
 ADD app/* /app/
-CMD ["tini", "--", "/app/main.bash"]
+CMD ["/app/main.bash"]
