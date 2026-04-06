@@ -14,4 +14,4 @@ EXPOSE 3636
 CMD [ "tini", "--", "/app/lighttpd-wrapper.bash" ]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=1 \
-    CMD "curl","-f", "http://localhost:3636/git" || exit 1
+    CMD curl -f http://localhost:3636/git || exit 1
