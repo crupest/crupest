@@ -25,8 +25,8 @@ function Use-VC {
 
 
 function Set-Proxy {
-    $env:http_proxy = "http://127.0.0.1:2080"
-    $env:https_proxy = "http://127.0.0.1:2080"
+    $env:http_proxy = "http://127.0.0.1:7897"
+    $env:https_proxy = "http://127.0.0.1:7897"
 }
 
 function Reset-Proxy {
