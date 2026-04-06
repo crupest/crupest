@@ -69,12 +69,13 @@ services:
     restart: on-failure:3
 
   roundcubemail:
-    image: "roundcube/roundcubemail"
+    build:
+        context: "./{{CRUPEST_DOCKER_DIR}}/roundcube"
+        dockerfile: Dockerfile
     hostname: roundcubemail
     env_file:
       - "./{{CRUPEST_GENERATED_DIR}}/envs/roundcubemail.env"
     volumes:
-      - "./{{CRUPEST_GENERATED_DIR}}/my-roundcube.inc.php:/var/roundcube/config/my-roundcube.inc.php"
       - "./{{CRUPEST_DATA_SECRET_DIR}}/gnupg:/var/roundcube/enigma"
       - "./{{CRUPEST_DATA_ROUNDCUBE_DIR}}/db:/var/roundcube/db"
       - "roundcubemail-html:/var/www/html"
