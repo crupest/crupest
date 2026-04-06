@@ -1,7 +1,7 @@
 import { join } from "@std/path";
-import { z } from "zod";
+import * as z from "zod";
 import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
+import { sValidator } from "@hono/standard-validator";
 import { FetchHttpHandler } from "@smithy/fetch-http-handler";
 // @ts-types="npm:@types/yargs"
 import yargs from "yargs";
@@ -134,7 +134,7 @@ function setupAwsHono(
       }
       await next();
     },
-    zValidator(
+    sValidator(
       "json",
       z.object({
         key: z.string(),

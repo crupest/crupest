@@ -29,7 +29,7 @@
     "jsr:@std/yaml@^1.0.5": "1.0.12",
     "npm:@aws-sdk/client-s3@^3.821.0": "3.824.0",
     "npm:@aws-sdk/client-sesv2@^3.821.0": "3.824.0",
-    "npm:@hono/zod-validator@0.7": "0.7.0_hono@4.12.10_zod@3.25.51",
+    "npm:@hono/standard-validator@~0.2.2": "0.2.2_@standard-schema+spec@1.1.0_hono@4.12.10",
     "npm:@smithy/fetch-http-handler@^5.0.4": "5.0.4",
     "npm:@types/html-minifier-terser@*": "7.0.2",
     "npm:@types/jsdom@*": "28.0.1",
@@ -37,7 +37,6 @@
     "npm:@types/mustache@*": "4.2.6",
     "npm:@types/node@*": "22.15.15",
     "npm:@types/yargs@*": "17.0.35",
-    "npm:@types/yargs@^17.0.35": "17.0.35",
     "npm:email-addresses@5": "5.0.0",
     "npm:esbuild@0.25": "0.25.12",
     "npm:highlight.js@11": "11.11.1",
@@ -53,7 +52,7 @@
     "npm:mustache@^4.2.0": "4.2.0",
     "npm:shiki@^4.0.2": "4.0.2",
     "npm:yargs@18": "18.0.0",
-    "npm:zod@^3.25.48": "3.25.51"
+    "npm:zod@^4.3.6": "4.3.6"
   },
   "jsr": {
     "@db/sqlite@0.12.0": {
@@ -938,11 +937,11 @@
     "@exodus/bytes@1.15.0": {
       "integrity": "sha512-UY0nlA+feH81UGSHv92sLEPLCeZFjXOuHhrIo0HQydScuQc8s0A7kL/UdgwgDq8g8ilksmuoF35YVTNphV2aBQ=="
     },
-    "@hono/zod-validator@0.7.0_hono@4.12.10_zod@3.25.51": {
-      "integrity": "sha512-qe2ZE6sHFE98dcUrbYMtS3bAV8hqcCOflykvZga2S7XhmNSZzT+dIz4OuMILsjLHkJw9JMn912/dB7dQOmuPvg==",
+    "@hono/standard-validator@0.2.2_@standard-schema+spec@1.1.0_hono@4.12.10": {
+      "integrity": "sha512-mJ7W84Bt/rSvoIl63Ynew+UZOHAzzRAoAXb3JaWuxAkM/Lzg+ZHTCUiz77KOtn2e623WNN8LkD57Dk0szqUrIw==",
       "dependencies": [
-        "hono",
-        "zod"
+        "@standard-schema/spec",
+        "hono"
       ]
     },
     "@jridgewell/gen-mapping@0.3.13": {
@@ -1465,6 +1464,9 @@
         "@smithy/types",
         "tslib"
       ]
+    },
+    "@standard-schema/spec@1.1.0": {
+      "integrity": "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="
     },
     "@types/hast@3.0.4": {
       "integrity": "sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==",
@@ -2184,8 +2186,8 @@
         "yargs-parser"
       ]
     },
-    "zod@3.25.51": {
-      "integrity": "sha512-TQSnBldh+XSGL+opiSIq0575wvDPqu09AqWe1F7JhUMKY+M91/aGlK4MhpVNO7MgYfHcVCB1ffwAUTJzllKJqg=="
+    "zod@4.3.6": {
+      "integrity": "sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="
     },
     "zwitch@2.0.4": {
       "integrity": "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="
@@ -2200,10 +2202,11 @@
       "jsr:@std/io@~0.225.3",
       "jsr:@std/path@^1.1.4",
       "jsr:@std/testing@^1.0.17",
-      "npm:@types/yargs@^17.0.35",
+      "npm:@hono/standard-validator@~0.2.2",
       "npm:hono@^4.12.10",
       "npm:lightningcss@^1.32.0",
-      "npm:yargs@18"
+      "npm:yargs@18",
+      "npm:zod@^4.3.6"
     ],
     "members": {
       "mail": {
@@ -2211,11 +2214,9 @@
           "jsr:@db/sqlite@0.12",
           "npm:@aws-sdk/client-s3@^3.821.0",
           "npm:@aws-sdk/client-sesv2@^3.821.0",
-          "npm:@hono/zod-validator@0.7",
           "npm:@smithy/fetch-http-handler@^5.0.4",
           "npm:email-addresses@5",
-          "npm:kysely@~0.28.2",
-          "npm:zod@^3.25.48"
+          "npm:kysely@~0.28.2"
         ]
       },
       "tools": {
