@@ -5,18 +5,21 @@ import { Marked } from "marked";
 import { codeToHtml } from "shiki/bundle/full";
 // @ts-types="npm:@types/jsdom"
 import { JSDOM } from "jsdom";
+import * as z from "zod";
 
 // --- Types ---
 
-export interface Frontmatter {
-  title: string;
-  date: string;
-  lastmod?: string;
-  description?: string;
-  categories?: string;
-  tags?: string[];
-  params?: { css?: string[] };
-}
+export const FRONTMATTER_SCHEMA = z.object({
+  title: z.string(),
+  date: z.coerce.date(),
+  lastmod: z.coerce.date().optional(),
+  description: z.string().optional(),
+  categories: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
+  css: z.array(z.string()).optional(),
+});
+
+export type Frontmatter = z.output<typeof FRONTMATTER_SCHEMA>;
 
 export interface Article {
   slug: string;
@@ -24,9 +27,9 @@ export interface Article {
   date: Date;
   lastmod?: Date;
   description?: string;
-  categories?: string;
+  categories?: string[];
   tags?: string[];
-  extraCss?: string[];
+  css?: string[];
   renderedHtml: string;
   plainText: string;
   wordCount: number;
@@ -39,10 +42,6 @@ export interface Site {
 }
 
 // --- Helpers ---
-
-function toDate(value: string | undefined): Date | undefined {
-  return value != null ? new Date(value) : undefined;
-}
 
 function countWords(text: string): number {
   return text.split(/\s+/).filter((w) => w.length > 0).length;
@@ -106,7 +105,16 @@ async function parseArticle(
   const fullPath = `${contentDir}/${relPath}`;
   const raw = await Deno.readTextFile(fullPath);
 
-  const { attrs, body } = extract<Frontmatter>(raw);
+  const { attrs: rawFrontmatter, body } = extract<
+    z.input<typeof FRONTMATTER_SCHEMA>
+  >(raw);
+  const frontmatterParseResult = FRONTMATTER_SCHEMA.safeParse(rawFrontmatter);
+  if (!frontmatterParseResult.success) {
+    throw new Error(
+      `Invalid frontmatter in ${fullPath}: ${frontmatterParseResult.error}`,
+    );
+  }
+  const frontmatter = frontmatterParseResult.data;
 
   const slug = filePathToSlug(relPath);
   const renderedHtml = await marked.parse(body, { async: true });
@@ -117,13 +125,7 @@ async function parseArticle(
 
   return {
     slug,
-    title: attrs.title,
-    date: new Date(attrs.date),
-    lastmod: toDate(attrs.lastmod),
-    description: attrs.description,
-    categories: attrs.categories,
-    tags: attrs.tags,
-    extraCss: attrs.params?.css,
+    ...frontmatter,
     renderedHtml,
     plainText,
     wordCount,

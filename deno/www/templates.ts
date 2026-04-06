@@ -301,7 +301,7 @@ export function singlePage(
 ): Html {
   return baseLayout({
     title: article.title,
-    extraCss: ["single", ...(article.extraCss ?? [])],
+    extraCss: ["single", ...(article.css ?? [])],
     content: html`
       ${navHtml(article.slug, site)}
       <h1 class="post-title">${article.title}</h1>

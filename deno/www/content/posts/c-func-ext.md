@@ -2,7 +2,8 @@
 title: "Libc/POSIX Function \"Extensions\""
 date: 2025-03-04T13:40:33+08:00
 lastmod: 2025-03-04T13:40:33+08:00
-categories: coding
+categories:
+  - coding
 tags:
   - c
   - posix
