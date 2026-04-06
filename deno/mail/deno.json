@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "tasks": {
     "start": "deno run -A aws/app.ts",
+    "serve-real": "deno run -A aws/app.ts serve --real",
     "compile": "deno compile -o out/crupest-mail -A aws/app.ts"
   },
   "imports": {

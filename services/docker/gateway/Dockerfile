@@ -1,13 +1,8 @@
-FROM denoland/deno AS deno-build
-COPY --from=deno . /workdir/
-WORKDIR /workdir
-RUN deno install
-RUN deno task compile:gateway
-RUN deno task generate:www
-
-FROM debian
+FROM denoland/deno
 RUN apt update && apt-get install -y tini certbot unzip curl && rm -rf /var/lib/apt/lists/* && mkdir -p /app/state
+COPY --from=deno . /app/deno/
+WORKDIR /app/deno
+RUN deno install
+RUN deno task www:generate && cp -r www/dist /srv/www
 ADD mail-robots.txt /srv/mail/robots.txt
-COPY --from=deno-build /workdir/www/dist /srv/www
-COPY --from=deno-build /workdir/gateway/out/crupest-gateway /app/
-CMD ["/usr/bin/tini", "--", "/app/crupest-gateway"]
+CMD ["/usr/bin/tini", "--", "deno", "task", "gateway:start"]

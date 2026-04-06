@@ -24,7 +24,7 @@ fi
 
 postmap /data/postfix-virtual
 
-/app/crupest-mail serve --real &
+deno task mail:serve-real &
 
 /usr/sbin/dovecot -F &
 

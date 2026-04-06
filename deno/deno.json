@@ -8,10 +8,10 @@
     "./www"
   ],
   "tasks": {
-    "compile:gateway": "deno task --cwd=gateway compile",
-    "compile:mail": "deno task --cwd=mail compile",
-    "compile:tools": "deno task --cwd=tools compile",
-    "generate:www": "deno task --cwd=www generate"
+    "gateway:start": "deno task --cwd=gateway start",
+    "mail:start": "deno task --cwd=mail start",
+    "mail:serve-real": "deno task --cwd=mail serve-real",
+    "www:generate": "deno task --cwd=www generate"
   },
   "imports": {
     "@hono/standard-validator": "npm:@hono/standard-validator@^0.2.2",
