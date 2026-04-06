@@ -3,7 +3,7 @@
     "lib": ["deno.ns"]
   },
   "tasks": {
-    "start": "deno run --allow-net main.ts",
+    "start": "deno run -A main.ts",
     "compile": "deno compile -o out/crupest-gateway -A --include worker main.ts"
   }
 }

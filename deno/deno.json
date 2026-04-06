@@ -11,7 +11,6 @@
     "compile:gateway": "deno task --cwd=gateway compile",
     "compile:mail": "deno task --cwd=mail compile",
     "compile:tools": "deno task --cwd=tools compile",
-    "compile:www": "deno task --cwd=www compile",
     "generate:www": "deno task --cwd=www generate"
   },
   "imports": {

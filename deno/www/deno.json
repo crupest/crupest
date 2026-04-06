@@ -10,7 +10,6 @@
   },
   "tasks": {
     "dev": "deno run -A --watch main.ts",
-    "generate": "deno run -A generate.ts",
-    "compile": "deno compile -o out/crupest-www -A main.ts"
+    "generate": "deno run -A generate.ts"
   }
 }
