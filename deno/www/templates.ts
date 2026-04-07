@@ -71,22 +71,17 @@ function articlePreviewHtml(
   article: Article,
   headingTag: string,
 ): Html {
-  const lines = article.plainText
-    .split("\n")
-    .filter((l) => l.trim().length > 0)
-    .slice(0, 5);
-  const preview = lines.map((l) =>
-    html`
-      ${l}<br />
-    `
-  );
-
   return html`
     <section class="article-preview">
-      <span class="date">${article.date ? formatDate(article.date) : ""}</span>
+      <span class="date">${formatDate(article.date)}</span>
       ${raw(`<${headingTag} class="title">`)}<a href="${article.slug}">${article
         .title}</a>${raw(`</${headingTag}>`)}
-      <p class="content">${preview}</p>
+      <p class="content">${article.summary
+        .split("\n").map((l) =>
+          html`
+            ${l}<br />
+          `
+        )}</p>
       <p>... <a class="mono-link" href="${article.slug}">Read more</a></p>
     </section>
   `;
@@ -96,27 +91,14 @@ function articlePreviewListHtml(
   articles: Article[],
   headingTag: string,
 ): Html {
-  if (articles.length === 0) {
-    return html`
-
-    `;
-  }
-
-  const items = articles.map((article, i) => {
-    const sep = i > 0
-      ? html`
-        <hr class="article-preview-hr">
-      `
-      : html`
-
-      `;
-    return html`
-      ${sep}${articlePreviewHtml(article, headingTag)}
-    `;
-  });
-
   return html`
-    ${items}
+    ${articles.map((article, i) =>
+      html`
+        ${i > 0 && html`
+          <hr class="article-preview-hr">
+        `} ${articlePreviewHtml(article, headingTag)}
+      `
+    )}
   `;
 }
 
@@ -133,7 +115,7 @@ interface LayoutOptions {
 export function baseLayout(options: LayoutOptions): Html {
   const title = options.title ?? "crupest's life";
 
-  const cssLinks = (options.extraCss ?? []).map(
+  const cssLinks = options.extraCss?.map(
     (css) =>
       html`
         <link rel="stylesheet" href="/assets/${css}.css" />
@@ -151,18 +133,14 @@ export function baseLayout(options: LayoutOptions): Html {
         <title>${title}</title>
         <script src="/assets/color-scheme.js"></script>
         <link rel="stylesheet" href="/assets/base.css" />
-        ${cssLinks} ${options.extraHead ?? html`
-
-        `}
+        ${cssLinks} ${options.extraHead}
       </head>
       <body>
         <article id="main-article">
           ${options.content}
           <hr />
           <footer class="mono-link">
-            ${options.footer ?? html`
-
-            `}
+            ${options.footer}
             <p id="license">
               <small>This work is licensed under
                 <a
@@ -284,12 +262,9 @@ function friendHtml(friend: FriendData): Html {
       <a rel="noopener noreferrer" href="${ghUrl}">
         <img class="friend-github" src="/assets/gh.png" alt="github logo" />
       </a><br />
-      ${friend.tag
-        ? html`
+      ${friend.tag &&
+        html`
           <span class="friend-tag">${friend.tag}</span>
-        `
-        : html`
-
         `}
     </div>
   `;
@@ -307,23 +282,15 @@ export function singlePage(
       <h1 class="post-title">${article.title}</h1>
       <hr />
       <p class="post-info">
-        ${article.date
-          ? html`
-            <span class="created">${dateHtml(article.date)}</span> |
-          `
-          : html`
-
-          `}
-        <span class="words">${article.wordCount} words</span>
-        ${article.lastmod && article.date &&
-            article.lastmod.getTime() !== article.date.getTime()
-          ? html`
+        ${html`
+          <span class="created">${dateHtml(article.date)}</span>
+        `} | <span class="words">${article.wordCount} words</span>
+        ${article.lastmod &&
+          article.lastmod.getTime() !== article.date.getTime() &&
+          html`
             <span class="last-updated">Last updated: ${dateHtml(
               article.lastmod,
             )}</span>
-          `
-          : html`
-
           `}
       </p>
       ${raw(article.renderedHtml)}
