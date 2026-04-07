@@ -19,8 +19,10 @@
     "jsr:@std/fs@1": "1.0.23",
     "jsr:@std/fs@^1.0.22": "1.0.23",
     "jsr:@std/fs@^1.0.23": "1.0.23",
+    "jsr:@std/html@^1.0.5": "1.0.5",
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/io@~0.225.3": "0.225.3",
+    "jsr:@std/media-types@^1.1.0": "1.1.0",
     "jsr:@std/path@0.217": "0.217.0",
     "jsr:@std/path@1": "1.1.4",
     "jsr:@std/path@^1.1.4": "1.1.4",
@@ -123,6 +125,9 @@
         "jsr:@std/path@^1.1.4"
       ]
     },
+    "@std/html@1.0.5": {
+      "integrity": "4e2d693f474cae8c16a920fa5e15a3b72267b94b84667f11a50c6dd1cb18d35e"
+    },
     "@std/internal@1.0.7": {
       "integrity": "39eeb5265190a7bc5d5591c9ff019490bd1f2c3907c044a11b0d545796158a0f"
     },
@@ -134,6 +139,9 @@
       "dependencies": [
         "jsr:@std/bytes"
       ]
+    },
+    "@std/media-types@1.1.0": {
+      "integrity": "c9d093f0c05c3512932b330e3cc1fe1d627b301db33a4c2c2185c02471d6eaa4"
     },
     "@std/path@0.217.0": {
       "integrity": "1217cc25534bca9a2f672d7fe7c6f356e4027df400c0e85c0ef3e4343bc67d11",
@@ -2199,7 +2207,9 @@
       "jsr:@std/encoding@^1.0.10",
       "jsr:@std/expect@^1.0.18",
       "jsr:@std/fs@^1.0.23",
+      "jsr:@std/html@^1.0.5",
       "jsr:@std/io@~0.225.3",
+      "jsr:@std/media-types@^1.1.0",
       "jsr:@std/path@^1.1.4",
       "jsr:@std/testing@^1.0.17",
       "npm:@hono/standard-validator@~0.2.2",

@@ -2,6 +2,7 @@
   "name": "@crupest/base-contrib",
   "version": "0.1.0",
   "exports": {
-    "./geosite": "./geosite.ts"
+    "./geosite": "./geosite.ts",
+    "./html": "./html.ts"
   }
 }

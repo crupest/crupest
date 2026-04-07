@@ -1,6 +1,6 @@
 import { extract } from "@std/front-matter/yaml";
 import { walk } from "@std/fs/walk";
-import { fromFileUrl, relative } from "@std/path";
+import { join, relative } from "@std/path";
 import { Marked } from "marked";
 import { codeToHtml } from "shiki/bundle/full";
 // @ts-types="npm:@types/jsdom"
@@ -22,7 +22,8 @@ export const FRONTMATTER_SCHEMA = z.object({
 export type Frontmatter = z.output<typeof FRONTMATTER_SCHEMA>;
 
 export interface Article {
-  slug: string;
+  path: string;
+  sourcePath: string;
   title: string;
   date: Date;
   lastmod?: Date;
@@ -36,22 +37,17 @@ export interface Article {
   summary: string;
 }
 
-export interface Site {
-  articles: Map<string, Article>;
-  posts: Article[];
-}
-
 // --- Helpers ---
 
+// TODO: Naive counting, no Asian character support, etc.
 function countWords(text: string): number {
   return text.split(/\s+/).filter((w) => w.length > 0).length;
 }
 
-function filePathToSlug(filePath: string): string {
-  let slug = filePath.replaceAll("\\", "/");
-  if (slug.endsWith(".md")) slug = slug.slice(0, -".md".length);
-  if (slug.endsWith("/index")) slug = slug.slice(0, -"/index".length);
-  return slug.length === 0 ? "/" : `/${slug}/`;
+function sourcePathToPath(path: string): string {
+  if (path.endsWith(".md")) path = path.slice(0, -".md".length);
+  if (path.endsWith("/index")) path = path.slice(0, -"/index".length);
+  return path + "/";
 }
 
 // --- Marked instance ---
@@ -98,11 +94,8 @@ function extractSummary(renderedHtml: string, plainText: string): string {
 
 // --- Page parsing ---
 
-async function parseArticle(
-  relPath: string,
-  contentDir: string,
-): Promise<Article> {
-  const fullPath = `${contentDir}/${relPath}`;
+async function loadArticle(dir: string, sourcePath: string): Promise<Article> {
+  const fullPath = join(dir, sourcePath);
   const raw = await Deno.readTextFile(fullPath);
 
   const { attrs: rawFrontmatter, body } = extract<
@@ -116,7 +109,7 @@ async function parseArticle(
   }
   const frontmatter = frontmatterParseResult.data;
 
-  const slug = filePathToSlug(relPath);
+  const path = sourcePathToPath(sourcePath);
   const renderedHtml = await marked.parse(body, { async: true });
   const plainText = new JSDOM(renderedHtml).window.document.body
     .textContent;
@@ -124,7 +117,8 @@ async function parseArticle(
   const summary = extractSummary(renderedHtml, plainText);
 
   return {
-    slug,
+    sourcePath,
+    path,
     ...frontmatter,
     renderedHtml,
     plainText,
@@ -133,30 +127,14 @@ async function parseArticle(
   };
 }
 
-// --- Main export ---
-
-export async function loadContent(
-  contentDir?: string,
-): Promise<Site> {
-  const dir = contentDir ??
-    fromFileUrl(new URL("./content", import.meta.url));
-
-  const articles: Map<string, Article> = new Map();
-
-  for await (
-    const entry of walk(dir, {
-      exts: [".md"],
-      includeDirs: false,
-    })
-  ) {
-    const article = await parseArticle(relative(dir, entry.path), dir);
-    articles.set(article.slug, article);
+export async function loadArticles(dir: string): Promise<Article[]> {
+  const articles = [];
+  for await (const entry of walk(dir, { exts: [".md"], includeDirs: false })) {
+    const article = await loadArticle(
+      dir,
+      "/" + relative(dir, entry.path).replaceAll("\\", "/"),
+    );
+    articles.push(article);
   }
-
-  // Sort posts by date descending
-  const posts = Array.from(articles.values()).filter((p) =>
-    p.slug !== "/posts/" && p.slug.startsWith("/posts/")
-  ).sort((a, b) => b.date.getTime() - a.date.getTime());
-
-  return { articles, posts };
+  return articles;
 }

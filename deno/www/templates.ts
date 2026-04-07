@@ -1,8 +1,6 @@
-import type { HtmlEscapedString } from "hono/utils/html";
-import { html, raw } from "hono/html";
-import type { Article, Site } from "./content.ts";
-
-type Html = HtmlEscapedString | Promise<HtmlEscapedString>;
+import { Html, html, raw } from "@crupest/base-contrib/html";
+import type { Article } from "./content.ts";
+import type { Site } from "./site.ts";
 
 // --- Date formatting ---
 
@@ -28,31 +26,23 @@ function dateHtml(date: Date): Html {
 
 interface BreadcrumbItem {
   name: string;
-  href: string;
+  href: Html;
 }
 
-function buildBreadcrumbs(
-  slug: string,
-): BreadcrumbItem[] {
+function buildBreadcrumbs(slug: string, site: Site): BreadcrumbItem[] {
   const parts = slug.split("/").filter(Boolean);
-  const crumbs: BreadcrumbItem[] = [{ name: "home", href: "/" }];
+  const crumbs: BreadcrumbItem[] = [{ name: "home", href: site.pageLink("/") }];
 
   for (let i = 0; i < parts.length; i++) {
     const path = "/" + parts.slice(0, i + 1).join("/") + "/";
-    crumbs.push({ name: parts[i], href: path });
+    crumbs.push({ name: parts[i], href: site.pageLink(path) });
   }
 
   return crumbs;
 }
 
-function navHtml(slug: string, _site: Site): Html {
-  const crumbs = buildBreadcrumbs(slug);
-  // Don't show nav if we're on home
-  if (crumbs.length <= 1) {
-    return html`
-
-    `;
-  }
+function navHtml(slug: string, site: Site): Html {
+  const crumbs = buildBreadcrumbs(slug, site);
 
   const links = crumbs.slice(0, -1).map(
     (c) =>
@@ -70,11 +60,14 @@ function navHtml(slug: string, _site: Site): Html {
 function articlePreviewHtml(
   article: Article,
   headingTag: string,
+  site: Site,
 ): Html {
   return html`
     <section class="article-preview">
       <span class="date">${formatDate(article.date)}</span>
-      ${raw(`<${headingTag} class="title">`)}<a href="${article.slug}">${article
+      ${raw(`<${headingTag} class="title">`)}<a href="${site.pageLink(
+        article.path,
+      )}">${article
         .title}</a>${raw(`</${headingTag}>`)}
       <p class="content">${article.summary
         .split("\n").map((l) =>
@@ -82,7 +75,9 @@ function articlePreviewHtml(
             ${l}<br />
           `
         )}</p>
-      <p>... <a class="mono-link" href="${article.slug}">Read more</a></p>
+      <p>... <a class="mono-link" href="${site.pageLink(
+        article.path,
+      )}">Read more</a></p>
     </section>
   `;
 }
@@ -90,13 +85,14 @@ function articlePreviewHtml(
 function articlePreviewListHtml(
   articles: Article[],
   headingTag: string,
+  site: Site,
 ): Html {
   return html`
     ${articles.map((article, i) =>
       html`
         ${i > 0 && html`
           <hr class="article-preview-hr">
-        `} ${articlePreviewHtml(article, headingTag)}
+        `} ${articlePreviewHtml(article, headingTag, site)}
       `
     )}
   `;
@@ -112,13 +108,13 @@ interface LayoutOptions {
   footer?: Html;
 }
 
-export function baseLayout(options: LayoutOptions): Html {
+export function baseLayout(options: LayoutOptions, site: Site): Html {
   const title = options.title ?? "crupest's life";
 
-  const cssLinks = options.extraCss?.map(
+  const cssLinks = ["base", ...(options.extraCss ?? [])].map(
     (css) =>
       html`
-        <link rel="stylesheet" href="/assets/${css}.css" />
+        <link rel="stylesheet" href="${site.resourceLink.css(css)}" />
       `,
   );
 
@@ -128,11 +124,10 @@ export function baseLayout(options: LayoutOptions): Html {
       <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="${site.resourceLink("favicon.ico")}" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>${title}</title>
-        <script src="/assets/color-scheme.js"></script>
-        <link rel="stylesheet" href="/assets/base.css" />
+        <script src="${site.resourceLink.js("color-scheme")}"></script>
         ${cssLinks} ${options.extraHead}
       </head>
       <body>
@@ -172,9 +167,7 @@ export function baseLayout(options: LayoutOptions): Html {
 
 // --- Page-specific layouts ---
 
-export function homePage(
-  site: Site,
-): Html {
+export function homePage(site: Site): Html {
   const recentPosts = site.posts.slice(0, 3);
 
   return baseLayout({
@@ -182,7 +175,7 @@ export function homePage(
     content: html`
       <img
         id="avatar"
-        src="/assets/avatar.png"
+        src="${site.resourceLink.asset("avatar.png")}"
         alt="My avatar"
         width="80"
         height="80"
@@ -204,16 +197,20 @@ export function homePage(
           goto:
           <ul>
             <li><a href="/git/">git</a></li>
-            <li><a href="/notes/">notes</a></li>
-            <li><a href="/notes/cheat-sheet/">cheat-sheet</a></li>
-            <li><a href="/notes/hurd/">hurd</a></li>
+            <li><a href="${site.pageLink("/notes/")}">notes</a></li>
+            <li><a href="${site.pageLink(
+              "/notes/cheat-sheet/",
+            )}">cheat-sheet</a></li>
+            <li><a href="${site.pageLink("/notes/hurd/")}">hurd</a></li>
           </ul>
         </div>
       </section>
       <hr />
       <section id="recent-posts">
-        <h2>Recent Posts <a class="mono-link" href="/posts/">(all)</a></h2>
-        ${articlePreviewListHtml(recentPosts, "h3")}
+        <h2>Recent Posts <a class="mono-link" href="${site.pageLink(
+          "/posts/",
+        )}">(all)</a></h2>
+        ${articlePreviewListHtml(recentPosts, "h3", site)}
       </section>
       <hr />
       <section>
@@ -225,17 +222,17 @@ export function homePage(
             name: "wsm",
             avatar: "https://avatars.githubusercontent.com/u/74699943?v=4",
             github: "wushuming666",
-          })} ${friendHtml({
+          }, site)} ${friendHtml({
             name: "hsz",
             url: "https://www.hszsoft.com",
             avatar: "https://avatars.githubusercontent.com/u/63097618?v=4",
             github: "hszSoft",
             tag: "随性の程序员",
-          })}
+          }, site)}
         </div>
       </section>
     `,
-  });
+  }, site);
 }
 
 interface FriendData {
@@ -246,7 +243,7 @@ interface FriendData {
   tag?: string;
 }
 
-function friendHtml(friend: FriendData): Html {
+function friendHtml(friend: FriendData, site: Site): Html {
   const ghUrl = `https://github.com/${friend.github}`;
   const linkUrl = friend.url ?? ghUrl;
   return html`
@@ -260,7 +257,9 @@ function friendHtml(friend: FriendData): Html {
           height="80"
         /><br />${friend.name}</a>
       <a rel="noopener noreferrer" href="${ghUrl}">
-        <img class="friend-github" src="/assets/gh.png" alt="github logo" />
+        <img class="friend-github" src="${site.resourceLink.asset(
+          "gh.png",
+        )}" alt="github logo" />
       </a><br />
       ${friend.tag &&
         html`
@@ -270,15 +269,12 @@ function friendHtml(friend: FriendData): Html {
   `;
 }
 
-export function singlePage(
-  article: Article,
-  site: Site,
-): Html {
+export function singlePage(article: Article, site: Site): Html {
   return baseLayout({
     title: article.title,
     extraCss: ["single", ...(article.css ?? [])],
     content: html`
-      ${navHtml(article.slug, site)}
+      ${navHtml(article.path, site)}
       <h1 class="post-title">${article.title}</h1>
       <hr />
       <p class="post-info">
@@ -295,12 +291,12 @@ export function singlePage(
       </p>
       ${raw(article.renderedHtml)}
     `,
-    footer: navHtml(article.slug, site),
-  });
+    footer: navHtml(article.path, site),
+  }, site);
 }
 
-export function listPage({ slug, title, articles, site }: {
-  slug: string;
+export function listPage({ path, title, articles, site }: {
+  path: string;
   title: string;
   articles: Article[];
   site: Site;
@@ -309,10 +305,10 @@ export function listPage({ slug, title, articles, site }: {
     title,
     extraCss: ["article"],
     content: html`
-      ${navHtml(slug, site)}
+      ${navHtml(path, site)}
       <h1>${title}</h1>
       <hr />
-      ${articlePreviewListHtml(articles, "h3")}
+      ${articlePreviewListHtml(articles, "h3", site)}
     `,
-  });
+  }, site);
 }
