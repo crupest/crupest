@@ -128,7 +128,7 @@ async function loadArticle(dir: string, sourcePath: string): Promise<Article> {
 }
 
 export async function loadArticles(dir: string): Promise<Article[]> {
-  const articles = [];
+  const articles: Article[] = [];
   for await (const entry of walk(dir, { exts: [".md"], includeDirs: false })) {
     const article = await loadArticle(
       dir,

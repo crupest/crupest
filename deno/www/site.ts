@@ -63,7 +63,9 @@ export class Site {
     this.#resources = await scanResources(
       fromFileUrl(new URL("./static", import.meta.url)),
     );
-    await this.#processResources(this.#resources);
+    await this.#processResources(
+      this.#resources.filter((r) => r.path && /^\/?assets\//.test(r.path)),
+    );
 
     await this.#generatePages();
 
@@ -111,20 +113,14 @@ export class Site {
   }
 
   resourceLink = (() => {
+    // TODO: Escape?
     const r = (path: string) =>
-      `${this.getResourceHtmlLinkByPath(path).toEscapedString()}`;
-    r.asset = (name: string) =>
       `${this.#baseUrl}${
-        this.getResourceHtmlLinkByPath(`/assets/${name}`).toEscapedString()
+        this.getResourceHtmlLinkByPath(path).toEscapedString()
       }`;
-    r.css = (name: string) =>
-      `${this.#baseUrl}${
-        this.getResourceHtmlLinkByPath(`/assets/${name}.css`).toEscapedString()
-      }`;
-    r.js = (name: string) =>
-      `${this.#baseUrl}${
-        this.getResourceHtmlLinkByPath(`/assets/${name}.js`).toEscapedString()
-      }`;
+    r.asset = (name: string) => r(`/assets/${name}`);
+    r.css = (name: string) => r(`/assets/${name}.css`);
+    r.js = (name: string) => r(`/assets/${name}.js`);
     r.page = (path: string) => new Html(`${this.#baseUrl}${path}`, true);
     return r;
   })();

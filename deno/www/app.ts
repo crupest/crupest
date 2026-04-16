@@ -16,7 +16,7 @@ export async function createApp(): Promise<Hono> {
     });
 
     if (fullPath.length !== 0) {
-      app.get(fullPath, async (c) => {
+      app.get(fullPath, (c) => {
         return c.redirect(`${fullPath}/`, 301);
       });
     }
@@ -34,7 +34,7 @@ export async function createApp(): Promise<Hono> {
     });
 
     for (const additionalOutput of resource.additionalOutputs) {
-      app.get(`${site.baseUrl}${additionalOutput.path}`, async (c) => {
+      app.get(`${site.baseUrl}${additionalOutput.path}`, (c) => {
         return c.body(
           additionalOutput.content as Uint8Array<ArrayBuffer>,
           200,

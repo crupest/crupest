@@ -29,13 +29,13 @@ interface BreadcrumbItem {
   href: Html;
 }
 
-function buildBreadcrumbs(slug: string, site: Site): BreadcrumbItem[] {
-  const parts = slug.split("/").filter(Boolean);
+function buildBreadcrumbs(path: string, site: Site): BreadcrumbItem[] {
+  const parts = path.split("/").filter(Boolean);
   const crumbs: BreadcrumbItem[] = [{ name: "home", href: site.pageLink("/") }];
 
   for (let i = 0; i < parts.length; i++) {
-    const path = "/" + parts.slice(0, i + 1).join("/") + "/";
-    crumbs.push({ name: parts[i], href: site.pageLink(path) });
+    const p = "/" + parts.slice(0, i + 1).join("/") + "/";
+    crumbs.push({ name: parts[i], href: site.pageLink(p) });
   }
 
   return crumbs;

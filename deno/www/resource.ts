@@ -25,7 +25,7 @@ export type ResourceOutput = {
 
 export class Resource {
   #source: ResourceSource;
-  #path: string | null;
+  #path: string;
   #outputPath: string;
   #content: Uint8Array | null = null;
   #textContent: string | null = null;
@@ -37,11 +37,11 @@ export class Resource {
     outputPath,
   }: {
     source: ResourceSource;
-    path?: string | null;
+    path: string;
     outputPath: string;
   }) {
     this.#source = source;
-    this.#path = path ?? null;
+    this.#path = path;
     this.#outputPath = outputPath;
   }
 
@@ -49,7 +49,7 @@ export class Resource {
     return this.#source;
   }
 
-  get path(): string | null {
+  get path(): string {
     return this.#path;
   }
 
