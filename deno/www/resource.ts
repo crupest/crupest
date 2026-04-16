@@ -220,7 +220,7 @@ export class TsTransformer implements ResourceTransformer {
     await resource.setContent(
       code,
       {
-        appendLine: `//# sourceMappingURL=${filename}.map`,
+        appendLine: `//# sourceMappingURL=${basename(resource.outputPath)}.map`,
       },
     );
     if (map) {

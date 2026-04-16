@@ -10,7 +10,7 @@ const site = await new Site().load();
 
 for (const resource of site.resources) {
   console.log(`Processing resource: ${resource.outputPath}`);
-  resource.writeAllOutputFiles(outDir);
+  await resource.writeAllOutputFiles(outDir);
 }
 
 console.log(`\nOutput in ${outDir}/`);

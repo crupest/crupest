@@ -15,9 +15,11 @@ export async function createApp(): Promise<Hono> {
       return c.html(await page.getTextContent(), 200);
     });
 
-    app.get(fullPath, async (c) => {
-      return c.redirect(`${fullPath}/`, 301);
-    });
+    if (fullPath.length !== 0) {
+      app.get(fullPath, async (c) => {
+        return c.redirect(`${fullPath}/`, 301);
+      });
+    }
   }
 
   for (const resource of site.resources) {
