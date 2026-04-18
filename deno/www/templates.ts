@@ -201,7 +201,6 @@ export function homePage(site: Site): Html {
             <li><a href="${site.pageLink(
               "/notes/cheat-sheet/",
             )}">cheat-sheet</a></li>
-            <li><a href="${site.pageLink("/notes/hurd/")}">hurd</a></li>
           </ul>
         </div>
       </section>
