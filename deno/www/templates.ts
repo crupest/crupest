@@ -41,8 +41,8 @@ function buildBreadcrumbs(path: string, site: Site): BreadcrumbItem[] {
   return crumbs;
 }
 
-function navHtml(slug: string, site: Site): Html {
-  const crumbs = buildBreadcrumbs(slug, site);
+function navHtml(path: string, site: Site): Html {
+  const crumbs = buildBreadcrumbs(path, site);
 
   const links = crumbs.slice(0, -1).map(
     (c) =>
