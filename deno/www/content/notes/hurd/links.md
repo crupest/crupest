@@ -44,55 +44,42 @@ Clone all at once:
 # glibc is too big, so not clone here.
 for repo in hurd gnumach mig web; do
   if [ ! -d $repo ]; then
-    git clone "https://crupest.life/git/hurd/$repo.git"
-    pushd $repo
-    git remote add upstream "https://git.savannah.gnu.org/git/hurd/$repo.git"
-    popd
+    git clone "https://git.savannah.gnu.org/git/hurd/$repo.git"
   fi
 done
 ```
 
-<div class="mono link-group">
-  <div class="link-group-title">hurd</div>
-  <div class="link-group-list">
-    <div class="link-group-item">cru: <a href="https://crupest.life/git/hurd/hurd.git">https://crupest.life/git/hurd/hurd.git</a></div>
-    <div class="link-group-item">upstream: <a href="https://git.savannah.gnu.org/git/hurd/hurd.git">https://git.savannah.gnu.org/git/hurd/hurd.git</a></div>
-    <div class="link-group-item">debian: <a href="https://salsa.debian.org/hurd-team/hurd">https://salsa.debian.org/hurd-team/hurd</a></div>
-  </div>
-</div>
+### hurd
 
-<div class="mono link-group">
-  <div class="link-group-title">gnumach</div>
-  <div class="link-group-list">
-    <div class="link-group-item">cru: <a href="https://crupest.life/git/hurd/gnumach.git">https://crupest.life/git/hurd/gnumach.git</a></div>
-    <div class="link-group-item">upstream: <a href="https://git.savannah.gnu.org/git/hurd/gnumach.git">https://git.savannah.gnu.org/git/hurd/gnumach.git</a></div>
-    <div class="link-group-item">debian: <a href="https://salsa.debian.org/hurd-team/gnumach">https://salsa.debian.org/hurd-team/gnumach</a></div>
-  </div>
-</div>
+| name     | link                                             |
+| -------- | ------------------------------------------------ |
+| upstream | <https://git.savannah.gnu.org/git/hurd/hurd.git> |
+| debian   | <https://salsa.debian.org/hurd-team/hurd>        |
 
-<div class="mono link-group">
-  <div class="link-group-title">mig</div>
-  <div class="link-group-list">
-    <div class="link-group-item">cru: <a href="https://crupest.life/git/hurd/mig.git">https://crupest.life/git/hurd/mig.git</a></div>
-    <div class="link-group-item">upstream: <a href="https://git.savannah.gnu.org/git/hurd/mig.git">https://git.savannah.gnu.org/git/hurd/mig.git</a></div>
-    <div class="link-group-item">debian: <a href="https://salsa.debian.org/hurd-team/mig">https://salsa.debian.org/hurd-team/mig</a></div>
-  </div>
-</div>
+### gnumach
 
-<div class="mono link-group">
-  <div class="link-group-title">glibc</div>
-  <div class="link-group-list">
-    <div class="link-group-item">cru: <a href="https://crupest.life/git/hurd/glibc.git">https://crupest.life/git/hurd/glibc.git</a></div>
-    <div class="link-group-item">upstream: <a href="git://sourceware.org/git/glibc.git">git://sourceware.org/git/glibc.git</a></div>
-    <div class="link-group-item">debian: <a href="https://salsa.debian.org/glibc-team/glibc">https://salsa.debian.org/glibc-team/glibc</a></div>
-    <div class="link-group-item">mirror: <a href="https://mirrors.tuna.tsinghua.edu.cn/git/glibc.git">https://mirrors.tuna.tsinghua.edu.cn/git/glibc.git</a></div>
-  </div>
-</div>
+| name     | link                                                |
+| -------- | --------------------------------------------------- |
+| upstream | <https://git.savannah.gnu.org/git/hurd/gnumach.git> |
+| debian   | <https://salsa.debian.org/hurd-team/gnumach>        |
 
-<div class="mono link-group">
-  <div class="link-group-title">web</div>
-  <div class="link-group-list">
-    <div class="link-group-item">cru: <a href="https://crupest.life/git/hurd/web.git">https://crupest.life/git/hurd/web.git</a></div>
-    <div class="link-group-item">upstream: <a href="https://git.savannah.gnu.org/git/hurd/web.git">https://git.savannah.gnu.org/git/hurd/web.git</a></div>
-  </div>
-</div>
+### mig
+
+| name     | link                                            |
+| -------- | ----------------------------------------------- |
+| upstream | <https://git.savannah.gnu.org/git/hurd/mig.git> |
+| debian   | <https://salsa.debian.org/hurd-team/mig>        |
+
+### glibc
+
+| name     | link                                                 |
+| -------- | ---------------------------------------------------- |
+| upstream | <git://sourceware.org/git/glibc.git>                 |
+| debian   | <https://salsa.debian.org/glibc-team/glibc>          |
+| mirror   | <https://mirrors.tuna.tsinghua.edu.cn/git/glibc.git> |
+
+### web
+
+| name     | link                                            |
+| -------- | ----------------------------------------------- |
+| upstream | <https://git.savannah.gnu.org/git/hurd/web.git> |
