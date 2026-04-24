@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+mkdir -p /data/file
+
 if [ -f /data/auth ]; then
     auth_content=$(cat /data/auth)
 else

@@ -1,6 +1,6 @@
 FROM debian
 RUN apt-get update && apt-get install -y \
-    tini curl openssl && \
+    tini curl openssl ca-certificates tar && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --chmod=755 install-dufs.bash main.bash /app/
