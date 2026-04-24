@@ -11,6 +11,7 @@ wushuming
 aarch64
 esmtp
 healthcheck
+webdav
 
 certbot
 roundcube
@@ -20,6 +21,7 @@ gohugoio
 pwsh
 rclone
 doveadm
+dufs
 
 kmod
 btrfs
