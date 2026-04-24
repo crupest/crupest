@@ -1,0 +1,10 @@
+serve-path: /data/file
+bind: 0.0.0.0
+port: 5000
+path-prefix: /webdav
+auth:
+@@AUTH@@
+allow-all: true
+enable-cors: true
+log-format: '$remote_addr $remote_user "$request" "$http_user_agent" $status'
+log-file: /data/dufs.log

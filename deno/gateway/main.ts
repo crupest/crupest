@@ -50,6 +50,11 @@ function createRootHono(
     createReverseProxyHandler({ originServer: "git-server:3636" }),
   );
 
+  app.all(
+    "/webdav/*",
+    createReverseProxyHandler({ originServer: "webdav:5000" }),
+  );
+
   app.get(
     "*",
     serveStatic({

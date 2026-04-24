@@ -1,4 +1,4 @@
-FROM debian:latest
+FROM debian
 RUN apt-get update && apt-get install -y \
     git cgit lighttpd apache2-utils python3-pygments python3-markdown \
     tar gzip bzip2 zip unzip tini curl && \
