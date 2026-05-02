@@ -1,12 +1,15 @@
 # Project Guidelines
 
 ## Code Style
-- Follow [.editorconfig](../.editorconfig): default 4-space indent, but use 2 spaces for TypeScript, shell, JSON, and YAML.
+
+- Follow [.editorconfig](.editorconfig).
 - Keep existing naming and module patterns in each area. In Deno TypeScript, prefer named exports and keep types explicit.
 - Avoid broad refactors during task work. Keep edits scoped to the user request.
 
 ## Architecture
+
 This repository has three main areas:
+
 - `deno/`: deno workspace.
   - `base/`, `base-contrib/`: shared code and utilities.
   - `gateway/`: reverse proxy.
@@ -19,18 +22,12 @@ This repository has three main areas:
 - `store/`: personal storage for convenient tools/scripts/configs/other assets. Usually independent from the main deno/services workflow unless a task explicitly targets `store/` files.
 
 ## Build and Test
-- Deno workspace tasks (run from `deno/`):
-  - `deno task compile:gateway`
-  - `deno task compile:mail`
-  - `deno task compile:tools`
-  - `deno task generate:www`
-- Gateway app (run from `deno/gateway/`):
-  - `deno task start`
-- Mail app (run from `deno/mail/`):
-  - `deno task start`
-- Site app (run from `deno/www/`):
-  - `deno task dev`
-  - `deno task generate`
+
+- Deno tasks (run from `deno/`):
+  - `deno task gateway:start`
+  - `deno task mail:start`
+  - `deno task mail:serve-real`
+  - `deno task www:generate`
 - Testing, formatting, and linting (run from `deno/`):
   - `deno test` (runs all tests in the workspace)
   - `deno fmt` (formats all code in the workspace)
@@ -40,10 +37,12 @@ This repository has three main areas:
   - `bash services/manage gen-tmpl --no-dry-run` (writes to `services/generated/`)
 
 ## Conventions
+
 - Templates in `services/templates/` use standard mustache syntax (for example `{{CRUPEST_VAR}}` -> value). HTML escaping is disabled in the Deno rendering code (all values pass through as-is), so `{{` and `{{{` behave identically - always use `{{CRUPEST_VAR}}`. Do not introduce extra template logic or alternate delimiters.
 - Templated config loading is order-sensitive: referenced variables must be defined earlier in the config files.
 - Prefer not to couple `store/` changes to other subsystems unless the task explicitly requires integration.
 
 ## Pitfalls
+
 - `services/manage` requires `deno` and `bash`; on Windows, run from an environment that provides bash (for example Git Bash or WSL).
 - This repo does not define a single global lint task; verify changes with focused tests and relevant commands for the touched subsystem.
