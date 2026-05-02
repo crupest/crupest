@@ -9,6 +9,8 @@ wushuming
 
 # general
 aarch64
+armv7l
+armhf
 esmtp
 healthcheck
 webdav
@@ -23,6 +25,7 @@ rclone
 doveadm
 dufs
 webui
+ttyd
 
 kmod
 btrfs
