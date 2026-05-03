@@ -5,6 +5,8 @@ const REPO_NAME = "domain-list-community";
 const URL =
   "https://github.com/v2fly/domain-list-community/archive/refs/heads/master.zip";
 const SITES = [
+  "akamai",
+  "aws",
   "github",
   "google",
   "youtube",
