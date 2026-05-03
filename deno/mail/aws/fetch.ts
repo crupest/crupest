@@ -131,7 +131,11 @@ export class AwsMailFetcher {
     const mails = await this.listLiveMails();
     this.#logger.info(`Found ${mails.length} live mails`);
     for (const s3Key of mails) {
-      await this.deliverLiveMail(s3Key, deliverer);
+      try {
+        await this.deliverLiveMail(s3Key, deliverer);
+      } catch (e) {
+        this.#logger.error(`Failed to deliver live mail ${s3Key}:`, e);
+      }
     }
   }
 }
