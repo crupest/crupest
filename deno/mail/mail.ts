@@ -225,7 +225,7 @@ export class AliasRecipientMailHook implements MailDeliverHook {
           if (trimmed.length === 0 || trimmed.startsWith("#")) continue;
           const [alias, real] = trimmed.split(/\s+/, 2);
           if (alias != null && real != null) {
-            result.set(alias, real);
+            result.set(alias.toLowerCase(), real);
           }
         }
       } else {
@@ -248,13 +248,13 @@ export class AliasRecipientMailHook implements MailDeliverHook {
   async callback(context: MailDeliverContext) {
     const aliases = await this.#parseAliasFile(context);
     for (const recipient of [...context.recipients]) {
-      const realRecipients = aliases.get(recipient);
-      if (realRecipients != null) {
+      const realRecipient = aliases.get(recipient.toLowerCase());
+      if (realRecipient != null) {
         context.logger.info(
-          `Recipient alias resolved: ${recipient} => ${realRecipients}.`,
+          `Recipient alias resolved: ${recipient} => ${realRecipient}.`,
         );
         context.recipients.delete(recipient);
-        context.recipients.add(realRecipients);
+        context.recipients.add(realRecipient);
       }
     }
   }
