@@ -22,6 +22,7 @@ pwsh
 rclone
 doveadm
 dufs
+webui
 
 kmod
 btrfs
@@ -49,7 +50,6 @@ ustc
 sourceware
 sesv2
 amazonses
-maileroo
 
 geodata
 geoip

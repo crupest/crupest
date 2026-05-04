@@ -92,6 +92,17 @@ function createMailHono(
   return app;
 }
 
+function createAiHono(_: { basePath: string; config: Config }) {
+  const app = new Hono();
+
+  app.all(
+    "*",
+    createReverseProxyHandler({ originServer: "open-webui:8080" }),
+  );
+
+  return app;
+}
+
 function createHttpsHono(
   { config, logWriter }: { config: Config; logWriter?: LogWriter },
 ) {
@@ -111,6 +122,12 @@ function createHttpsHono(
   app.route(
     mailBasePath,
     createMailHono({ basePath: mailBasePath, config }),
+  );
+
+  const aiBasePath = `/ai.${config.get("domain")}`;
+  app.route(
+    aiBasePath,
+    createAiHono({ basePath: aiBasePath, config }),
   );
 
   return app;

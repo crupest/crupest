@@ -108,6 +108,18 @@ services:
         ipv4_address: "172.21.5.6"
     restart: "on-failure:3"
 
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    hostname: open-webui
+    env_file:
+      - "./{{CRUPEST_GENERATED_DIR}}/envs/open-webui.env"
+    volumes:
+      - "./{{CRUPEST_DATA_OPEN_WEBUI_DIR}}:/app/backend/data"
+    networks:
+      default:
+        ipv4_address: "172.21.5.7"
+    restart: "on-failure:3"
+
 volumes:
   roundcubemail-html:
   roundcubemail-temp:
