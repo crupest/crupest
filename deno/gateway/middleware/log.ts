@@ -18,14 +18,14 @@ export function createLogMiddleware(options?: LogOptions) {
     // Nginx log format: log_format combined '$remote_addr - $remote_user [$time_local] '
     //                                       '"$request" $status $body_bytes_sent '
     //                                       '"$http_referer" "$http_user_agent"';
-    // However, we don't have $remote_user and $body_bytes_sent, so we'll omit those.
+    // However, we don't have $status $remote_user and $body_bytes_sent, so we'll omit those.
     const remoteAddr = getConnInfo(c).remote.address ?? "unknown";
     const referer = c.req.header("referer") ?? "";
     const userAgent = c.req.header("user-agent") ?? "";
 
     const logStr = `${remoteAddr} - [${
       new Date().toISOString()
-    }] "${c.req.method} ${c.req.url}" ${c.res.status} "${referer}" "${userAgent}"`;
+    }] "${c.req.method} ${c.req.url}" "${referer}" "${userAgent}"`;
     await writer(logStr);
 
     await next();
