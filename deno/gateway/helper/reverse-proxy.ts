@@ -35,7 +35,10 @@ function forwardWebSocket(from: WebSocket, to: WebSocket) {
   });
   from.addEventListener("close", (event) => {
     if (to.readyState === WebSocket.OPEN) {
-      to.close(event.code, event.reason);
+      to.close(
+        event.code === 1000 || event.code === 1001 ? 1000 : 4000,
+        event.reason,
+      );
     }
   });
   from.addEventListener("error", () => {
