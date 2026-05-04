@@ -40,7 +40,7 @@ function forwardWebSocket(from: WebSocket, to: WebSocket) {
   });
   from.addEventListener("error", () => {
     if (to.readyState === WebSocket.OPEN) {
-      to.close(1011, "WebSocket error");
+      to.close(4000, "WebSocket error");
     }
   });
 }
