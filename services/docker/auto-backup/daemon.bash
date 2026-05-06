@@ -51,7 +51,7 @@ function backup {
   tmp_file="/tmp/data.$backup_file_ext"
 
   echo "Create $tmp_file for data..."
-  tar -cp --zstd -f "$tmp_file" -C / data
+  tar -cp --zstd -f "$tmp_file" -C / --exclude-from=/app/exclude.txt data
 
   du -h "$tmp_file" | cut -f1 | xargs echo "Size of $tmp_file:"
 

@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
 ENV CRUPEST_AUTO_BACKUP_INIT_DELAY=
 ENV CRUPEST_AUTO_BACKUP_INTERVAL=1d
 
-ADD daemon.bash rclone.conf /app/
+ADD daemon.bash rclone.conf exclude.txt /app/
 
 VOLUME [ "/data" ]
 
