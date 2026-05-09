@@ -116,6 +116,7 @@ services:
       args:
         - "USER={{CRUPEST_NAME}}"
     hostname: debian-dev
+    mem_limit: 500m
     env_file:
       - "./{{CRUPEST_GENERATED_DIR}}/envs/debian-dev.env"
     volumes:
