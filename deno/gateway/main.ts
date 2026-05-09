@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, MiddlewareHandler } from "hono";
 import { serveStatic } from "hono/deno";
 
 import { Utils } from "@crupest/base";
@@ -10,6 +10,7 @@ import {
 } from "@crupest/base/log";
 
 import { Config, configProvider } from "./base.ts";
+import { basicAuthFromFile } from "./middleware/basic-auth.ts";
 import { createRateLimitMiddleware } from "./middleware/rate-limit.ts";
 import { createLogMiddleware, LogWriter } from "./middleware/log.ts";
 import { createReverseProxyHandler } from "./helper/reverse-proxy.ts";
@@ -45,14 +46,25 @@ function createRootHono(
     return c.redirect(githubUrl, 302);
   });
 
-  app.all(
-    "/git/*",
-    createReverseProxyHandler({ originServer: "git-server:3636" }),
-  );
+  function proxyTo(
+    path: string,
+    originServer: string,
+    ...middlewares: MiddlewareHandler[]
+  ) {
+    const handler = createReverseProxyHandler({ originServer });
 
-  app.all(
-    "/webdav/*",
-    createReverseProxyHandler({ originServer: "webdav:5000" }),
+    app.use(path, ...middlewares);
+    app.all(path, handler);
+    app.use(`${path}/*`, ...middlewares);
+    app.all(`${path}/*`, handler);
+  }
+
+  proxyTo("/git", "git-server:3636");
+  proxyTo("/webdav", "webdav:5000");
+  proxyTo(
+    "/dev",
+    "debian-dev:7681",
+    basicAuthFromFile(config.get("devUserFile")),
   );
 
   app.get(

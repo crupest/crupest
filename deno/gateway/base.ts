@@ -1,7 +1,7 @@
 import { ConfigDefinition, ConfigProvider } from "@crupest/base/config";
 
 export const PREFIX = "crupest";
-export const CONFIG_DEFINITION: ConfigDefinition = {
+export const CONFIG_DEFINITION = {
   domain: {
     description: "the root domain",
   },
@@ -10,6 +10,11 @@ export const CONFIG_DEFINITION: ConfigDefinition = {
   },
   mailServerAwsInboundPath: {
     description: "the path for mail server aws inbound webhook",
+  },
+  devUserFile: {
+    description:
+      "the path to the file containing users for /dev route basic auth",
+    default: "/data/dev-user",
   },
 } as const satisfies ConfigDefinition;
 
