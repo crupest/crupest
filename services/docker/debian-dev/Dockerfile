@@ -10,6 +10,7 @@ ENV CRUPEST_DEBIAN_DEV_CHINA=${CHINA}
 ENV CRUPEST_DEBIAN_DEV_HERMES=${HERMES}
 
 ADD setup /setup
+RUN chmod +x /setup/*.bash
 RUN export DEBIAN_FRONTEND=noninteractive; \
     /setup/apt.bash && /setup/package.bash && \
     /setup/for-container.bash && \
