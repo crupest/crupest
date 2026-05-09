@@ -114,7 +114,8 @@ services:
       context: "./{{CRUPEST_DOCKER_DIR}}/debian-dev"
       dockerfile: Dockerfile
       args:
-        - "CRUPEST_DEBIAN_DEV_USER={{CRUPEST_NAME}}"
+        - "USER={{CRUPEST_NAME}}"
+        - "HERMES=1"
     hostname: debian-dev
     env_file:
       - "./{{CRUPEST_GENERATED_DIR}}/envs/debian-dev.env"

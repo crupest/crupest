@@ -14,7 +14,9 @@ async function readUsersFromFile(
   const content = await Deno.readTextFile(path);
   const lines = content.split("\n");
   const users: User[] = [];
+  let lineNumber = 0;
   for (const line of lines) {
+    lineNumber++;
     const trimmedLine = line.trim();
     if (trimmedLine === "" || trimmedLine.startsWith("#")) {
       continue; // Skip empty lines and comments
@@ -22,7 +24,7 @@ async function readUsersFromFile(
     const delimiterIndex = trimmedLine.indexOf(delimiter);
     if (delimiterIndex === -1) {
       throw new Error(
-        `Invalid line format: "${line}". Expected "username${delimiter}passwordHash".`,
+        `Invalid line format at line ${lineNumber}. Expected "username${delimiter}passwordHash".`,
       );
     }
     const username = trimmedLine.substring(0, delimiterIndex).trim();
