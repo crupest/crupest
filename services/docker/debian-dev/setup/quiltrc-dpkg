@@ -1,3 +1,5 @@
+# spellchecker: ignore cctx
+
 d=.
 while [ ! -d $d/debian -a `readlink -e $d` != / ];
     do d=$d/..; done

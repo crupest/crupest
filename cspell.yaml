@@ -26,8 +26,13 @@ dictionaryDefinitions:
 patterns:
   - name: libs
     pattern: /lib.+/g
+  - name: options
+    pattern: /\s+-.+|^-.+/g
 
 ignoreRegExpList:
   - libs
+  - options
 
-ignorePaths: []
+ignorePaths:
+  - /deno/www/static/magic
+  - /deno/www/dist

@@ -1,3 +1,5 @@
+# spellchecker: ignore qmgr wrappermode tlsmgr proxymap proxywrite showq scache postlog postlogd
+
 # Postfix master process configuration file
 #
 # service  type   private unpriv  chroot  wakeup  maxproc command + args

@@ -113,7 +113,7 @@ image_text_list = []
 for index, crop_image_file in enumerate(crop_file_list):
     print(f"[{index + 1}/{len(crop_file_list)}] OCRing '{crop_image_file}' ...")
     result = ocr.ocr(crop_image_file, cls=True)
-    result = result[0] ## There is some inconsistence of official docs. Result is a list with single element.
+    result = result[0] ## There is some inconsistency of official docs. Result is a list with single element.
     line_text_list = [line[1][0] for line in result] ## a list of text str
     image_text = "\n".join(line_text_list)
     image_text_list.append(paragraph)
