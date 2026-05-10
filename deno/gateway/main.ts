@@ -115,6 +115,17 @@ function createAiHono(_: { basePath: string; config: Config }) {
   return app;
 }
 
+function createNoteHono(_: { basePath: string; config: Config }) {
+  const app = new Hono();
+
+  app.all(
+    "*",
+    createReverseProxyHandler({ originServer: "siyuan:6806" }),
+  );
+
+  return app;
+}
+
 function createHttpsHono(
   { config, logWriter }: { config: Config; logWriter?: LogWriter },
 ) {
@@ -140,6 +151,12 @@ function createHttpsHono(
   app.route(
     aiBasePath,
     createAiHono({ basePath: aiBasePath, config }),
+  );
+
+  const noteBasePath = `/note.${config.get("domain")}`;
+  app.route(
+    noteBasePath,
+    createNoteHono({ basePath: noteBasePath, config }),
   );
 
   return app;
