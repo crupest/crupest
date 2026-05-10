@@ -115,11 +115,12 @@ function createAiHono(_: { basePath: string; config: Config }) {
   return app;
 }
 
-function createNoteHono(_: { basePath: string; config: Config }) {
+function createNoteHono({ config }: { basePath: string; config: Config }) {
   const app = new Hono();
 
   app.all(
     "*",
+    basicAuthFromFile(config.get("siyuanUserFile")),
     createReverseProxyHandler({ originServer: "siyuan:6806" }),
   );
 

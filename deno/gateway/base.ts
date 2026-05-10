@@ -16,6 +16,11 @@ export const CONFIG_DEFINITION = {
       "the path to the file containing users for /dev route basic auth",
     default: "/data/dev-user",
   },
+  siyuanUserFile: {
+    description:
+      "the path to the file containing users for siyuan basic auth",
+    default: "/data/siyuan-user",
+  },
 } as const satisfies ConfigDefinition;
 
 export const configProvider = new ConfigProvider(PREFIX, CONFIG_DEFINITION);
