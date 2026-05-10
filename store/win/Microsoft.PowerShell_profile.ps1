@@ -26,10 +26,14 @@ function Use-VC {
 
 function Set-Proxy {
     $env:http_proxy = "http://127.0.0.1:7897"
-    $env:https_proxy = "http://127.0.0.1:7897"
+    $env:https_proxy = "$env:http_proxy"
+    $env:HTTP_PROXY = "$env:http_proxy"
+    $env:HTTPS_PROXY = "$env:http_proxy"
 }
 
 function Reset-Proxy {
     Remove-Item env:http_proxy
     Remove-Item env:https_proxy
+    Remove-Item env:HTTP_PROXY
+    Remove-Item env:HTTPS_PROXY
 }

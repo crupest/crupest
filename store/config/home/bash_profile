@@ -1,5 +1,12 @@
 if [ -r ~/.profile ]; then . ~/.profile; fi
 
-export PATH="$HOME/.local/bin:$PATH"
+prepend_path() {
+    case ":$PATH:" in
+        *":$1:"*) ;;
+        *) export PATH="$1:$PATH" ;;
+    esac
+}
+
+prepend_path "$HOME/.local/bin"
 
 case "$-" in *i*) if [ -r ~/.bashrc ]; then . ~/.bashrc; fi;; esac
