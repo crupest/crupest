@@ -19,6 +19,7 @@ local function setup()
     require("setup.plugins.cmp").setup()
     require("nvim-autopairs").setup {}
     require('mini.bufremove').setup {}
+    require("toggleterm").setup()
 end
 
 return {

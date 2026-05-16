@@ -46,7 +46,6 @@ local function setup_lua_ls()
                     library = {
                         [vim.fn.expand "$VIMRUNTIME/lua"] = true,
                         [vim.fn.expand "$VIMRUNTIME/lua/vim/lsp"] = true,
-                        [vim.fn.stdpath "data" .. "/lazy/lazy.nvim/lua/lazy"] = true,
                     },
                 },
             },

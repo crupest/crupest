@@ -1,20 +1,39 @@
 vim.crupest = {}
 
-local lazy_path = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.uv.fs_stat(lazy_path) then
-    vim.fn.system({
-        "git",
-        "clone",
-        "--filter=blob:none",
-        "https://github.com/folke/lazy.nvim.git",
-        "--branch=stable", -- latest stable release
-        lazy_path,
-    })
-end
-vim.opt.rtp:prepend(lazy_path)
-require("lazy").setup {
-    spec = { { import = "plugins" } }
-}
+local gh = function(x) return 'https://github.com/' .. x end
+
+--- spellchecker: disable
+vim.pack.add({
+    {
+        name = "catppuccin",
+        src = gh("catppuccin/nvim"),
+    },
+    gh("neovim/nvim-lspconfig"),
+    {
+        src = gh("nvim-treesitter/nvim-treesitter"),
+        version = "master",
+    },
+    gh("nvim-tree/nvim-web-devicons"),
+    gh("nvim-lua/plenary.nvim"),
+    gh("MunifTanjim/nui.nvim"),
+    {
+        src = gh("nvim-neo-tree/neo-tree.nvim"),
+        version = "v3.x",
+    },
+    gh("nvim-lualine/lualine.nvim"),
+    gh("nvim-telescope/telescope.nvim"),
+    gh("lewis6991/gitsigns.nvim"),
+    gh("sindrets/diffview.nvim"),
+    gh("hrsh7th/nvim-cmp"),
+    gh("hrsh7th/cmp-nvim-lsp"),
+    gh("hrsh7th/cmp-buffer"),
+    gh("hrsh7th/cmp-path"),
+    gh("echasnovski/mini.bufremove"),
+    gh("windwp/nvim-autopairs"),
+    gh("mfussenegger/nvim-lint"),
+    gh("akinsho/toggleterm.nvim"),
+})
+--- spellchecker: enable
 
 vim.cmd([[
     if has('nvim') && executable('nvr')
