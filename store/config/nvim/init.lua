@@ -34,6 +34,7 @@ vim.pack.add({
     gh("akinsho/toggleterm.nvim"),
     gh("MeanderingProgrammer/render-markdown.nvim"),
     gh("olimorris/codecompanion.nvim"),
+    gh("ravitemer/codecompanion-history.nvim"),
     gh("ravitemer/mcphub.nvim"),
 })
 --- spellchecker: enable
