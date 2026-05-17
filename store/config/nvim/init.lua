@@ -32,6 +32,9 @@ vim.pack.add({
     gh("windwp/nvim-autopairs"),
     gh("mfussenegger/nvim-lint"),
     gh("akinsho/toggleterm.nvim"),
+    gh("MeanderingProgrammer/render-markdown.nvim"),
+    gh("olimorris/codecompanion.nvim"),
+    gh("ravitemer/mcphub.nvim"),
 })
 --- spellchecker: enable
 
