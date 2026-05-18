@@ -13,8 +13,7 @@ vim.api.nvim_create_autocmd('PackChanged', {
             if not ev.data.active then
                 vim.cmd.packadd('nvim-treesitter')
             end
-            require("setup.plugins.tree-sitter").setup()
-            vim.cmd('TSUpdate')
+            require('nvim-treesitter').update()
         end
     end
 })
@@ -50,6 +49,7 @@ vim.pack.add({
     gh("MeanderingProgrammer/render-markdown.nvim"),
     gh("olimorris/codecompanion.nvim"),
     gh("ravitemer/codecompanion-history.nvim"),
+    gh("franco-ruggeri/codecompanion-spinner.nvim"),
 })
 --- spellchecker: enable
 

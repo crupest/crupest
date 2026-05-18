@@ -1,55 +1,45 @@
--- local moonshot_url = "https://api.moonshot.cn"
--- local kimi_model = "kimi-k2.6"
---
--- local url = moonshot_url
--- local model = kimi_model
-
 local function setup()
     require("codecompanion").setup({
         interactions = {
             chat = {
-                adapter = "claude_code",
-                -- tools = {
-                --     opts = {
-                --         default_tools = {
-                --             "agent",
-                --         }
-                --     },
-                -- }
+                adapter = "deepseek",
+                tools = {
+                    opts = {
+                        default_tools = {
+                            "agent",
+                        }
+                    },
+                }
             },
             inline = {
-                adapter = "claude_code",
+                adapter = "deepseek",
             },
             cmd = {
-                adapter = "claude_code",
+                adapter = "deepseek",
             },
             background = {
-                adapter = "claude_code",
+                adapter = "deepseek",
             },
         },
         adapters = {
             http = {
-                -- openai_compatible = function()
-                --     return require("codecompanion.adapters").extend("openai_compatible", {
-                --         env = {
-                --             url = url,
-                --             api_key = "OPENAI_API_KEY",
-                --         },
-                --         schema = {
-                --             model = {
-                --                 default = model
-                --             },
-                --         },
-                --     })
-                -- end
+                deepseek = function()
+                    return require("codecompanion.adapters").extend("deepseek", {
+                        env = {
+                            api_key = require('setup.credential').deepseek
+                        },
+                        schema = {
+                            model = {
+                                default = "deepseek-v4-pro"
+                            },
+                        },
+                    })
+                end,
             },
         },
         extensions = {
-            history = {
-                opts = {
-                    auto_generate_title = false,
-                }
-            },
+            history = {},
+            spinner = {},
         }
     })
 end

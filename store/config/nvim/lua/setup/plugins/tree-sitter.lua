@@ -1,21 +1,17 @@
-local has_setup = false
-
 local function setup()
-    if has_setup then return end
-
-    require 'nvim-treesitter'.setup {}
-
-    vim.api.nvim_create_autocmd('FileType', {
-        callback = function()
-            local ok = pcall(vim.treesitter.start)
-            if ok then
+    local installed = require("nvim-treesitter").get_installed()
+    if #installed ~= 0 then
+        vim.api.nvim_create_autocmd('FileType', {
+            pattern = installed,
+            callback = function()
+                vim.treesitter.start()
+                vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
                 vim.wo[0][0].foldexpr = 'v:lua.vim.treesitter.foldexpr()'
                 vim.wo[0][0].foldmethod = 'expr'
-                vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-            end
-        end,
-    })
-    has_setup = true
+                vim.cmd("normal! zR")
+            end,
+        })
+    end
 end
 
 return {
