@@ -2,6 +2,23 @@ vim.crupest = {}
 
 local gh = function(x) return 'https://github.com/' .. x end
 
+vim.api.nvim_create_autocmd('PackChanged', {
+    callback = function(ev)
+        local name, kind = ev.data.spec.name, ev.data.kind
+        if name == 'telescope-fzf-native.nvim' and (kind == 'install' or kind == 'update') then
+            vim.system({ 'make' }, { cwd = ev.data.path })
+        end
+
+        if name == 'nvim-treesitter' and kind == 'update' then
+            if not ev.data.active then
+                vim.cmd.packadd('nvim-treesitter')
+            end
+            require("setup.plugins.tree-sitter").setup()
+            vim.cmd('TSUpdate')
+        end
+    end
+})
+
 --- spellchecker: disable
 vim.pack.add({
     {
@@ -22,6 +39,7 @@ vim.pack.add({
     },
     gh("nvim-lualine/lualine.nvim"),
     gh("nvim-telescope/telescope.nvim"),
+    gh("nvim-telescope/telescope-fzf-native.nvim"),
     gh("lewis6991/gitsigns.nvim"),
     gh("sindrets/diffview.nvim"),
     gh("hrsh7th/nvim-cmp"),
