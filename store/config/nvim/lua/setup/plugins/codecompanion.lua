@@ -8,16 +8,16 @@ local function setup()
     require("codecompanion").setup({
         interactions = {
             chat = {
-                adapter = "claude_code",
+                adapter = "openai_compatible",
             },
             inline = {
-                adapter = "claude_code",
+                adapter = "openai_compatible",
             },
             cmd = {
-                adapter = "claude_code",
+                adapter = "openai_compatible",
             },
             background = {
-                adapter = "claude_code",
+                adapter = "openai_compatible",
             },
         },
         adapters = {
@@ -40,7 +40,7 @@ local function setup()
         extensions = {
             history = {
                 opts = {
-                    auto_generate_title = false,
+                    -- auto_generate_title = false,
                 }
             },
         }
