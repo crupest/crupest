@@ -53,7 +53,6 @@ vim.pack.add({
     gh("MeanderingProgrammer/render-markdown.nvim"),
     gh("olimorris/codecompanion.nvim"),
     gh("ravitemer/codecompanion-history.nvim"),
-    gh("ravitemer/mcphub.nvim"),
 })
 --- spellchecker: enable
 

@@ -21,7 +21,6 @@ local function setup()
     require('mini.bufremove').setup {}
     require("toggleterm").setup()
 
-    require("mcphub").setup()
     require("setup.plugins.codecompanion").setup()
     require('render-markdown').setup {
         file_types = { "markdown", "codecompanion" }
