@@ -26,10 +26,7 @@ vim.pack.add({
         src = gh("catppuccin/nvim"),
     },
     gh("neovim/nvim-lspconfig"),
-    {
-        src = gh("nvim-treesitter/nvim-treesitter"),
-        version = "master",
-    },
+    gh("nvim-treesitter/nvim-treesitter"),
     gh("nvim-tree/nvim-web-devicons"),
     gh("nvim-lua/plenary.nvim"),
     gh("MunifTanjim/nui.nvim"),

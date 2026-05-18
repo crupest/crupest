@@ -67,8 +67,7 @@
     },
     "nvim-treesitter": {
       "rev": "cf12346a3414fa1b06af75c79faebe7f76df080a",
-      "src": "https://github.com/nvim-treesitter/nvim-treesitter",
-      "version": "'master'"
+      "src": "https://github.com/nvim-treesitter/nvim-treesitter"
     },
     "nvim-web-devicons": {
       "rev": "7d8dad2c837fcdf2e65997e68657c1a21c568074",

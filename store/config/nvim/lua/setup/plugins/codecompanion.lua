@@ -1,46 +1,53 @@
-local moonshot_url = "https://api.moonshot.cn"
-local kimi_model = "kimi-k2.6"
-
-local url = moonshot_url
-local model = kimi_model
+-- local moonshot_url = "https://api.moonshot.cn"
+-- local kimi_model = "kimi-k2.6"
+--
+-- local url = moonshot_url
+-- local model = kimi_model
 
 local function setup()
     require("codecompanion").setup({
         interactions = {
             chat = {
-                adapter = "openai_compatible",
+                adapter = "claude_code",
+                -- tools = {
+                --     opts = {
+                --         default_tools = {
+                --             "agent",
+                --         }
+                --     },
+                -- }
             },
             inline = {
-                adapter = "openai_compatible",
+                adapter = "claude_code",
             },
             cmd = {
-                adapter = "openai_compatible",
+                adapter = "claude_code",
             },
             background = {
-                adapter = "openai_compatible",
+                adapter = "claude_code",
             },
         },
         adapters = {
             http = {
-                openai_compatible = function()
-                    return require("codecompanion.adapters").extend("openai_compatible", {
-                        env = {
-                            url = url,
-                            api_key = "OPENAI_API_KEY",
-                        },
-                        schema = {
-                            model = {
-                                default = model
-                            },
-                        },
-                    })
-                end
+                -- openai_compatible = function()
+                --     return require("codecompanion.adapters").extend("openai_compatible", {
+                --         env = {
+                --             url = url,
+                --             api_key = "OPENAI_API_KEY",
+                --         },
+                --         schema = {
+                --             model = {
+                --                 default = model
+                --             },
+                --         },
+                --     })
+                -- end
             },
         },
         extensions = {
             history = {
                 opts = {
-                    -- auto_generate_title = false,
+                    auto_generate_title = false,
                 }
             },
         }
