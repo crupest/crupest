@@ -15,12 +15,12 @@ local function setup()
     require("setup.plugins.telescope").setup()
     require("setup.plugins.gitsigns").setup()
     require("setup.plugins.lint").setup()
+    require("setup.plugins.sidekick").setup()
 
     require("diffview").setup {}
     require("nvim-autopairs").setup {}
     require('mini.bufremove').setup {}
     require("toggleterm").setup()
-    require("sidekick").setup {}
     require('render-markdown').setup {}
 end
 
