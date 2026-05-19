@@ -90,7 +90,9 @@ local function setup()
 
     vim.api.nvim_create_autocmd("LspDetach", {
         callback = function(ev)
-            vim.keymap.del("n", "gqa", { buffer = ev.buf })
+            if vim.fn.maparg('gqa', 'n') ~= '' then
+                vim.keymap.del("n", "gqa", { buffer = ev.buf })
+            end
         end
     })
 

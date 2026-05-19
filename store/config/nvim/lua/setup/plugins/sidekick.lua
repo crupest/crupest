@@ -7,6 +7,8 @@ local function setup()
                 return "<Tab>"
             end
         end, { expr = true })
+    vim.keymap.set({ "n", "t", "i", "x" }, "<c-.>",
+        function() require("sidekick.cli").focus() end)
     vim.keymap.set("n", "<leader>aa",
         function() require("sidekick.cli").toggle() end)
     vim.keymap.set("n", "<leader>as",
