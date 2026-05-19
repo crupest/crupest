@@ -50,6 +50,7 @@ vim.pack.add({
     gh("olimorris/codecompanion.nvim"),
     gh("ravitemer/codecompanion-history.nvim"),
     gh("franco-ruggeri/codecompanion-spinner.nvim"),
+    gh("lambdalisue/vim-suda"),
 })
 --- spellchecker: enable
 
