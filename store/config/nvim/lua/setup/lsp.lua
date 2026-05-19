@@ -59,17 +59,6 @@ function vim.crupest.no_range_format()
 end
 
 local function setup_denols()
-    vim.lsp.config("denols", {
-        root_dir = function(bufnr, on_dir)
-            local deno_configs = vim.fs.find({ "deno.json", "deno.jsonc" }, {
-                path = vim.api.nvim_buf_get_name(bufnr), upward = true, limit = math.huge })
-            if 0 ~= #deno_configs then
-                local deno_config = deno_configs[#deno_configs]
-                on_dir(vim.fs.dirname(deno_config))
-            end
-        end,
-    })
-
     vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(ev)
             if client_name_is(ev, "denols") then
@@ -108,7 +97,7 @@ local function setup()
     setup_clangd()
     setup_lua_ls()
     setup_denols()
-    vim.lsp.enable({ "clangd", "lua_ls", "denols" })
+    vim.lsp.enable({ "clangd", "lua_ls", "denols", "copilot" })
 end
 
 return {

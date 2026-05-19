@@ -10,21 +10,18 @@ local function setup()
         }
     }
 
+    require("setup.plugins.tree-sitter").setup()
+    require("setup.plugins.cmp").setup()
     require("setup.plugins.telescope").setup()
     require("setup.plugins.gitsigns").setup()
-    require("diffview").setup {}
-
-    require("setup.plugins.tree-sitter").setup()
     require("setup.plugins.lint").setup()
-    require("setup.plugins.cmp").setup()
+
+    require("diffview").setup {}
     require("nvim-autopairs").setup {}
     require('mini.bufremove').setup {}
     require("toggleterm").setup()
-
-    require("setup.plugins.codecompanion").setup()
-    require('render-markdown').setup {
-        file_types = { "markdown", "codecompanion" }
-    }
+    require("sidekick").setup {}
+    require('render-markdown').setup {}
 end
 
 return {

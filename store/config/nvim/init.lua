@@ -47,10 +47,8 @@ vim.pack.add({
     gh("mfussenegger/nvim-lint"),
     gh("akinsho/toggleterm.nvim"),
     gh("MeanderingProgrammer/render-markdown.nvim"),
-    gh("olimorris/codecompanion.nvim"),
-    gh("ravitemer/codecompanion-history.nvim"),
-    gh("franco-ruggeri/codecompanion-spinner.nvim"),
     gh("lambdalisue/vim-suda"),
+    gh("folke/sidekick.nvim"),
 })
 --- spellchecker: enable
 
