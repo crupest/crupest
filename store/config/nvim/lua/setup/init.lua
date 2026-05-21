@@ -44,7 +44,6 @@ local function setup()
 
     vim.keymap.set("n", "<leader>sf", "<cmd>Neotree<cr>")
     vim.keymap.set("n", "<leader>st", "<cmd>ToggleTerm<cr>")
-    vim.keymap.set("n", "<leader>sa", "<cmd>CodeCompanionChat<cr>")
 end
 
 return {

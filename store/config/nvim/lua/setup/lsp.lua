@@ -26,7 +26,7 @@ local function setup_clangd()
     vim.api.nvim_create_autocmd("LspDetach", {
         callback = function(ev)
             if client_name_is(ev, "clangd") then
-                vim.keymap.del("n", "grs", { buffer = ev.buf })
+                pcall(vim.keymap.del, "n", "grs", { buffer = ev.buf })
             end
         end
     })
@@ -90,16 +90,14 @@ local function setup()
 
     vim.api.nvim_create_autocmd("LspDetach", {
         callback = function(ev)
-            if vim.fn.maparg('gqa', 'n') ~= '' then
-                vim.keymap.del("n", "gqa", { buffer = ev.buf })
-            end
+            pcall(vim.keymap.del, "n", "gqa", { buffer = ev.buf })
         end
     })
 
     setup_clangd()
     setup_lua_ls()
     setup_denols()
-    vim.lsp.enable({ "clangd", "lua_ls", "denols", "copilot" })
+    vim.lsp.enable({ "clangd", "lua_ls", "denols", "copilot", "ty" })
 end
 
 return {
