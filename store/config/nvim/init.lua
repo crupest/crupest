@@ -36,6 +36,7 @@ vim.pack.add({
     gh("nvim-lualine/lualine.nvim"),
     gh("nvim-telescope/telescope.nvim"),
     gh("nvim-telescope/telescope-fzf-native.nvim"),
+    gh("nvim-telescope/telescope-ui-select.nvim"),
     gh("lewis6991/gitsigns.nvim"),
     gh("sindrets/diffview.nvim"),
     gh("hrsh7th/nvim-cmp"),
