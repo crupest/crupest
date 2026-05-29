@@ -6,7 +6,23 @@ vim.api.nvim_create_autocmd('PackChanged', {
     callback = function(ev)
         local name, kind = ev.data.spec.name, ev.data.kind
         if name == 'telescope-fzf-native.nvim' and (kind == 'install' or kind == 'update') then
-            vim.system({ 'make' }, { cwd = ev.data.path })
+            vim.notify("Build telescope-fzf-native.nvim native module...", vim.log.levels.INFO)
+            local r = vim.system({ 'cmake', '-S.', '-Bbuild', '-DCMAKE_BUILD_TYPE=Release' }, { cwd = ev.data.path })
+            :wait()
+            if r.code ~= 0 then
+                vim.notify("Failed to build telescope-fzf-native.nvim native module! Configuration failed.",
+                    vim.log.levels.ERROR)
+            else
+                r = vim.system({ 'cmake', '--build', 'build', '--config', 'Release', '--target', 'install' },
+                    { cwd = ev.data.path }):wait()
+                if r.code ~= 0 then
+                    vim.notify("Failed to build telescope-fzf-native.nvim native module! Building failed.",
+                        vim.log.levels.ERROR)
+                else
+                    vim.notify("Succeeded to build telescope-fzf-native.nvim native module!", vim.log.levels
+                        .INFO)
+                end
+            end
         end
 
         if name == 'nvim-treesitter' and kind == 'update' then
