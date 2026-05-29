@@ -104,29 +104,6 @@ function createMailHono(
   return app;
 }
 
-function createAiHono(_: { basePath: string; config: Config }) {
-  const app = new Hono();
-
-  app.all(
-    "*",
-    createReverseProxyHandler({ originServer: "open-webui:8080" }),
-  );
-
-  return app;
-}
-
-function createNoteHono({ config }: { basePath: string; config: Config }) {
-  const app = new Hono();
-
-  app.all(
-    "*",
-    basicAuthFromFile(config.get("siyuanUserFile")),
-    createReverseProxyHandler({ originServer: "siyuan:6806" }),
-  );
-
-  return app;
-}
-
 function createHttpsHono(
   { config, logWriter }: { config: Config; logWriter?: LogWriter },
 ) {
@@ -146,18 +123,6 @@ function createHttpsHono(
   app.route(
     mailBasePath,
     createMailHono({ basePath: mailBasePath, config }),
-  );
-
-  const aiBasePath = `/ai.${config.get("domain")}`;
-  app.route(
-    aiBasePath,
-    createAiHono({ basePath: aiBasePath, config }),
-  );
-
-  const noteBasePath = `/note.${config.get("domain")}`;
-  app.route(
-    noteBasePath,
-    createNoteHono({ basePath: noteBasePath, config }),
   );
 
   return app;
