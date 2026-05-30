@@ -1,12 +1,3 @@
-local function close_float()
-    local wins = vim.api.nvim_list_wins()
-    for _, v in ipairs(wins) do
-        if vim.api.nvim_win_get_config(v).relative ~= '' then
-            vim.api.nvim_win_close(v, false)
-        end
-    end
-end
-
 local function setup()
     if vim.fn.has("win32") ~= 0 then
         require("setup.win").setup()
@@ -21,8 +12,20 @@ local function setup()
 
     vim.keymap.set("n", "<c-tab>", "<cmd>bnext<cr>")
     vim.keymap.set("n", "<c-s-tab>", "<cmd>bNext<cr>")
-    vim.keymap.set("n", "<esc>", close_float)
-    vim.keymap.set("n", "<C-q>", function ()
+    vim.keymap.set("n", "<esc>", function()
+        local float_closed = false
+        local wins = vim.api.nvim_list_wins()
+        for _, v in ipairs(wins) do
+            if vim.api.nvim_win_get_config(v).relative ~= '' then
+                vim.api.nvim_win_close(v, false)
+                float_closed = true
+            end
+        end
+        if not float_closed then
+            vim.cmd("nohlsearch")
+        end
+    end)
+    vim.keymap.set("n", "<C-q>", function()
         require("mini.bufremove").delete()
     end)
     vim.keymap.set('t', '<A-n>', '<C-\\><C-n>')
