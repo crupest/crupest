@@ -37,25 +37,29 @@ docker run -it --rm -v "./data/git/user-info:/user-info" httpd htpasswd /user-in
 
 ### Certbot
 
-A complete command is
-`[prefix] [docker (based on challenge kind)] [command] [challenge] [domains] [test] [misc]`
+If run directly, the command is `certbot [command] [challenge] [domains] [test] [misc]`.
 
-|   part    |         for          | segment                                                                                                                                       |
-| :-------: | :------------------: | --------------------------------------------------------------------------------------------------------------------------------------------- |
-|  prefix   |          *           | `docker run -it --rm --name certbot -v "./data/certbot/certs:/etc/letsencrypt" -v "./data/certbot/data:/var/lib/letsencrypt" certbot/certbot` |
-|  docker   | challenge standalone | `-p "0.0.0.0:80:80"`                                                                                                                          |
-|  docker   |   challenge nginx    | `-v "./data/certbot/webroot:/var/www/certbot"`                                                                                                |
-|  command  | create/expand/shrink | `certonly`                                                                                                                                    |
-|  command  |        renew         | `renew`                                                                                                                                       |
-| challenge |      standalone      | `--standalone`                                                                                                                                |
-| challenge |        nginx         | `--webroot -w /var/www/certbot`                                                                                                               |
-|  domains  |          *           | `[-d [domain]]...`                                                                                                                            |
-|   test    |          *           | `--test-cert --dry-run`                                                                                                                       |
-|   misc    |      agree tos       | `--agree-tos`                                                                                                                                 |
-|   misc    |      cert name       | `--cert-name [name]`                                                                                                                          |
-|   misc    |        email         | `--email [email]`                                                                                                                             |
+Certbot can run outside the server container by using certbot docker image. The
+command is `docker run -it --rm --name certbot -v
+"./data/certbot/certs:/etc/letsencrypt" -v
+"./data/certbot/data:/var/lib/letsencrypt" [docker-extra] certbot/certbot
+[command] [challenge] [domains] [test] [misc]`
 
-For example, **test** create/expand/shrink with standalone server:
+|     part     |         for          | segment                                        |
+| :----------: | :------------------: | ---------------------------------------------- |
+| docker-extra | challenge standalone | `-p "0.0.0.0:80:80"`                           |
+| docker-extra |   challenge nginx    | `-v "./data/certbot/webroot:/var/www/certbot"` |
+|   command    | create/expand/shrink | `certonly`                                     |
+|   command    |        renew         | `renew`                                        |
+|  challenge   |      standalone      | `--standalone`                                 |
+|  challenge   |        nginx         | `--webroot -w /var/www/certbot`                |
+|   domains    |          \*          | `[-d [domain]]...`                             |
+|     test     |          \*          | `--test-cert --dry-run`                        |
+|     misc     |      agree tos       | `--agree-tos`                                  |
+|     misc     |      cert name       | `--cert-name [name]`                           |
+|     misc     |        email         | `--email [email]`                              |
+
+For example, **test** create/expand/shrink with certbot docker image and standalone server:
 
 ```sh
 docker run -it --rm --name certbot \
@@ -66,7 +70,15 @@ docker run -it --rm --name certbot \
   certonly \
   --standalone \
   --cert-name crupest.life \
-  -d crupest.life -d mail.crupest.life -d timeline.crupest.life \
+  -d crupest.life -d mail.crupest.life \
+  --test-cert --dry-run
+```
+
+Another example, **test** create/expand/shrink with a web root:
+
+```sh
+certbot certonly --webroot -w /var/www/certbot \
+  --cert-name crupest.life -d crupest.life -d mail.crupest.life \
   --test-cert --dry-run
 ```
 
