@@ -12,6 +12,7 @@ import {
 import { Config, configProvider } from "./base.ts";
 import { basicAuthFromFile } from "./middleware/basic-auth.ts";
 import { createRateLimitMiddleware } from "./middleware/rate-limit.ts";
+import { createConnectionLimitMiddleware } from "./middleware/connection-limit.ts";
 import { createLogMiddleware, LogWriter } from "./middleware/log.ts";
 import { createReverseProxyHandler } from "./helper/reverse-proxy.ts";
 
@@ -59,7 +60,26 @@ function createRootHono(
     app.all(`${path}/*`, handler);
   }
 
-  proxyTo("/git", "git-server:3636");
+  const GIT_HTTP_BACKEND = new RegExp(
+    `^/git/.*/(HEAD|info/refs|objects/info/[^/]+|git-(upload|receive)-pack)$`,
+  );
+  const GIT_STATIC = new RegExp(
+    `^/git/.*/((objects/[0-9a-f]{2}/[0-9a-f]{38})|(pack/pack-[0-9a-f]{40}.(pack|idx)))$`,
+  );
+
+  // Connection limit only for cgit CGI (not git-backend, not static)
+  const gitConnectionLimit = createConnectionLimitMiddleware({
+    maxConnections: 5,
+    shouldLimit: (ctx) => {
+      const path = new URL(ctx.req.url).pathname;
+      if (path.startsWith("/git/static")) return false;
+      if (GIT_HTTP_BACKEND.test(path)) return false;
+      if (GIT_STATIC.test(path)) return false;
+      return true;
+    },
+  });
+
+  proxyTo("/git", "git-server:3636", gitConnectionLimit);
   proxyTo("/webdav", "webdav:5000");
   proxyTo(
     "/dev",
