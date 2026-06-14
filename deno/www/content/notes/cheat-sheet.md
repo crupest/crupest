@@ -37,10 +37,12 @@ docker run -it --rm -v "./data/git/user-info:/user-info" httpd htpasswd /user-in
 
 ### Certbot
 
-If run directly, the command is `certbot [command] [challenge] [domains] [test] [misc]`.
+If run directly, the command is
+`certbot [command] [challenge] [domains] [test] [misc]`.
 
 Certbot can run outside the server container by using certbot docker image. The
-command is `docker run -it --rm --name certbot -v
+command is
+`docker run -it --rm --name certbot -v
 "./data/certbot/certs:/etc/letsencrypt" -v
 "./data/certbot/data:/var/lib/letsencrypt" [docker-extra] certbot/certbot
 [command] [challenge] [domains] [test] [misc]`
@@ -59,7 +61,8 @@ command is `docker run -it --rm --name certbot -v
 |     misc     |      cert name       | `--cert-name [name]`                           |
 |     misc     |        email         | `--email [email]`                              |
 
-For example, **test** create/expand/shrink with certbot docker image and standalone server:
+For example, **test** create/expand/shrink with certbot docker image and
+standalone server:
 
 ```sh
 docker run -it --rm --name certbot \

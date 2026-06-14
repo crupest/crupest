@@ -11,7 +11,7 @@ export class CronTask {
   #name: string;
   #interval_ms: number;
   #callback: CronCallback;
-  #timerTag: number | null = null;
+  #timerTag: NodeJS.Timeout | null = null;
 
   constructor({ name, interval, callback, enableNow }: CronTaskConfig) {
     this.#interval_ms = interval instanceof Temporal.Duration

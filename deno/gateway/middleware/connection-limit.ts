@@ -1,5 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { Context } from "hono";
+import { HTTPException } from "hono/http-exception";
 
 export interface ConnectionLimitOptions {
   maxConnections: number;
@@ -11,26 +12,27 @@ export interface ConnectionLimitOptions {
 export function createConnectionLimitMiddleware(
   options?: Partial<ConnectionLimitOptions>,
 ) {
-  const { maxConnections, shouldLimit } = {
-    maxConnections: 200,
-    shouldLimit: (_ctx: Context) => true,
-    ...options,
-  };
+  const maxConnections = options?.maxConnections ?? 10;
+  const shouldLimit = options?.shouldLimit;
 
   let activeConnections = 0;
 
   return createMiddleware(async (c, next) => {
-    const limited = shouldLimit(c);
+    const limited = shouldLimit?.(c) ?? true;
 
-    if (limited && activeConnections >= maxConnections) {
-      return c.text("Too Many Requests", { status: 429 });
-    }
+    if (limited) {
+      if (activeConnections >= maxConnections) {
+        throw new HTTPException(429, { message: "Too Many Requests" });
+      }
 
-    if (limited) activeConnections++;
-    try {
+      activeConnections++;
+      try {
+        await next();
+      } finally {
+        activeConnections--;
+      }
+    } else {
       await next();
-    } finally {
-      if (limited) activeConnections--;
     }
   });
 }
