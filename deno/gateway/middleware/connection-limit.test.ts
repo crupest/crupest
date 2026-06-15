@@ -5,7 +5,7 @@ import { Hono } from "hono";
 import { createConnectionLimitMiddleware } from "./connection-limit.ts";
 import { Utils } from "@crupest/base";
 
-interface Req {
+interface RequestState {
   received: Promise<void>;
   receivedResolve: () => void;
   responded: Promise<void>;
@@ -18,15 +18,15 @@ function setup(
   const app = new Hono();
   app.use("*", createConnectionLimitMiddleware(options));
 
-  const pendingMap = new Map<string, Req>();
+  const requestStateMap = new Map<string, RequestState>();
 
   app.all("/test", async (c) => {
     const key = c.req.query("key");
     if (key) {
-      const pending = pendingMap.get(key);
-      if (pending == null) {
+      const state = requestStateMap.get(key);
+      if (state == null) {
         const [responded, respondResolve] = Utils.promise<void>();
-        pendingMap.set(key, {
+        requestStateMap.set(key, {
           received: Promise.resolve(),
           receivedResolve: () => {},
           responded,
@@ -34,8 +34,8 @@ function setup(
         });
         await responded;
       } else {
-        pending.receivedResolve();
-        await pending.responded;
+        state.receivedResolve();
+        await state.responded;
       }
     }
     return c.text("ok");
@@ -58,11 +58,11 @@ function setup(
     const key = String(seq++);
     const res = fetch(`${origin}/test?key=${key}`);
     const waitForReceived = async () => {
-      const req = pendingMap.get(key);
-      if (req == null) {
+      const state = requestStateMap.get(key);
+      if (state == null) {
         const [received, receivedResolve] = Utils.promise<void>();
         const [responded, respondResolve] = Utils.promise<void>();
-        pendingMap.set(key, {
+        requestStateMap.set(key, {
           received,
           receivedResolve,
           responded,
@@ -70,13 +70,13 @@ function setup(
         });
         await received;
       } else {
-        await req.received;
+        await state.received;
       }
     };
 
     const respond = async () => {
       await waitForReceived();
-      pendingMap.get(key)!.respondResolve();
+      requestStateMap.get(key)!.respondResolve();
     };
 
     if (!pending) {

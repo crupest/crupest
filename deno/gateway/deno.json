@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "lib": ["deno.ns"]
+    "lib": ["deno.window"]
   },
   "tasks": {
     "start": "deno run -A main.ts",
