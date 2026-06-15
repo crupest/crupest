@@ -1,9 +1,9 @@
 {
   "version": "0.1.0",
   "tasks": {
-    "start": "deno run -A aws/app.ts",
-    "live-list": "deno task start live list",
-    "live-recycle": "deno task start live recycle",
+    "run": "deno run -A aws/app.ts",
+    "live-list": "deno task run live list",
+    "live-recycle": "deno task run live recycle",
     "serve-real": "deno run -A aws/app.ts serve --real",
     "compile": "deno compile -o out/crupest-mail -A aws/app.ts"
   },

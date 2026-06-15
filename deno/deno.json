@@ -9,7 +9,7 @@
   ],
   "tasks": {
     "gateway:start": "deno task --cwd=gateway start",
-    "mail:start": "deno task --cwd=mail start",
+    "mail:run": "deno task --cwd=mail run",
     "mail:serve-real": "deno task --cwd=mail serve-real",
     "www:generate": "deno task --cwd=www generate"
   },

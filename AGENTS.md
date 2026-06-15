@@ -25,7 +25,7 @@ This repository has three main areas:
 
 - Deno tasks (run from `deno/`):
   - `deno task gateway:start`
-  - `deno task mail:start`
+  - `deno task mail:run`
   - `deno task mail:serve-real`
   - `deno task www:generate`
 - Testing, formatting, and linting (run from `deno/`):
