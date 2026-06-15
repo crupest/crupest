@@ -37,29 +37,34 @@ function createHttpHono(options?: { logWriter?: LogWriter }) {
   return app;
 }
 
-function createRootHono(
-  { basePath, config }: { basePath: string; config: Config },
-) {
-  const app = new Hono();
+interface SiteCommon {
+  path: string;
+  middlewares?: MiddlewareHandler[];
+}
 
-  app.get("/github", (c) => {
-    const githubUrl = config.get("github");
-    return c.redirect(githubUrl, 302);
-  });
+interface ReverseProxySite extends SiteCommon {
+  type: "reverse-proxy";
+  server: string;
+}
 
-  function proxyTo(
-    path: string,
-    originServer: string,
-    ...middlewares: MiddlewareHandler[]
-  ) {
-    const handler = createReverseProxyHandler({ originServer });
+interface StaticSite extends SiteCommon {
+  type: "static";
+  root: string;
+}
 
-    app.use(path, ...middlewares);
-    app.all(path, handler);
-    app.use(`${path}/*`, ...middlewares);
-    app.all(`${path}/*`, handler);
-  }
+interface RedirectSite extends SiteCommon {
+  type: "redirect";
+  target: string;
+}
 
+type Site = ReverseProxySite | StaticSite | RedirectSite;
+
+interface Subdomain {
+  subdomain: string;
+  sites: Site[];
+}
+
+function createGitConnectionLimitMiddleware() {
   const GIT_HTTP_BACKEND = new RegExp(
     `^/git/.*/(HEAD|info/refs|objects/info/[^/]+|git-(upload|receive)-pack)$`,
   );
@@ -68,7 +73,7 @@ function createRootHono(
   );
 
   // Connection limit only for cgit CGI (not git-backend, not static)
-  const gitConnectionLimit = createConnectionLimitMiddleware({
+  return createConnectionLimitMiddleware({
     maxConnections: 5,
     shouldLimit: (ctx) => {
       const path = new URL(ctx.req.url).pathname;
@@ -78,49 +83,85 @@ function createRootHono(
       return true;
     },
   });
-
-  proxyTo("/git", "git-server:3636", gitConnectionLimit);
-  proxyTo("/webdav", "webdav:5000");
-  proxyTo(
-    "/dev",
-    "debian-dev:7681",
-    basicAuthFromFile(config.get("devUserFile")),
-  );
-
-  app.get(
-    "*",
-    serveStatic({
-      root: "/srv/www",
-      rewriteRequestPath: (path) => path.replace(basePath, ""),
-    }),
-  );
-
-  return app;
 }
 
-function createMailHono(
-  { basePath, config }: { basePath: string; config: Config },
-) {
-  const app = new Hono();
-
-  app.get(
-    "/robots.txt",
-    serveStatic({
+function createSubdomains(config: Config): Subdomain[] {
+  return [{
+    subdomain: "",
+    sites: [{
+      path: "/github",
+      type: "redirect",
+      target: config.get("github"),
+    }, {
+      path: "/git/*",
+      type: "reverse-proxy",
+      server: "git-server:3636",
+      middlewares: [createGitConnectionLimitMiddleware()],
+    }, {
+      path: "/webdav/*",
+      type: "reverse-proxy",
+      server: "webdav:5000",
+    }, {
+      path: "/dev/*",
+      type: "reverse-proxy",
+      server: "debian-dev:7681",
+      middlewares: [basicAuthFromFile(config.get("devUserFile"))],
+    }, {
+      path: "*",
+      type: "static",
+      root: "/srv/www",
+    }],
+  }, {
+    subdomain: "mail",
+    sites: [{
+      path: "/robots.txt",
+      type: "static",
       root: "/srv/mail",
-      rewriteRequestPath: (path) => path.replace(basePath, ""),
-    }),
-  );
+    }, {
+      path: `/${config.get("mailServerAwsInboundPath")}`,
+      type: "reverse-proxy",
+      server: "mail-server:2345",
+    }, {
+      path: "*",
+      type: "reverse-proxy",
+      server: "roundcubemail:80",
+    }],
+  }];
+}
 
-  app.all(
-    `/${config.get("mailServerAwsInboundPath")}`,
-    createReverseProxyHandler({ originServer: "mail-server:2345" }),
-  );
-
-  app.all(
-    "*",
-    createReverseProxyHandler({ originServer: "roundcubemail:80" }),
-  );
-
+function createSubdomainHono(basePath: string, sites: Site[]) {
+  const app = new Hono();
+  for (const site of sites) {
+    if (site.middlewares != null && site.middlewares.length > 0) {
+      app.use(site.path, ...site.middlewares);
+    }
+    switch (site.type) {
+      case "redirect": {
+        app.get(
+          site.path,
+          (c) => c.redirect(site.target, 302),
+        );
+        break;
+      }
+      case "static": {
+        app.get(
+          site.path,
+          serveStatic({
+            root: site.root,
+            rewriteRequestPath: (path) => path.replace(basePath, ""),
+          }),
+        );
+        break;
+      }
+      case "reverse-proxy": {
+        app.all(
+          site.path,
+          createReverseProxyHandler({ originServer: site.server }),
+        );
+        break;
+      }
+    }
+  }
   return app;
 }
 
@@ -133,17 +174,16 @@ function createHttpsHono(
   app.use(createLogMiddleware({ writer: logWriter }));
   app.use(createRateLimitMiddleware());
 
-  const rootBasePath = `/${config.get("domain")}`;
-  app.route(
-    rootBasePath,
-    createRootHono({ basePath: rootBasePath, config }),
-  );
+  const rootDomain = config.get("domain");
 
-  const mailBasePath = `/mail.${config.get("domain")}`;
-  app.route(
-    mailBasePath,
-    createMailHono({ basePath: mailBasePath, config }),
-  );
+  const subdomains = createSubdomains(config);
+
+  for (const { subdomain, sites } of subdomains) {
+    const basePath = subdomain === ""
+      ? `/${rootDomain}`
+      : `/${subdomain}.${rootDomain}`;
+    app.route(basePath, createSubdomainHono(basePath, sites));
+  }
 
   return app;
 }
