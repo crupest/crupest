@@ -30,10 +30,19 @@ export function htmlAnyToString(value: unknown): string {
   }
 }
 
-export function html(
+export function raw(str: string): Html {
+  return new Html(str, true);
+}
+
+export interface HtmlTagFunction {
+  (strings: TemplateStringsArray, ...values: unknown[]): Html;
+  raw: typeof raw;
+}
+
+export const html: HtmlTagFunction = Object.assign((
   strings: TemplateStringsArray,
   ...values: unknown[]
-): Html {
+): Html => {
   let result = "";
   for (let i = 0; i < strings.length; i++) {
     result += strings[i];
@@ -42,8 +51,4 @@ export function html(
     }
   }
   return new Html(result, true);
-}
-
-export function raw(str: string): Html {
-  return new Html(str, true);
-}
+}, { raw });

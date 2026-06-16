@@ -1,10 +1,10 @@
 ---
 title: "Cheat Sheet"
 date: 2025-04-01T23:09:53+08:00
-lastmod: 2025-06-12T01:09:39+08:00
+lastmod: 2026-06-16T12:51:11+08:00
 ---
 
-<p class="mono">goto: <a href="/notes/hurd/cheat-sheet">Hurd Cheat Sheet (in a separated page)</a></p>
+<p class="mono">goto: [Hurd Cheat Sheet (in a separated page)](/notes/hurd/cheat-sheet)</p>
 
 ## GRUB
 

@@ -128,6 +128,7 @@ export function baseLayout(options: LayoutOptions, site: Site): Html {
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>${title}</title>
         <script src="${site.resourceLink.js("color-scheme")}"></script>
+        <script src="${site.resourceLink.js("base")}"></script>
         ${cssLinks} ${options.extraHead}
       </head>
       <body>
