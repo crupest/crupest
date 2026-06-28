@@ -26,6 +26,7 @@ const SITES = [
   "gitbook",
   "gitlab",
   "anthropic",
+  "openai",
   "creativecommons",
   "archive",
   "matrix",
