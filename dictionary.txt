@@ -137,6 +137,8 @@ duckduckgo
 gitbook
 creativecommons
 mijia
+imgur
+huggingface
 
 # vim/nvim
 nvim
