@@ -4,7 +4,9 @@ set -e
 
 node --version >/dev/null 2>&1 || (
     echo "Error: failed to run node --version."
-    echo "Install the current Node.js LTS release before continuing."
+    echo "Install Node.js 24 with fnm before continuing:"
+    echo "  curl -o- https://fnm.vercel.app/install | bash"
+    echo "  fnm install 24"
     exit 1
 )
 
@@ -27,4 +29,15 @@ npm --version >/dev/null 2>&1 || (
     exit 1
 )
 
-exec npm run service -- --project-dir "$CRUPEST_PROJECT_DIR" "$@"
+status=0
+npm run service -- --project-dir "$CRUPEST_PROJECT_DIR" "$@" || status=$?
+
+if (( status != 0 )); then
+    echo
+    echo "Error: failed to run the service command."
+    echo "Prepare the Node.js application and try again:"
+    echo "  cd \"$CRUPEST_PROJECT_DIR/app\""
+    echo "  npm ci"
+    echo "  npm run build"
+    exit "$status"
+fi
