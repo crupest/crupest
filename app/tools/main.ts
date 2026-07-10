@@ -1,16 +1,14 @@
-import { isMain } from "@crupest/base/runtime";
-
 import yargs, { DEMAND_COMMAND_MESSAGE } from "./yargs.js";
+import geosite from "./geosite.js";
 import service from "./service.js";
 import vm from "./vm.js";
 
-if (isMain(import.meta.url)) {
-  await yargs(process.argv.slice(2))
-    .scriptName("crupest")
-    .command(vm)
-    .command(service)
-    .demandCommand(1, DEMAND_COMMAND_MESSAGE)
-    .help()
-    .strict()
-    .parse();
-}
+await yargs(process.argv.slice(2))
+  .scriptName("crupest")
+  .command(geosite)
+  .command(vm)
+  .command(service)
+  .demandCommand(1, DEMAND_COMMAND_MESSAGE)
+  .help()
+  .strict()
+  .parse();

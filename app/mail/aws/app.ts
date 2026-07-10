@@ -4,13 +4,12 @@ import type { Server as TcpServer } from "node:net";
 import { join } from "node:path";
 
 import express, { type Express } from "express";
-import yargs from "yargs";
 import * as z from "zod";
 
 import { type ConfigDefinition, ConfigProvider } from "@crupest/base/config";
 import { CronTask } from "@crupest/base/cron";
 import { getDefaultLogger, type ILogger } from "@crupest/base/log";
-import { Duration, isMain } from "@crupest/base/runtime";
+import { Duration } from "@crupest/base/runtime";
 
 import { createApp, createInbound, createSmtp, sendMail } from "../app.js";
 import { DbService } from "../db.js";
@@ -267,7 +266,7 @@ function createServerServices() {
   return { ...services, smtp, app };
 }
 
-async function serve(cron = false) {
+export async function serve(cron = false): Promise<void> {
   const { config, logger, fetcher, inbound, smtp, db, app } =
     createServerServices();
 
@@ -303,7 +302,7 @@ async function serve(cron = false) {
   process.once("SIGTERM", handleShutdown);
 }
 
-async function listLives() {
+export async function listLives(): Promise<void> {
   const { fetcher } = createAwsFetchOnlyServices();
   const liveMails = await fetcher.listLiveMails();
   console.info(`Total ${liveMails.length}:`);
@@ -312,49 +311,12 @@ async function listLives() {
   }
 }
 
-async function recycleLives() {
+export async function recycleLives(): Promise<void> {
   const { fetcher, inbound } = createAwsRecycleOnlyServices();
   await fetcher.recycleLiveMails(inbound);
 }
 
-if (isMain(import.meta.url)) {
-  await yargs(process.argv.slice(2))
-    .scriptName("mail")
-    .command({
-      command: "sendmail",
-      describe: "send mail via this server's endpoint",
-      handler: async () => {
-        const { config } = createBaseServices();
-        await sendMail(config.getInt("httpPort"));
-      },
-    })
-    .command({
-      command: "live",
-      describe: "work with live mails",
-      builder: (builder) => {
-        return builder
-          .command({
-            command: "list",
-            describe: "list live mails",
-            handler: listLives,
-          })
-          .command({
-            command: "recycle",
-            describe: "recycle all live mails",
-            handler: recycleLives,
-          })
-          .demandCommand(1, "One command must be specified.");
-      },
-      handler: () => {},
-    })
-    .command({
-      command: "serve",
-      describe: "start the http and smtp servers",
-      builder: (builder) => builder.option("real", { type: "boolean" }),
-      handler: (arguments_) => serve(arguments_.real),
-    })
-    .demandCommand(1, "One command must be specified.")
-    .help()
-    .strict()
-    .parse();
+export async function sendMailViaServer(): Promise<void> {
+  const { config } = createBaseServices();
+  await sendMail(config.getInt("httpPort"));
 }

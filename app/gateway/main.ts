@@ -31,7 +31,7 @@ import {
   type ILogger,
   installLogHandlerForWorker,
 } from "@crupest/base/log";
-import { Duration, isMain } from "@crupest/base/runtime";
+import { Duration } from "@crupest/base/runtime";
 
 import { type Config, configProvider } from "./base.js";
 import { FileBasicAuthenticator } from "./middleware/basic-auth.js";
@@ -531,7 +531,7 @@ async function certbotRenew(logger: ILogger) {
   }
 }
 
-export async function main() {
+async function main(): Promise<void> {
   const logger = getDefaultLogger();
   const sourceMode = import.meta.url.endsWith(".ts");
   const worker = new Worker(
@@ -600,6 +600,4 @@ export async function main() {
   process.once("SIGTERM", handleShutdown);
 }
 
-if (isMain(import.meta.url)) {
-  await main();
-}
+await main();

@@ -6,8 +6,8 @@
   "scripts": {
     "build": "tsc -b",
     "clean": "node -e \"require('node:fs').rmSync('build',{recursive:true,force:true})\"",
-    "run": "tsx aws/app.ts",
-    "serve-real": "tsx aws/app.ts serve --real"
+    "run": "tsx aws/main.ts",
+    "serve-real": "tsx aws/main.ts serve --real"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.821.0",
