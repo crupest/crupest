@@ -11,7 +11,6 @@ RUN apt-get update && apt-get install -y tini ca-certificates curl \
     postfix postfix-pcre \
     dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd dovecot-sieve dovecot-managesieved dovecot-flatcurve dovecot-fts-xapian && \
     rm -rf /var/lib/apt/lists/*
-RUN groupadd -g 1000 vmail && useradd -u 1000 -g vmail -s /usr/sbin/nologin vmail
 
 COPY --from=builder /app /app
 WORKDIR /app
