@@ -11,11 +11,6 @@ export const CONFIG_DEFINITION = {
   mailServerAwsInboundPath: {
     description: "the path for mail server aws inbound webhook",
   },
-  devUserFile: {
-    description:
-      "the path to the file containing users for /dev route basic auth",
-    default: "/data/dev-user",
-  },
 } as const satisfies ConfigDefinition;
 
 export const configProvider = new ConfigProvider(PREFIX, CONFIG_DEFINITION);

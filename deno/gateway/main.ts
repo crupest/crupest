@@ -10,7 +10,6 @@ import {
 } from "@crupest/base/log";
 
 import { Config, configProvider } from "./base.ts";
-import { basicAuthFromFile } from "./middleware/basic-auth.ts";
 import { createRateLimitMiddleware } from "./middleware/rate-limit.ts";
 import { createConnectionLimitMiddleware } from "./middleware/connection-limit.ts";
 import { createLogMiddleware, LogWriter } from "./middleware/log.ts";
@@ -101,11 +100,6 @@ function createSubdomains(config: Config): Subdomain[] {
       path: "/webdav/*",
       type: "reverse-proxy",
       server: "webdav:5000",
-    }, {
-      path: "/dev/*",
-      type: "reverse-proxy",
-      server: "debian-dev:7681",
-      middlewares: [basicAuthFromFile(config.get("devUserFile"))],
     }, {
       path: "*",
       type: "static",
