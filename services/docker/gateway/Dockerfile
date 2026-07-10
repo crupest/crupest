@@ -1,10 +1,10 @@
-FROM node:24-bookworm-slim AS builder
+FROM node:24-trixie-slim AS builder
 COPY --from=app . /app/
 WORKDIR /app
 RUN npm ci
 RUN npm run build && npm run www:generate
 
-FROM node:24-bookworm-slim
+FROM node:24-trixie-slim
 RUN apt-get update && apt-get install -y tini certbot curl && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /app/state
