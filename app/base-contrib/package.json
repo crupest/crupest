@@ -1,0 +1,23 @@
+{
+  "name": "@crupest/base-contrib",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./geosite": {
+      "types": "./build/geosite.d.ts",
+      "default": "./build/geosite.js"
+    },
+    "./html": {
+      "types": "./build/html.d.ts",
+      "default": "./build/html.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "node -e \"require('node:fs').rmSync('build',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@crupest/base": "0.1.0",
+    "extract-zip": "^2.0.1"
+  }
+}

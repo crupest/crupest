@@ -34,5 +34,5 @@ ignoreRegExpList:
   - options
 
 ignorePaths:
-  - /deno/www/static/magic
-  - /deno/www/dist
+  - /app/www/static/magic
+  - /app/www/dist
