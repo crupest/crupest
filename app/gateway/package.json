@@ -1,0 +1,21 @@
+{
+  "name": "@crupest/gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "node -e \"require('node:fs').rmSync('build',{recursive:true,force:true})\"",
+    "start": "tsx main.ts"
+  },
+  "dependencies": {
+    "@crupest/base": "0.1.0",
+    "@crupest/base-contrib": "0.1.0",
+    "express": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/ws": "^8.18.0",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "@crupest/base",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./build/lib.d.ts",
+      "default": "./build/lib.js"
+    },
+    "./config": {
+      "types": "./build/config.d.ts",
+      "default": "./build/config.js"
+    },
+    "./cron": {
+      "types": "./build/cron.d.ts",
+      "default": "./build/cron.js"
+    },
+    "./log": {
+      "types": "./build/log/index.d.ts",
+      "default": "./build/log/index.js"
+    },
+    "./log/worker": {
+      "types": "./build/log/worker.d.ts",
+      "default": "./build/log/worker.js"
+    },
+    "./runtime": {
+      "types": "./build/runtime.d.ts",
+      "default": "./build/runtime.js"
+    },
+    "./task": {
+      "types": "./build/task.d.ts",
+      "default": "./build/task.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "node -e \"require('node:fs').rmSync('build',{recursive:true,force:true})\""
+  }
+}

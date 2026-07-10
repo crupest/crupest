@@ -1,0 +1,5 @@
+**/build
+coverage
+www/dist
+www/content
+www/static

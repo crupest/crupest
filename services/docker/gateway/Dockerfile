@@ -1,8 +1,15 @@
-FROM denoland/deno
-RUN apt update && apt-get install -y tini certbot unzip curl && rm -rf /var/lib/apt/lists/* && mkdir -p /app/state
-COPY --from=deno . /app/deno/
-WORKDIR /app/deno
-RUN deno install
-RUN deno task www:generate && cp -r www/dist /srv/www
+FROM node:24-trixie-slim AS builder
+COPY --from=app . /app/
+WORKDIR /app
+RUN npm ci
+RUN npm run build && npm run www:generate
+
+FROM node:24-trixie-slim
+RUN apt-get update && apt-get install -y tini certbot curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /app/state
+COPY --from=builder /app /app
+COPY --from=builder /app/www/dist /srv/www
 ADD mail-robots.txt /srv/mail/robots.txt
-CMD ["deno", "task", "gateway:start"]
+WORKDIR /app
+CMD ["tini", "--", "node", "gateway/build/main.js"]

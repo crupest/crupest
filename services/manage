@@ -2,17 +2,42 @@
 
 set -e
 
-deno --version >/dev/null 2>&1 || (
-    echo "Error: failed to run deno --version."
-    echo "If deno is not installed, install it with:"
-    echo "  curl -fsSL https://deno.land/install.sh | sh"
+node --version >/dev/null 2>&1 || (
+    echo "Error: failed to run node --version."
+    echo "Install Node.js 24 with fnm before continuing:"
+    echo "  curl -o- https://fnm.vercel.app/install | bash"
+    echo "  fnm install 24"
     exit 1
 )
 
-CRUPEST_PROJECT_DIR="$(dirname "$0")/.."
+case "${BASH_SOURCE[0]}" in
+    */*) script_dir="${BASH_SOURCE[0]%/*}" ;;
+    *) script_dir="." ;;
+esac
+
+CRUPEST_PROJECT_DIR="$(cd -- "$script_dir/.." && pwd)"
 export CRUPEST_PROJECT_DIR
 
 echo "Detected project Dir: $CRUPEST_PROJECT_DIR"
 echo
 
-exec deno run -A "$CRUPEST_PROJECT_DIR/deno/tools/main.ts" service --project-dir "$CRUPEST_PROJECT_DIR" "$@"
+cd "$CRUPEST_PROJECT_DIR/app"
+
+npm --version >/dev/null 2>&1 || (
+    echo "Error: failed to run npm."
+    echo "Install npm 11.18.0 before continuing."
+    exit 1
+)
+
+status=0
+npm run service -- --project-dir "$CRUPEST_PROJECT_DIR" "$@" || status=$?
+
+if (( status != 0 )); then
+    echo
+    echo "Error: failed to run the service command."
+    echo "Prepare the Node.js application and try again:"
+    echo "  cd \"$CRUPEST_PROJECT_DIR/app\""
+    echo "  npm ci"
+    echo "  npm run build"
+    exit "$status"
+fi

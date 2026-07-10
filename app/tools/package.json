@@ -1,0 +1,21 @@
+{
+  "name": "@crupest/tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "node -e \"require('node:fs').rmSync('build',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@crupest/base": "0.1.0",
+    "@crupest/base-contrib": "0.1.0",
+    "fast-glob": "^3.3.0",
+    "mustache": "^4.2.0",
+    "yargs": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/mustache": "^4.2.0",
+    "@types/yargs": "^17.0.0"
+  }
+}

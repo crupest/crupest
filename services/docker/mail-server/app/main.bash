@@ -24,7 +24,7 @@ fi
 
 postmap /data/postfix-virtual
 
-deno task mail:serve-real &
+node /app/mail/build/aws/app.js serve --real &
 
 /usr/sbin/dovecot -F &
 

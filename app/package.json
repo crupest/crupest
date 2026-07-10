@@ -1,0 +1,42 @@
+{
+  "name": "crupest-node",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "npm@11.18.0",
+  "workspaces": [
+    "base",
+    "base-contrib",
+    "gateway",
+    "mail",
+    "tools",
+    "www"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "npm --workspaces --if-present run clean",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "gateway:start": "npm --workspace=@crupest/gateway run start --",
+    "lint": "eslint .",
+    "mail:run": "npm --workspace=@crupest/mail run run --",
+    "mail:serve-real": "npm --workspace=@crupest/mail run serve-real --",
+    "service": "tsx tools/main.ts service",
+    "test": "npm run build && tsc -b tsconfig.test.json && vitest run",
+    "www:generate": "npm --workspace=@crupest/www run generate --"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^24.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.0.0"
+  },
+  "allowScripts": {
+    "better-sqlite3@12.11.1": true,
+    "esbuild": true
+  }
+}

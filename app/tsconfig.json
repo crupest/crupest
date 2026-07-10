@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./base" },
+    { "path": "./base-contrib" },
+    { "path": "./www" },
+    { "path": "./tools" },
+    { "path": "./mail" },
+    { "path": "./gateway" }
+  ]
+}

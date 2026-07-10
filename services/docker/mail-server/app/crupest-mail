@@ -1,0 +1,3 @@
+#!/usr/bin/bash
+
+exec node /app/mail/build/aws/app.js "$@"

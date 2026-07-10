@@ -1,9 +1,0 @@
-{
-  "compilerOptions": {
-    "lib": ["deno.window"]
-  },
-  "tasks": {
-    "start": "deno run -A main.ts",
-    "compile": "deno compile -o out/crupest-gateway -A --include worker main.ts"
-  }
-}
