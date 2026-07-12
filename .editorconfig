@@ -18,10 +18,7 @@ max_line_length = 80
 [*.{sh,bash}]
 indent_size = 2
 
-[store/debian-dev/**/*.{sh,bash}]
-indent_size = 4
-
-[*.{html,css,js,ts}]
+[*.{html,css,js,ts,jsx,tsx}]
 indent_size = 2
 
 [*.{c,cpp,h}]
