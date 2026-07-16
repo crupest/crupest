@@ -1,5 +1,9 @@
 local function setup()
-    require("sidekick").setup {}
+    require("sidekick").setup {
+        nes = {
+            enabled = false
+        }
+    }
 
     vim.keymap.set("n", "<tab>",
         function()
@@ -23,8 +27,6 @@ local function setup()
         function() require("sidekick.cli").send({ msg = "{selection}" }) end)
     vim.keymap.set({ "n", "x" }, "<leader>ap",
         function() require("sidekick.cli").prompt() end)
-    vim.keymap.set("n", "<leader>ac",
-        function() require("sidekick.cli").toggle({ name = "claude", focus = true }) end)
 end
 
 return {

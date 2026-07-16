@@ -97,7 +97,7 @@ local function setup()
     setup_clangd()
     setup_lua_ls()
     setup_denols()
-    vim.lsp.enable({ "clangd", "lua_ls", "denols", "copilot", "ty" })
+    vim.lsp.enable({ "clangd", "lua_ls", "denols", "ty" })
 end
 
 return {
