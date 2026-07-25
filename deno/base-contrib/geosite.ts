@@ -18,6 +18,7 @@ const SITES = [
   "quora",
   "medium",
   "telegram",
+  "stripe",
   "imgur",
   "stackexchange",
   "onedrive",
