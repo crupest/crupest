@@ -1,4 +1,4 @@
-.article-preview {
+.article-digest {
   font-size: 0.95em;
   padding-inline: 0.5em;
   padding-block: 0.5em;
@@ -29,7 +29,7 @@
 }
 
 html[data-theme="dark"] {
-  & .article-preview {
+  & .article-digest {
     background-color: hsl(0, 0%, 3%);
 
     & > .date {
@@ -38,7 +38,7 @@ html[data-theme="dark"] {
   }
 }
 
-hr.article-preview-hr {
+hr.article-digest-hr {
   border: none;
   border-top: 1.5px dashed currentColor;
 }

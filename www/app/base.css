@@ -117,6 +117,7 @@ nav {
 }
 
 #license-img-container img {
+  width: auto;
   height: 1em;
   vertical-align: middle;
 }
