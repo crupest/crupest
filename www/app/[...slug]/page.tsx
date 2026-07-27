@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { cachedGetArticle, getArticlePaths } from "@/lib/content";
 import { formatDate } from "@/lib/utils";
 import Nav from "@/components/Nav";
+import CopyCodeBlock from "@/components/CopyCodeBlock";
 
 // TODO:
 import "./single.css";
@@ -41,6 +42,7 @@ export default async function Article({ params }: PageProps<"/[...slug]">) {
 
   return (
     <>
+      <CopyCodeBlock />
       <Nav />
       <h1 className="post-title">{article.title}</h1>
       <hr />
