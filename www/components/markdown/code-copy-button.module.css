@@ -1,0 +1,31 @@
+.codeblock {
+  > *:first-child {
+    margin: 0;
+    padding: 0 0.2em;
+    margin-bottom: 0.2em;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  > pre {
+    background-color: var(--code-bg-color);
+    border-radius: 3px;
+    padding: 0.6em;
+    overflow-x: auto;
+    margin-top: 0;
+  }
+}
+
+.lang-label {
+  font-size: small;
+}
+
+.clipboard-button {
+  appearance: none;
+  background: transparent;
+  outline: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--body-fg-color);
+}

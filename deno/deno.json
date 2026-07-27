@@ -4,14 +4,12 @@
     "./base-contrib",
     "./gateway",
     "./mail",
-    "./tools",
-    "./www"
+    "./tools"
   ],
   "tasks": {
     "gateway:start": "deno task --cwd=gateway start",
     "mail:run": "deno task --cwd=mail run",
-    "mail:serve-real": "deno task --cwd=mail serve-real",
-    "www:generate": "deno task --cwd=www generate"
+    "mail:serve-real": "deno task --cwd=mail serve-real"
   },
   "imports": {
     "@hono/standard-validator": "npm:@hono/standard-validator@^0.2.2",
