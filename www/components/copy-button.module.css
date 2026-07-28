@@ -21,8 +21,10 @@
 }
 
 .clipboard-button {
-  width: 1.2em;
-  height: 1.2em;
-  padding: 0.15em;
+  appearance: none;
+  background: transparent;
+  outline: none;
+  border: none;
+  cursor: pointer;
   color: var(--body-fg-color);
 }
