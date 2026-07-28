@@ -6,8 +6,7 @@ export const metadata = {
 
 ## Mirrors
 
-The mirror has to be `debian-ports`, not `debian`, and many mirror sites do not
-provide it. Following is aliyun mirror:
+The mirror has to be `debian-ports`, not `debian`, and many mirror sites do not provide it. Following is aliyun mirror:
 
 ```txt
 /etc/apt/sources.list
@@ -37,17 +36,11 @@ qemu-system-x86_64 -enable-kvm -m 8G -machine q35 \
   -vga vmware -drive cache=writeback,file=[...]
 ```
 
-GRUB in the image seems to use hard-coded path of `/dev/*` block file as the
-root partition in the kernel command line rather than GUID, so if the hard disk
-bus is changed in QEMU and the path is changed accordingly, the system can't
-boot on.
+GRUB in the image seems to use hard-coded path of `/dev/*` block file as the root partition in the kernel command line rather than GUID, so if the hard disk bus is changed in QEMU and the path is changed accordingly, the system can't boot on.
 
-QEMU cli arguments `-machine q35` enables AHCI and SATA, and is **required for
-official x86_64 image to boot**. As for i386, I haven't checked now.
+QEMU cli arguments `-machine q35` enables AHCI and SATA, and is **required for official x86_64 image to boot**. As for i386, I haven't checked now.
 
-There is
-[a Deno script](https://github.com/crupest/crupest/blob/dev/deno/tools/manage-vm.ts)
-written by me to help define and build QEMU cli arguments of VMs.
+There is [a Deno script](https://github.com/crupest/crupest/blob/dev/deno/tools/manage-vm.ts) written by me to help define and build QEMU cli arguments of VMs.
 
 ## Inside Hurd
 
