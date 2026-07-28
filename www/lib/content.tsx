@@ -11,6 +11,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeStarryNight from "rehype-starry-night";
+import { all as allGrammars } from "@wooorm/starry-night";
 
 // --- Types ---
 
@@ -81,7 +82,8 @@ async function loadArticleFile(
     remarkPlugins: [remarkGfm, remarkMath],
     rehypePlugins: [
       [rehypeKatex, { strict: true, throwOnError: true }],
-      rehypeStarryNight,
+      // Console highlight is buggy, so disable it here.
+      [rehypeStarryNight, { grammars: allGrammars, plainText: ["console"] }],
     ],
   });
   const { default: Component, metadata: rawMetadata } = mdxModule;
