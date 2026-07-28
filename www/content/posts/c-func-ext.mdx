@@ -1,17 +1,14 @@
----
-title: "Libc/POSIX Function \"Extensions\""
-date: 2025-03-04T13:40:33+08:00
-lastmod: 2025-03-04T13:40:33+08:00
-categories:
-  - coding
-tags:
-  - c
-  - posix
----
+export const metadata = {
+  title: "Libc/POSIX Function \"Extensions\"",
+  date: "2025-03-04T13:40:33+08:00",
+  lastmod: "2025-03-04T13:40:33+08:00",
+  categories: ["coding"],
+  tags: ["c", "posix"],
+};
 
 (I've given up on this, at least for linux pam.)
 
-Recently, I’ve been working on porting some libraries to GNU/Hurd. Many (old)
+Recently, I've been working on porting some libraries to GNU/Hurd. Many (old)
 libraries use
 [`*_MAX` constants on POSIX system
 interfaces](https://pubs.opengroup.org/onlinepubs/9699919799.2008edition/nframe.html)
@@ -19,8 +16,6 @@ to calculate buffer sizes. However, the GNU/Hurd maintainers urge against the
 blind use of them and refuse to define them in system headers. When old APIs are
 gone, compatibility problems come. To make my life easier, I'll put some
 reusable code snippets here to help _fix `*_MAX` bugs_.
-
-<!--more-->
 
 ```c
 #include <stdlib.h>

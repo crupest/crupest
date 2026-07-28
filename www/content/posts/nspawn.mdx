@@ -1,14 +1,12 @@
----
-title: "Use systemd-nspawn to Create a Development Sandbox"
-date: 2025-03-04T23:22:23+08:00
-lastmod: 2025-03-27T17:46:24+08:00
----
+export const metadata = {
+  title: "Use systemd-nspawn to Create a Development Sandbox",
+  date: "2025-03-04T23:22:23+08:00",
+  lastmod: "2025-03-27T17:46:24+08:00",
+};
 
 _systemd-nspawn_ is a great tool for creating development sandboxes. Compared to
 other similar technologies, it's lightweight, flexible, and easy to use. In this
 blog, I'll present a simple guide to using it.
-
-<!--more-->
 
 ## Advantages
 
@@ -198,10 +196,3 @@ used here. Before creating a snapshot, you should power off the VM to avoid
 archiving runtime files.
 
 ```console
-# machinectl poweroff [name]
-# btrfs subvolume snapshot /var/lib/machines/[name] \
-    /var/lib/machines/btrfs-snapshots/[name]/[snapshot-name]
-```
-
-`machinectl` also provides an _image_ feature similar to Docker, though I've
-never tried it. Feel free to explore it if you're interested!
