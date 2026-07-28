@@ -1,15 +1,13 @@
-import { ReactNode } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { cachedGetArticle, getArticlePaths } from "@/lib/content";
 import { formatDate } from "@/lib/utils";
 import Nav from "@/components/Nav";
+import CodeBlock from "@/components/CodeBlock";
 
-// TODO:
 import "@wooorm/starry-night/style/both";
-import "./single.css";
-import styles from "./article.module.css";
+import styles from "./page.module.css";
 
 export async function generateStaticParams() {
   const paths = await getArticlePaths();
@@ -28,10 +26,6 @@ export async function generateMetadata({
     title: article.title,
     description: article.description ?? article.summary,
   };
-}
-
-function CodeBlock({ children }: { children: ReactNode }) {
-  return <pre className={styles.codeblock}>{children}</pre>;
 }
 
 function DateLabel({ date }: { date: Date }) {
@@ -57,14 +51,14 @@ export default async function Article({ params }: PageProps<"/[...slug]">) {
       <Nav />
       <h1 className="post-title">{article.title}</h1>
       <hr />
-      <p className="post-info">
-        <span className="created">
+      <p className={styles["post-info"]}>
+        <span className={styles["created"]}>
           <DateLabel date={article.date} />
         </span>
-        | <span className="words">{article.wordCount} words</span>
+        | <span className={styles["words"]}>{article.wordCount} words</span>
         {article.lastmod &&
           article.lastmod.getTime() !== article.date.getTime() && (
-            <span className="last-updated">
+            <span className={styles["last-updated"]}>
               Last updated: <DateLabel date={article.lastmod} />
             </span>
           )}

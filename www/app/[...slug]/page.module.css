@@ -6,7 +6,7 @@
   flex-wrap: wrap;
   gap: 1em;
 
-  & > .words {
+  > .words {
     margin-inline-end: auto;
   }
 }
