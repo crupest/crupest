@@ -25,14 +25,9 @@
   width: 1.2em;
   height: 1.2em;
   padding: 0.15em;
-  background-image: url(./clipboard.svg);
-  background-size: contain;
-  background-color: transparent;
+  background: transparent;
   outline: none;
   border: none;
   cursor: pointer;
-}
-
-.clipboard-button-check {
-  background-image: url(./clipboard-check.svg);
+  color: var(--body-fg-color);
 }

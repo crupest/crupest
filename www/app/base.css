@@ -68,21 +68,6 @@ table {
   }
 }
 
-.toast {
-  font-size: large;
-  font-family: monospace;
-  color: var(--toast-fg-color);
-  background-color: var(--toast-bg-color);
-  padding: 0.5em 0.3em;
-  border-radius: 6px;
-
-  position: fixed;
-  z-index: 1;
-  top: 4px;
-  left: 50vw;
-  transform: translateX(-50%);
-}
-
 nav {
   font-size: large;
 }

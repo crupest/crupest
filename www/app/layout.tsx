@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import ThemeScheme from "@/components/ThemeScheme";
+
 import "./base.css";
 
 export default function RootLayout({
@@ -9,15 +11,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html suppressHydrationWarning>
+    <html>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <link rel="icon" href="/favicon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <script src="/assets/color-scheme.js"></script>
       </head>
       <body>
+        <ThemeScheme />
         <article id="main-article">
           {children}
           <hr />
