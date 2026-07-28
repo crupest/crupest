@@ -2,9 +2,6 @@ import { getArticles } from "@/lib/content";
 import ArticleDigestList from "@/components/ArticleDigestList";
 import Nav from "@/components/Nav";
 
-// TODO:
-import "../article.css";
-
 export const metadata = {
   title: "Posts",
   description: "List of Posts",

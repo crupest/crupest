@@ -196,3 +196,10 @@ used here. Before creating a snapshot, you should power off the VM to avoid
 archiving runtime files.
 
 ```console
+# machinectl poweroff [name]
+# btrfs subvolume snapshot /var/lib/machines/[name] \
+    /var/lib/machines/btrfs-snapshots/[name]/[snapshot-name]
+```
+
+`machinectl` also provides an _image_ feature similar to Docker, though I've
+never tried it. Feel free to explore it if you're interested!

@@ -8,7 +8,6 @@ import avatar from "./avatar.png";
 import ghIcon from "./github.png";
 
 // TODO:
-import "./article.css";
 import "./home.css";
 
 interface FriendProps {
@@ -57,7 +56,14 @@ export default async function Home() {
 
   return (
     <>
-      <Image id="avatar" src={avatar} loading="eager" alt="My avatar" width="80" height="80" />
+      <Image
+        id="avatar"
+        src={avatar}
+        loading="eager"
+        alt="My avatar"
+        width="80"
+        height="80"
+      />
       <h1 id="title">
         Hello! This is <code>crupest</code> !
       </h1>
