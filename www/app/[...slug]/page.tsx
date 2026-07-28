@@ -1,13 +1,15 @@
+import { ReactNode } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { cachedGetArticle, getArticlePaths } from "@/lib/content";
 import { formatDate } from "@/lib/utils";
 import Nav from "@/components/Nav";
-import CopyCodeBlock from "@/components/CopyCodeBlock";
 
 // TODO:
+import "@wooorm/starry-night/style/both";
 import "./single.css";
+import styles from "./article.module.css";
 
 export async function generateStaticParams() {
   const paths = await getArticlePaths();
@@ -28,6 +30,10 @@ export async function generateMetadata({
   };
 }
 
+function CodeBlock({ children }: { children: ReactNode }) {
+  return <pre className={styles.codeblock}>{children}</pre>;
+}
+
 function DateLabel({ date }: { date: Date }) {
   return <time dateTime={date.toISOString()}>{formatDate(date)}</time>;
 }
@@ -40,13 +46,14 @@ export default async function Article({ params }: PageProps<"/[...slug]">) {
     notFound();
   }
 
+  const Content = article.component;
+
   return (
     <>
       <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.css"
       />
-      <CopyCodeBlock />
       <Nav />
       <h1 className="post-title">{article.title}</h1>
       <hr />
@@ -62,7 +69,11 @@ export default async function Article({ params }: PageProps<"/[...slug]">) {
             </span>
           )}
       </p>
-      <div dangerouslySetInnerHTML={{ __html: article.renderedHtml }} />
+      <Content
+        components={{
+          pre: CodeBlock,
+        }}
+      />
     </>
   );
 }

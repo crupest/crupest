@@ -25,7 +25,10 @@ const withMDX = createMDX({
   extension: /\.(md|mdx)$/,
   options: {
     remarkPlugins: ["remark-gfm", "remark-math"],
-    rehypePlugins: [["rehype-katex", { strict: true, throwOnError: true }]],
+    rehypePlugins: [
+      ["rehype-katex", { strict: true, throwOnError: true }],
+      "rehype-starry-night",
+    ],
   },
 });
 

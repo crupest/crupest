@@ -1,0 +1,10 @@
+.codeblock {
+  background-color: var(--code-bg-color);
+  border-radius: 3px;
+  padding: 0.6em;
+  overflow-x: auto;
+}
+
+.clipboard {
+  background-image: url(./clipboard.svg);
+}

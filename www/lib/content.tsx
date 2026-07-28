@@ -5,10 +5,12 @@ import { join, relative, dirname } from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import { z } from "zod";
 import { parse } from "node-html-parser";
+import type { MDXContent } from "mdx/types";
 import { evaluate } from "@mdx-js/mdx";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import rehypeStarryNight from "rehype-starry-night";
 
 // --- Types ---
 
@@ -34,10 +36,10 @@ export interface Article {
   categories?: string[];
   tags?: string[];
   css?: string[];
-  renderedHtml: string;
   plainText: string;
   wordCount: number;
   summary: string;
+  component: MDXContent;
 }
 
 // --- Helpers ---
@@ -77,7 +79,10 @@ async function loadArticleFile(
     ...runtime,
     baseUrl: pathToFileURL(fullPath),
     remarkPlugins: [remarkGfm, remarkMath],
-    rehypePlugins: [[rehypeKatex, { strict: true, throwOnError: true }]],
+    rehypePlugins: [
+      [rehypeKatex, { strict: true, throwOnError: true }],
+      rehypeStarryNight,
+    ],
   });
   const { default: Component, metadata: rawMetadata } = mdxModule;
 
@@ -92,8 +97,8 @@ async function loadArticleFile(
   const path = sourcePathToPath(sourcePath);
 
   const ReactDOMServer = (await import("react-dom/server")).default;
-  const renderedHtml = ReactDOMServer.renderToStaticMarkup(<Component />);
-  const plainText = parse(renderedHtml).textContent;
+  const html = ReactDOMServer.renderToStaticMarkup(<Component />);
+  const plainText = parse(html).textContent;
   const wordCount = countWords(plainText);
   const summary = extractSummary(plainText);
 
@@ -101,10 +106,10 @@ async function loadArticleFile(
     sourcePath,
     path,
     ...metadata,
-    renderedHtml,
     plainText,
     wordCount,
     summary,
+    component: Component,
   };
 }
 
