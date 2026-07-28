@@ -11,6 +11,4 @@ Upgrade nextjs. Use `import.meta.glob` to load all posts.
 
 ## Long term
 
-- Language label directly from mdx, rather than dynamicly generated from browser elements.
-
 - Fix init flash due to theme scheme init.
