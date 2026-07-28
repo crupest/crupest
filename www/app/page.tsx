@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import clsx from "clsx";
 
 import { getArticles } from "@/lib/content";
 import ArticleDigestList from "@/components/ArticleDigestList";
@@ -7,8 +8,7 @@ import ArticleDigestList from "@/components/ArticleDigestList";
 import avatar from "./avatar.png";
 import ghIcon from "./github.png";
 
-// TODO:
-import "./home.css";
+import styles from "./page.module.css";
 
 interface FriendProps {
   name: string;
@@ -22,10 +22,10 @@ function Friend(props: FriendProps) {
   const ghUrl = `https://github.com/${props.github}`;
   const linkUrl = props.url ?? ghUrl;
   return (
-    <div className="friend">
+    <div className={styles["friend"]}>
       <a rel="noopener noreferrer" href={linkUrl}>
         <Image
-          className="friend-avatar"
+          className={styles["friend-avatar"]}
           alt={"Friend " + props.name + "'s avatar"}
           src={props.avatar}
           width="80"
@@ -35,10 +35,14 @@ function Friend(props: FriendProps) {
         {props.name}
       </a>{" "}
       <a rel="noopener noreferrer" href={ghUrl}>
-        <Image className="friend-github" src={ghIcon} alt="github logo" />
+        <Image
+          className={styles["friend-github"]}
+          src={ghIcon}
+          alt="github logo"
+        />
       </a>
       <br />
-      {props.tag && <span className="friend-tag">{props.tag}</span>}
+      {props.tag && <span className={styles["friend-tag"]}>{props.tag}</span>}
     </div>
   );
 }
@@ -57,7 +61,7 @@ export default async function Home() {
   return (
     <>
       <Image
-        id="avatar"
+        className={styles["avatar"]}
         src={avatar}
         loading="eager"
         alt="My avatar"
@@ -79,7 +83,7 @@ export default async function Home() {
           </Link>
           repos. I love talking with people a lot.
         </p>
-        <div id="links" className="mono-link">
+        <div className={clsx(styles["links"], "mono-link")}>
           goto:
           <ul>
             <li>
@@ -95,7 +99,7 @@ export default async function Home() {
         </div>
       </section>
       <hr />
-      <section id="recent-posts">
+      <section className={styles["recent-posts"]}>
         <h2>
           Recent Posts{" "}
           <Link className="mono-link" href="/posts/">
@@ -109,7 +113,7 @@ export default async function Home() {
         <h2 id="friends">
           My Friends <small>(more links are being collected ...)</small>
         </h2>
-        <div id="friends-container">
+        <div className={styles["friends-container"]}>
           <Friend
             name="wsm"
             avatar="https://avatars.githubusercontent.com/u/74699943?v=4"

@@ -1,7 +1,6 @@
 # TODOs for refactor
 
 - Organize CSS.
-  - Use CSS module.
   - Beautify pages.
 - Find a way to handle pictures in articles.
 

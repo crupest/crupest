@@ -1,8 +1,8 @@
-#avatar {
+.avatar {
   float: right;
 }
 
-#links {
+.links {
   font-family: monospace;
 
   margin-block-end: 1rem;
@@ -20,11 +20,11 @@
   }
 }
 
-#recent-posts {
+.recent-posts {
   margin-block-end: 1.5em;
 }
 
-#friends-container {
+.friends-container {
   display: flex;
   gap: 1em;
 }
