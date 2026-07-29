@@ -15,7 +15,7 @@ export default async function Posts() {
 
   return (
     <>
-      <Nav />
+      <Nav slug={["posts"]} />
       <h1>Posts</h1>
       <hr />
       <ArticleDigestList articles={articles} headingComponent="h2" />

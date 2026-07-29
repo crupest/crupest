@@ -48,7 +48,7 @@ export default async function Article({ params }: PageProps<"/[...slug]">) {
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.css"
       />
-      <Nav />
+      <Nav slug={slug} />
       <h1 className="post-title">{article.title}</h1>
       <hr />
       <p className={styles["post-info"]}>

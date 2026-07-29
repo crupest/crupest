@@ -1,31 +1,26 @@
-"use client";
-
 import { Fragment } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 interface BreadcrumbItem {
   name: string;
   href: string;
 }
 
-function buildBreadcrumbs(path: string): BreadcrumbItem[] {
-  const parts = path.split("/").filter(Boolean);
+function buildBreadcrumbs(slug: string[]): BreadcrumbItem[] {
   const crumbs: BreadcrumbItem[] = [{ name: "home", href: "/" }];
 
-  for (let i = 0; i < parts.length; i++) {
+  for (let i = 0; i < slug.length; i++) {
     crumbs.push({
-      name: parts[i],
-      href: "/" + parts.slice(0, i + 1).join("/") + "/",
+      name: slug[i],
+      href: "/" + slug.slice(0, i + 1).join("/") + "/",
     });
   }
 
   return crumbs;
 }
 
-export default function Nav() {
-  const pathname = usePathname();
-  const crumbs = buildBreadcrumbs(pathname);
+export default function Nav({ slug }: { slug: string[] }) {
+  const crumbs = buildBreadcrumbs(slug);
 
   return (
     <nav className="mono">
