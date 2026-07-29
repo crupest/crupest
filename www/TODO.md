@@ -11,6 +11,4 @@ Upgrade nextjs. Use `import.meta.glob` to load all posts.
 
 ## Long term
 
-- Fix init flash due to theme scheme init.
-
 - Summary and word counting.

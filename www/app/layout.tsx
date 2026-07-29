@@ -11,12 +11,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html>
+    <html suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <link rel="icon" href="/favicon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  const key = "force-color-scheme";
+  let theme = localStorage.getItem(key);
+  if (![null, "dark", "light"].includes(theme)) {
+    console.log("invalid saved theme: " + theme);
+    localStorage.removeItem(key);
+    theme = null;
+  }
+  if (theme == null) {
+    theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  document.documentElement.dataset["theme"] = theme;
+})()
+            `,
+          }}
+        />
       </head>
       <body>
         <ThemeScheme />

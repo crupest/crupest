@@ -16,7 +16,7 @@ function fromMediaQuery(value: boolean | null) {
 
 function applyScheme(theme: Theme | null) {
   if (theme == null) theme = fromMediaQuery(null);
-  document.querySelector("html")!.dataset["theme"] = theme;
+  document.documentElement.dataset["theme"] = theme;
   return theme;
 }
 
@@ -68,7 +68,6 @@ export default function ThemeScheme() {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    applyScheme(getScheme());
     const mediaQueryChangeHandler = (e: globalThis.MediaQueryListEvent) => {
       if (getScheme() == null) {
         applyScheme(fromMediaQuery(e.matches));
