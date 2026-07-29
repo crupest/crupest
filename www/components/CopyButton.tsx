@@ -9,8 +9,6 @@ function ClipboardIcon() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
       fill="currentColor"
       className="bi bi-clipboard"
       viewBox="0 0 16 16"
@@ -25,8 +23,6 @@ function ClipboardCheckIcon() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
       fill="currentColor"
       className="bi bi-clipboard-check"
       viewBox="0 0 16 16"

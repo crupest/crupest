@@ -26,5 +26,6 @@
   outline: none;
   border: none;
   cursor: pointer;
+  padding: 0;
   color: var(--body-fg-color);
 }
