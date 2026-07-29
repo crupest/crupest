@@ -27,6 +27,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@swc/core": "^1.15.46",
     "@types/mdx": "^2.0.14",
     "@types/node": "^24",
     "@types/react": "^19",

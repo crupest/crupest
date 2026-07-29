@@ -19,21 +19,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `
-(function() {
-  const key = "force-color-scheme";
-  let theme = localStorage.getItem(key);
-  if (![null, "dark", "light"].includes(theme)) {
-    console.log("invalid saved theme: " + theme);
-    localStorage.removeItem(key);
-    theme = null;
-  }
-  if (theme == null) {
-    theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  }
-  document.documentElement.dataset["theme"] = theme;
-})()
-            `,
+            __html: `(()=>{var e="force-color-scheme",l=localStorage.getItem(e);[null,"dark","light"].includes(l)||(console.log("invalid saved theme: "+l),localStorage.removeItem(e),l=null),null==l&&(l=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"),document.documentElement.dataset.theme=l;})()`,
           }}
         />
       </head>
