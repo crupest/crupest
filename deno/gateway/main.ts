@@ -102,8 +102,8 @@ function createSubdomains(config: Config): Subdomain[] {
       server: "webdav:5000",
     }, {
       path: "*",
-      type: "static",
-      root: "/srv/www",
+      type: "reverse-proxy",
+      server: "www:3000",
     }],
   }, {
     subdomain: "mail",
