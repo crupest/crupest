@@ -17,6 +17,6 @@ export const configProvider = new ConfigProvider(PREFIX, CONFIG_DEFINITION);
 export type Config = typeof configProvider;
 
 export const GEOSITE_PATH = {
-  has: "/srv/www/magic/has-rule.txt",
-  notHas: "/srv/www/magic/not-has-rule.txt",
+  has: "/srv/www/gen/magic/has-rule.txt",
+  notHas: "/srv/www/gen/magic/not-has-rule.txt",
 } as const;

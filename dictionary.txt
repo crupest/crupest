@@ -67,6 +67,8 @@ mkconfig
 ahci
 shuf
 siyuan
+katex
+wooorm
 
 xreadlink
 xgethostname

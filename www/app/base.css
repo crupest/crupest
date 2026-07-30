@@ -1,0 +1,98 @@
+html {
+  width: 100%;
+  --body-fg-color: unset;
+  --body-bg-color: unset;
+  --table-border-color: black;
+  --toast-fg-color: white;
+  --toast-bg-color: black;
+  --code-fg-color: var(--body-fg-color);
+  --code-bg-color: #eff1f5;
+}
+
+html[data-theme="dark"] {
+  --body-fg-color: white;
+  --body-bg-color: black;
+  --table-border-color: hsl(0, 0%, 25%);
+  --toast-fg-color: var(--body-bg-color);
+  --toast-bg-color: var(--body-fg-color);
+  --code-bg-color: #1e1e2e;
+
+  & a:link {
+    color: #34ffd9;
+  }
+
+  & a:visited {
+    color: #abcac4;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 100%;
+  margin: 0;
+  color: var(--body-fg-color);
+  background-color: var(--body-bg-color);
+}
+
+/* https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/Heading_Elements#specifying_a_uniform_font_size_for_h1 */
+h1 {
+  margin-block: 0.67em;
+  font-size: 2em;
+}
+
+.mono {
+  font-family: monospace;
+}
+
+a.mono-link,
+.mono-link a,
+.mono-link .fake-link {
+  font-family: monospace;
+}
+
+div.mono-container {
+  font-family: monospace;
+  margin-block: 1rem;
+}
+
+table {
+  border-collapse: collapse;
+
+  &,
+  :is(td, th) {
+    padding: 0.2em 0.4em;
+    border: 1px solid var(--table-border-color);
+  }
+}
+
+nav {
+  font-size: large;
+}
+
+#main-article {
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 880px;
+  padding: 0 1em;
+  margin-top: 1em;
+}
+
+#license a {
+  font-family: initial;
+  text-decoration: none;
+}
+
+#license-text {
+  font-family: monospace;
+  text-decoration: initial;
+}
+
+#license-img-container img {
+  width: auto;
+  height: 1em;
+  vertical-align: middle;
+}
