@@ -99,7 +99,7 @@ function createSubdomains(config: Config): Subdomain[] {
     }, {
       path: "/webdav/*",
       type: "reverse-proxy",
-      server: "webdav:5000",
+      server: "webdav:3923",
     }, {
       path: "/gen/*",
       type: "static",

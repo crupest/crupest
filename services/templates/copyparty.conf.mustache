@@ -1,0 +1,44 @@
+# To generate hashed passwords:
+#   1. Start copyparty once with this config (plaintext passwords are OK).
+#   2. On startup it will log the hashed versions — copy them and replace the
+#      plaintext passwords below.
+#   3. Or use `--ah-cli` to hash interactively without ever writing plaintext
+#      to disk. For Docker, match the salt: inspect with `--show-ah-salt` and
+#      pass the same `--ah-salt` to `--ah-cli`.
+#   See: https://copyparty.eu/cli/#pwhash-help-page
+
+[global]
+  ah-alg: argon2
+  ah-salt: {{CRUPEST_COPYPARTY_PASSWORD_SALT}}
+  e2dsa
+  rp-loc: /webdav
+  rproxy: -1
+  xff-src: lan
+
+[accounts]
+  {{CRUPEST_NAME}}: {{CRUPEST_COPYPARTY_HASHED_PASSWORD}}
+
+[/]
+  /w
+  accs:
+    A: {{CRUPEST_NAME}}
+
+[/share]
+  /w/share
+  accs:
+    A: {{CRUPEST_NAME}}
+    r: *
+
+[/share/store]
+  /w/share/store
+  accs:
+    r: {{CRUPEST_NAME}}
+    r: *
+  flags:
+    hist: /w/share/.hist/store
+
+[/private-share]
+  /w/private-share
+  accs:
+    A: {{CRUPEST_NAME}}
+    g: *

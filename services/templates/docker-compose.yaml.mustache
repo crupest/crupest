@@ -96,12 +96,12 @@ services:
     restart: "on-failure:3"
 
   webdav:
-    build:
-      context: "./{{CRUPEST_DOCKER_DIR}}/webdav"
-      dockerfile: Dockerfile
+    image: copyparty/ac
     hostname: webdav
     volumes:
-      - "./{{CRUPEST_DATA_WEBDAV_DIR}}:/data"
+      - "./{{CRUPEST_DATA_WEBDAV_DIR}}/file:/w"
+      - "./{{CRUPEST_GENERATED_DIR}}/copyparty.conf:/cfg/my.conf:ro"
+      - "./{{CRUPEST_STORE_DIR}}:/w/share/store:ro"
     networks:
       default:
         ipv4_address: "172.21.5.6"

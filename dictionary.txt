@@ -69,6 +69,7 @@ shuf
 siyuan
 katex
 wooorm
+copyparty
 
 xreadlink
 xgethostname
