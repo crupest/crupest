@@ -2,10 +2,9 @@ services:
 
   gateway:
     build:
-      context: "./{{CRUPEST_DOCKER_DIR}}/gateway"
-      additional_contexts:
-        - "deno=./{{CRUPEST_DENO_DIR}}"
+      context: "./{{CRUPEST_DENO_DIR}}"
       dockerfile: Dockerfile
+      target: gateway
     ports:
       - "80:80"
       - "443:443"
@@ -26,10 +25,9 @@ services:
 
   mail-server:
     build:
-      context: "./{{CRUPEST_DOCKER_DIR}}/mail-server"
-      additional_contexts:
-        - "deno=./{{CRUPEST_DENO_DIR}}"
+      context: "./{{CRUPEST_DENO_DIR}}"
       dockerfile: Dockerfile
+      target: mail-server
     container_name: mail-server
     hostname: mail
     domainname: "{{CRUPEST_DOMAIN}}"

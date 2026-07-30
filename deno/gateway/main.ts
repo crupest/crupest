@@ -101,6 +101,10 @@ function createSubdomains(config: Config): Subdomain[] {
       type: "reverse-proxy",
       server: "webdav:5000",
     }, {
+      path: "/gen/*",
+      type: "static",
+      root: "/srv/www"
+    }, {
       path: "*",
       type: "reverse-proxy",
       server: "www:3000",
