@@ -1,11 +1,10 @@
 import { cache, ReactNode } from "react";
 import runtime from "react/jsx-runtime";
-import { stat, glob } from "fs/promises";
+import { stat, glob, readFile } from "fs/promises";
 import { join, relative, dirname } from "path";
 import { fileURLToPath } from "url";
 import { z } from "zod";
-import { type VFile } from "vfile";
-import { read } from "to-vfile";
+import { VFile } from "vfile";
 import { matter } from "vfile-matter";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
@@ -41,7 +40,10 @@ export type ArticleFrontmatter = z.output<typeof FRONTMATTER_SCHEMA>;
 
 export interface Article extends ArticleFrontmatter {
   path: string;
-  sourcePath: string;
+  source: { baseDir: string; path: string; content: string };
+}
+
+export interface ParsedArticle extends Article {
   plainText: string;
   wordCount: number;
   summary: string;
@@ -64,12 +66,6 @@ function countWords(text: string): number {
 }
 
 // --- Page parsing ---
-
-function remarkExtractFrontmatter() {
-  return function (_: mdast.Root, file: VFile) {
-    matter(file);
-  };
-}
 
 function remarkExtractPlainTextAndSummary() {
   return (tree: mdast.Root, file: VFile) => {
@@ -113,16 +109,48 @@ function rehypeAddLanguageToPre() {
   };
 }
 
-async function loadArticleFile(
-  dir: string,
+async function loadArticle(
+  sourceBaseDir: string,
   sourcePath: string,
 ): Promise<Article> {
-  const fullPath = join(dir, sourcePath);
+  const fullPath = join(sourceBaseDir, sourcePath);
+  const sourceContent = await readFile(fullPath, { encoding: "utf-8" });
+
+  const vfile = new VFile({
+    path: fullPath,
+    value: sourceContent,
+  });
+  matter(vfile);
+
+  const frontmatterParseResult = FRONTMATTER_SCHEMA.safeParse(
+    vfile.data.matter,
+  );
+  if (!frontmatterParseResult.success) {
+    throw new Error(
+      `Invalid frontmatter in ${fullPath}: ${frontmatterParseResult.error}`,
+    );
+  }
+  const frontmatter = frontmatterParseResult.data;
+
+  const path = sourcePathToPath(sourcePath);
+
+  return {
+    source: {
+      baseDir: sourceBaseDir,
+      path: sourcePath,
+      content: sourceContent,
+    },
+    path,
+    ...frontmatter,
+  };
+}
+
+export async function parseArticle(article: Article): Promise<ParsedArticle> {
+  const fullPath = join(article.source.baseDir, article.source.path);
 
   const vfile: VFile = await unified()
     .use(remarkParse)
     .use(remarkFrontmatter)
-    .use(remarkExtractFrontmatter)
     .use(remarkGfm)
     .use(remarkMath)
     .use(remarkExtractPlainTextAndSummary)
@@ -137,28 +165,20 @@ async function loadArticleFile(
         pre: CodeBlock,
       },
     })
-    .process(await read(fullPath));
-
-  const frontmatterParseResult = FRONTMATTER_SCHEMA.safeParse(
-    vfile.data.matter,
-  );
-  if (!frontmatterParseResult.success) {
-    throw new Error(
-      `Invalid frontmatter in ${fullPath}: ${frontmatterParseResult.error}`,
+    .process(
+      new VFile({
+        path: fullPath,
+        value: article.source.content,
+      }),
     );
-  }
-  const frontmatter = frontmatterParseResult.data;
 
-  const path = sourcePathToPath(sourcePath);
   const plainText = vfile.data.plainText as string;
   const summary = vfile.data.summary as string;
   const wordCount = countWords(plainText);
   const reactNode = vfile.result as ReactNode;
 
   return {
-    sourcePath,
-    path,
-    ...frontmatter,
+    ...article,
     plainText,
     wordCount,
     summary,
@@ -166,36 +186,49 @@ async function loadArticleFile(
   };
 }
 
-export function getDefaultContentPath(): string {
+export async function parseArticles(
+  articles: Article[],
+): Promise<ParsedArticle[]> {
+  return Promise.all(articles.map(parseArticle));
+}
+
+async function loadAndParseArticle(
+  sourceBaseDir: string,
+  sourcePath: string,
+): Promise<ParsedArticle> {
+  const article = await loadArticle(sourceBaseDir, sourcePath);
+  return await parseArticle(article);
+}
+
+export function getDefaultContentBasePath(): string {
   const filename = fileURLToPath(import.meta.url);
   return join(dirname(filename), "..", "content");
 }
 
-async function getArticleSourcePaths(dir?: string): Promise<string[]> {
-  dir ??= getDefaultContentPath();
+async function scanArticleSourcePaths(baseDir?: string): Promise<string[]> {
+  baseDir ??= getDefaultContentBasePath();
   const paths: string[] = [];
-  for await (const path of glob(join(dir, "**/*.md"))) {
-    paths.push(relative(dir, path));
+  for await (const path of glob(join(baseDir, "**/*.md"))) {
+    paths.push(relative(baseDir, path));
   }
   return paths;
 }
 
-export async function getArticlePaths(dir?: string): Promise<string[]> {
-  const sourcePaths = await getArticleSourcePaths(dir);
-  return sourcePaths.map((sourcePath) => sourcePathToPath(sourcePath));
+export async function getArticlePaths(baseDir?: string): Promise<string[]> {
+  const sourcePaths = await scanArticleSourcePaths(baseDir);
+  return sourcePaths.map(sourcePathToPath);
 }
 
 export async function getArticles(options?: {
-  dir?: string;
+  baseDir?: string;
   postOnly?: boolean;
   sort?: boolean;
 }): Promise<Article[]> {
-  const dir = options?.dir ?? getDefaultContentPath();
-  let articles: Article[] = [];
-  for (const sourcePath of await getArticleSourcePaths(dir)) {
-    const article = await loadArticleFile(dir, sourcePath);
-    articles.push(article);
-  }
+  const dir = options?.baseDir ?? getDefaultContentBasePath();
+  const articleSourcePaths = await scanArticleSourcePaths(dir);
+  let articles: Article[] = await Promise.all(
+    articleSourcePaths.map((sourcePath) => loadArticle(dir, sourcePath)),
+  );
   if (options?.postOnly === true) {
     articles = articles.filter((a) => a.path.startsWith("/posts"));
   }
@@ -217,21 +250,21 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-export async function getArticle(
-  dir: string | undefined,
+export async function getParsedArticle(
+  baseDir: string | undefined,
   path: string,
-): Promise<Article | null> {
-  dir ??= getDefaultContentPath();
+): Promise<ParsedArticle | null> {
+  baseDir ??= getDefaultContentBasePath();
   if (path.startsWith("/")) {
     path = path.slice(1);
   }
   const candidatePaths = [path + ".md", join(path, "index.md")];
   for (const candidate of candidatePaths) {
-    if (await fileExists(join(dir, candidate))) {
-      return await loadArticleFile(dir, candidate);
+    if (await fileExists(join(baseDir, candidate))) {
+      return await loadAndParseArticle(baseDir, candidate);
     }
   }
   return null;
 }
 
-export const cachedGetArticle = cache(getArticle);
+export const cachedGetParsedArticle = cache(getParsedArticle);

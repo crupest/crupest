@@ -27,7 +27,6 @@
     "remark-math": "^6.0.0",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
-    "to-vfile": "^8.0.0",
     "unified": "^11.0.5",
     "unist-util-visit-parents": "^6.0.2",
     "vfile": "^6.0.3",

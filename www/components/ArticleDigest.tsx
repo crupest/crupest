@@ -1,13 +1,13 @@
 import { Fragment, type ElementType } from "react";
 import Link from "next/link";
 
-import { Article } from "@/lib/content";
+import { ParsedArticle } from "@/lib/content";
 import { formatDate } from "@/lib/utils";
 
 import styles from "./article-digest.module.css";
 
 export interface ArticleDigestProps {
-  article: Pick<Article, "date" | "title" | "summary" | "path">;
+  article: Pick<ParsedArticle, "date" | "title" | "summary" | "path">;
   headingComponent?: ElementType;
 }
 

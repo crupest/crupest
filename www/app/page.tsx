@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import clsx from "clsx";
 
-import { getArticles } from "@/lib/content";
+import { getArticles, parseArticles } from "@/lib/content";
 import ArticleDigestList from "@/components/ArticleDigestList";
 
 import avatar from "./avatar.png";
@@ -58,6 +58,8 @@ export default async function Home() {
     postOnly: true,
     sort: true,
   });
+  // Show first 3.
+  const parsedArticles = await parseArticles(articles.slice(0, 3));
 
   return (
     <>
@@ -107,7 +109,7 @@ export default async function Home() {
             (all)
           </Link>
         </h2>
-        <ArticleDigestList articles={articles} headingComponent="h3" />
+        <ArticleDigestList articles={parsedArticles} headingComponent="h3" />
       </section>
       <hr />
       <section>

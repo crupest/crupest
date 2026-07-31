@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { cachedGetArticle, getArticlePaths } from "@/lib/content";
+import { cachedGetParsedArticle, getArticlePaths } from "@/lib/content";
 import { formatDate } from "@/lib/utils";
 import Nav from "@/components/Nav";
 
@@ -19,7 +19,7 @@ export async function generateMetadata({
   params,
 }: PageProps<"/[...slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const article = await cachedGetArticle(undefined, slug.join("/"));
+  const article = await cachedGetParsedArticle(undefined, slug.join("/"));
   if (!article) return {};
   return {
     title: article.title,
@@ -33,7 +33,7 @@ function DateLabel({ date }: { date: Date }) {
 
 export default async function Article({ params }: PageProps<"/[...slug]">) {
   const { slug } = await params;
-  const article = await cachedGetArticle(undefined, slug.join("/"));
+  const article = await cachedGetParsedArticle(undefined, slug.join("/"));
 
   if (article == null) {
     notFound();
