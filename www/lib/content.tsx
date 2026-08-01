@@ -73,11 +73,11 @@ function remarkExtractPlainTextAndSummary() {
     let summaryParagraphs: string[] | null = null;
     for (const node of tree.children) {
       if (node.type === "yaml") continue;
-      const paragraph = mdastToString(node).replaceAll("\n", " ");
-      if (paragraph === "<!--more-->") {
+      if (node.type === "html" && /\s*<!--\s*more\s*-->\s*/.test(node.value)) {
         summaryParagraphs = paragraphs.slice();
         continue;
       }
+      const paragraph = mdastToString(node).replaceAll("\n", " ");
       paragraphs.push(paragraph);
     }
     file.data.plainText = paragraphs.join("\n");
