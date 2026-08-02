@@ -66,11 +66,18 @@ export function createReverseProxyHandler(
     headers.set("X-Forwarded-Proto", protocol.slice(0, -1));
     if (remoteAddr) {
       headers.set("X-Real-IP", remoteAddr);
-      const forwardedFor = headers.get("x-forwarded-for");
-      headers.set(
-        "X-Forwarded-For",
-        forwardedFor ? `${forwardedFor}, ${remoteAddr}` : remoteAddr,
-      );
+      // We should actually chain the IPs if we trust the proxy in front of deno gateway.
+      // However, we're facing clients, so we don't trust and use the header, but just
+      // overwrite it.
+      //
+      // ```typescript
+      // const forwardedFor = headers.get("x-forwarded-for");
+      // headers.set(
+      //   "X-Forwarded-For",
+      //   forwardedFor ? `${forwardedFor}, ${remoteAddr}` : remoteAddr,
+      // );
+      // ```
+      headers.set("X-Forwarded-For", remoteAddr);
     }
 
     if (isWebSocket) {
