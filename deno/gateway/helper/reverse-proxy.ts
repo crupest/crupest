@@ -109,11 +109,17 @@ export function createReverseProxyHandler(
       return response;
     }
 
-    return await fetch(url, {
-      method: c.req.method,
-      headers,
-      body: c.req.raw.body,
-      redirect: "manual",
-    });
+    try {
+      return await fetch(url, {
+        method: c.req.method,
+        headers,
+        body: c.req.raw.body,
+        redirect: "manual",
+      });
+    } catch (_) {
+      return new Response("Upstream error.", {
+        status: 502,
+      });
+    }
   };
 }

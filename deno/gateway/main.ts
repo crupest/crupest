@@ -103,7 +103,7 @@ function createSubdomains(config: Config): Subdomain[] {
     }, {
       path: "/gen/*",
       type: "static",
-      root: "/srv/www"
+      root: "/srv/www",
     }, {
       path: "*",
       type: "reverse-proxy",
