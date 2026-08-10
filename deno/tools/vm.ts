@@ -1,6 +1,8 @@
 import os from "node:os";
 import { join } from "@std/path";
-import { defineYargsModule, DEMAND_COMMAND_MESSAGE } from "./yargs.ts";
+import { Command } from "@cliffy/command";
+
+import { demandCommand } from "@crupest/base-contrib/cliffy-helper";
 
 type ArchAliasMap = { [name: string]: string[] };
 const arches = {
@@ -188,22 +190,13 @@ function createQemuArgs(setup: VmSetup): string[] {
   ];
 }
 
-const gen = defineYargsModule({
-  command: "gen <name>",
-  describe: "generate cli command to run the vm",
-  builder: (builder) => {
-    return builder
-      .positional("name", {
-        describe: "name of the vm to run",
-        type: "string",
-      })
-      .demandOption("name")
-      .strict();
-  },
-  handler: (argv) => {
-    const vm = resolveVmSetup(argv.name, MY_VMS);
+const gen = new Command()
+  .description("generate cli command to run the vm")
+  .arguments("<name:string>")
+  .action((_options, name) => {
+    const vm = resolveVmSetup(name, MY_VMS);
     if (vm == null) {
-      console.error(`No vm called ${argv.name} is found.`);
+      console.error(`No vm called ${name} is found.`);
       Deno.exit(-1);
     }
     const preCommands = createPreCommands(vm);
@@ -212,8 +205,7 @@ const gen = defineYargsModule({
       console.log(`${command.join(" ")} &`);
     }
     console.log(`${cli.join(" ")}`);
-  },
-});
+  });
 
 function runVm(name: string) {
   const vm = resolveVmSetup(name, MY_VMS);
@@ -241,31 +233,15 @@ function runVm(name: string) {
   });
 }
 
-export const run = defineYargsModule({
-  command: "run <name>",
-  describe: "run the vm",
-  builder: (builder) => {
-    return builder
-      .positional("name", {
-        describe: "name of the vm to run",
-        type: "string",
-      })
-      .demandOption("name")
-      .strict();
-  },
-  handler: (argv) => {
-    runVm(argv.name);
-  },
-});
+export const run = new Command()
+  .description("run the vm")
+  .arguments("<name:string>")
+  .action((_options, name) => {
+    runVm(name);
+  });
 
-export default defineYargsModule({
-  command: "vm",
-  describe: "Manage (qemu) virtual machines.",
-  builder: (builder) => {
-    return builder.command(gen).command(run).demandCommand(
-      1,
-      DEMAND_COMMAND_MESSAGE,
-    );
-  },
-  handler: () => {},
-});
+export default new Command()
+  .description("Manage (qemu) virtual machines.")
+  .action(demandCommand)
+  .command("gen", gen)
+  .command("run", run);

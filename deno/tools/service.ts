@@ -1,10 +1,11 @@
 import { dirname, join, relative } from "@std/path";
 import { copySync, existsSync, walkSync } from "@std/fs";
 import { distinct } from "@std/collections";
+import { Command } from "@cliffy/command";
 // @ts-types="npm:@types/mustache"
 import Mustache from "mustache";
 
-import { defineYargsModule, DEMAND_COMMAND_MESSAGE } from "./yargs.ts";
+import { demandCommand } from "@crupest/base-contrib/cliffy-helper";
 
 const MUSTACHE_RENDER_OPTIONS: Mustache.RenderOptions = {
   escape: (value: unknown) => String(value),
@@ -133,47 +134,40 @@ class TemplateDir {
   }
 }
 
-export default defineYargsModule({
-  command: "service",
-  aliases: ["sv"],
-  describe: "Manage services.",
-  builder: (builder) => {
-    return builder
-      .option("project-dir", {
-        type: "string",
+export default new Command<{ projectDir?: string }>()
+  .description("Manage services.")
+  .alias("sv")
+  .action(demandCommand)
+  .command(
+    "gen-tmpl",
+    new Command<{ projectDir?: string }>()
+      .description("Generate files from templates")
+      .option("--dry-run", "Print actions without writing generated files.", {
+        default: true,
       })
-      .demandOption("project-dir")
-      .command({
-        command: "gen-tmpl",
-        describe: "Generate files from templates",
-        builder: (builder) => {
-          return builder
-            .option("dry-run", {
-              type: "boolean",
-              default: true,
-            })
-            .strict();
-        },
-        handler: (argv) => {
-          const { projectDir, dryRun } = argv;
-
-          const config = loadTemplatedConfigFiles(
-            [
-              join(projectDir, "data/config"),
-              join(projectDir, "services/config.mustache"),
-            ],
-          );
-
-          new TemplateDir(
-            join(projectDir, "services/templates"),
-          ).generate(
-            config,
-            dryRun ? undefined : join(projectDir, "services/generated"),
-          );
-          console.log("Done!");
-        },
+      .option("--no-dry-run", "Write generated files.", {
+        hidden: true,
       })
-      .demandCommand(1, DEMAND_COMMAND_MESSAGE);
-  },
-  handler: () => {},
-});
+      .action(function (this, { projectDir, dryRun }) {
+        if (projectDir == null) {
+          this.showHelp();
+          console.error('  error: Missing required option "--project-dir".');
+          Deno.exit(2);
+        }
+        const config = loadTemplatedConfigFiles(
+          [
+            join(projectDir, "data/config"),
+            join(projectDir, "services/config.mustache"),
+          ],
+        );
+
+        new TemplateDir(
+          join(projectDir, "services/templates"),
+        ).generate(
+          config,
+          dryRun ? undefined : join(projectDir, "services/generated"),
+        );
+
+        console.log("Done!");
+      }),
+  );

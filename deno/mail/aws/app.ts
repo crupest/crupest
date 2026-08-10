@@ -3,12 +3,12 @@ import * as z from "zod";
 import { Hono } from "hono";
 import { sValidator } from "@hono/standard-validator";
 import { FetchHttpHandler } from "@smithy/fetch-http-handler";
-// @ts-types="npm:@types/yargs"
-import yargs from "yargs";
+import { Command } from "@cliffy/command";
 
 import { ConfigDefinition, ConfigProvider } from "@crupest/base/config";
 import { CronTask } from "@crupest/base/cron";
 import { getDefaultLogger, ILogger } from "@crupest/base/log";
+import { demandCommand } from "@crupest/base-contrib/cliffy-helper";
 
 import { DbService } from "../db.ts";
 import { createHono, createInbound, createSmtp, sendMail } from "../app.ts";
@@ -281,43 +281,42 @@ async function recycleLives() {
 }
 
 if (import.meta.main) {
-  await yargs(Deno.args)
-    .scriptName("mail")
-    .command({
-      command: "sendmail",
-      describe: "send mail via this server's endpoint",
-      handler: async (_argv) => {
-        const { config } = createBaseServices();
-        await sendMail(config.getInt("httpPort"));
-      },
-    })
-    .command({
-      command: "live",
-      describe: "work with live mails",
-      builder: (builder) => {
-        return builder
-          .command({
-            command: "list",
-            describe: "list live mails",
-            handler: listLives,
-          })
-          .command({
-            command: "recycle",
-            describe: "recycle all live mails",
-            handler: recycleLives,
-          })
-          .demandCommand(1, "One command must be specified.");
-      },
-      handler: () => {},
-    })
-    .command({
-      command: "serve",
-      describe: "start the http and smtp servers",
-      builder: (builder) => builder.option("real", { type: "boolean" }),
-      handler: (argv) => serve(argv.real),
-    })
-    .demandCommand(1, "One command must be specified.")
-    .help()
-    .strict()
-    .parse();
+  await new Command()
+    .name("mail")
+    .action(demandCommand)
+    .command(
+      "sendmail",
+      new Command()
+        .description("send mail via this server's endpoint")
+        .action(async () => {
+          const { config } = createBaseServices();
+          await sendMail(config.getInt("httpPort"));
+        }),
+    )
+    .command(
+      "live",
+      new Command()
+        .description("work with live mails")
+        .action(demandCommand)
+        .command(
+          "list",
+          new Command()
+            .description("list live mails")
+            .action(listLives),
+        )
+        .command(
+          "recycle",
+          new Command()
+            .description("recycle all live mails")
+            .action(recycleLives),
+        ),
+    )
+    .command(
+      "serve",
+      new Command()
+        .description("start the http and smtp servers")
+        .option("--real", "Start cron recycling.")
+        .action(({ real }) => serve(real ?? false)),
+    )
+    .parse(Deno.args);
 }

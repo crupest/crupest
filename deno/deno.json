@@ -25,7 +25,7 @@
     "@std/fs": "jsr:@std/fs@^1.0.24",
     "hono": "npm:hono@^4.13.1",
     "zod": "npm:zod@^4.4.3",
-    "yargs": "npm:yargs@^18.1.0"
+    "@cliffy/command": "jsr:@cliffy/command@^1.2.1"
   },
   "exclude": ["mail/scripts/aws-lambda.js"]
 }
