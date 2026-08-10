@@ -1,0 +1,116 @@
+services:
+
+  gateway:
+    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-gateway:latest
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    env_file:
+      - "./{{CRUPEST_GENERATED_DIR}}/envs/gateway.env"
+      - "./{{CRUPEST_GENERATED_DIR}}/envs/mail-server-common.env"
+    volumes:
+      - "./{{CRUPEST_DATA_GATEWAY_DIR}}:/data"
+      - "./{{CRUPEST_DATA_CERTBOT_DIR}}/certs:/etc/letsencrypt"
+      - "./{{CRUPEST_DATA_CERTBOT_DIR}}/data:/var/lib/letsencrypt"
+      - "./{{CRUPEST_DATA_CERTBOT_DIR}}/webroot:/var/www/certbot"
+      - "./{{CRUPEST_STATE_GATEWAY_DIR}}:/app/state"
+    networks:
+      default:
+        ipv4_address: "172.21.5.2"
+    restart: "on-failure:3"
+
+  mail-server:
+    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-mail-server:latest
+    container_name: mail-server
+    hostname: mail
+    domainname: "{{CRUPEST_DOMAIN}}"
+    env_file:
+      - "./{{CRUPEST_GENERATED_DIR}}/envs/mail-server-common.env"
+      - "./{{CRUPEST_GENERATED_DIR}}/envs/mail-server.env"
+    ports:
+      - "25:25" # SMTP (inbound)
+      - "143:143" # IMAP4 (explicit TLS => STARTTLS)
+      - "993:993" # IMAP4 (implicit TLS)
+      - "587:587" # ESMTP (explicit TLS => STARTTLS)
+      - "465:465" # ESMTP (implicit TLS)
+      - "4190:4190" # manage sieve protocol
+    volumes:
+      - "./{{CRUPEST_DATA_MAIL_SERVER_DIR}}:/data"
+      - "./{{CRUPEST_SSL_FULLCHAIN_FILE}}:/etc/ssl/mail/tls.crt:ro"
+      - "./{{CRUPEST_SSL_PRIVATE_KEY_FILE}}:/etc/ssl/mail/tls.key:ro"
+      - "/etc/localtime:/etc/localtime:ro"
+    networks:
+      default:
+        ipv4_address: "172.21.5.3"
+    restart: "on-failure:3"
+    stop_grace_period: 1m
+
+  git-server:
+    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-git-server:latest
+    hostname: git-server
+    environment:
+      - "CRUPEST_ROOT_URL={{CRUPEST_ROOT_URL}}"
+    volumes:
+      - "./{{CRUPEST_DATA_GIT_DIR}}:/git"
+    networks:
+      default:
+        ipv4_address: "172.21.5.4"
+    mem_limit: 500mb
+    restart: on-failure:3
+
+  roundcubemail:
+    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-roundcubemail:latest
+    hostname: roundcubemail
+    env_file:
+      - "./{{CRUPEST_GENERATED_DIR}}/envs/roundcubemail.env"
+    volumes:
+      - "./{{CRUPEST_DATA_SECRET_DIR}}/gnupg:/var/roundcube/enigma"
+      - "./{{CRUPEST_DATA_ROUNDCUBE_DIR}}/db:/var/roundcube/db"
+      - "roundcubemail-html:/var/www/html"
+      - "roundcubemail-temp:/tmp/roundcube-temp"
+    networks:
+      default:
+        ipv4_address: "172.21.5.5"
+    restart: on-failure:3
+
+  auto-backup:
+    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-auto-backup:latest
+    env_file:
+      - "./{{CRUPEST_GENERATED_DIR}}/envs/auto-backup.env"
+    volumes:
+      - "./data:/data:ro"
+      - "./data/auto-backup:/data/auto-backup"
+    restart: "on-failure:3"
+
+  webdav:
+    image: copyparty/ac
+    hostname: webdav
+    volumes:
+      - "./{{CRUPEST_DATA_WEBDAV_DIR}}/file:/w"
+      - "./{{CRUPEST_GENERATED_DIR}}/copyparty.conf:/cfg/my.conf:ro"
+      - "./{{CRUPEST_STORE_DIR}}:/w/share/store:ro"
+    networks:
+      default:
+        ipv4_address: "172.21.5.6"
+    restart: "on-failure:3"
+
+  www:
+    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-www:latest
+    hostname: www
+    networks:
+      default:
+        ipv4_address: "172.21.5.7"
+    restart: "on-failure:3"
+
+volumes:
+  roundcubemail-html:
+  roundcubemail-temp:
+
+networks:
+  default:
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: "172.21.5.0/24"
+          ip_range: "172.21.5.64/26"
