@@ -1,0 +1,15 @@
+<service>
+  <id>AxonHub</id>
+  <name>AxonHub</name>
+  <description>AxonHub AI Gateway on port 8200</description>
+  <executable>C:\Users\crupe\AppData\Local\Microsoft\WinGet\Links\axonhub.exe</executable>
+  <workingdirectory>%BASE%</workingdirectory>
+  <env name="AXONHUB_SERVER_PORT" value="8200" />
+  <logpath>%BASE%\logs</logpath>
+  <log mode="roll"/>
+  <onfailure action="restart" delay="0 sec" />
+  <onfailure action="restart" delay="10 sec" />
+  <onfailure action="restart" delay="30 sec" />
+  <onfailure action="none" />
+  <resetfailure>1 sec</resetfailure>
+</service>
