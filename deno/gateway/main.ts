@@ -90,7 +90,7 @@ function createSubdomains(config: Config): Subdomain[] {
     sites: [{
       path: "/github",
       type: "redirect",
-      target: config.get("github"),
+      target: `https://github.com/${config.get("github")}`,
     }, {
       path: "/git/*",
       type: "reverse-proxy",
