@@ -19,7 +19,7 @@ export async function generateMetadata({
   params,
 }: PageProps<"/[...slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const article = await cachedGetParsedArticle(undefined, slug.join("/"));
+  const article = await cachedGetParsedArticle(slug.join("/"));
   if (!article) return {};
   return {
     title: article.title,
@@ -33,7 +33,7 @@ function DateLabel({ date }: { date: Date }) {
 
 export default async function Article({ params }: PageProps<"/[...slug]">) {
   const { slug } = await params;
-  const article = await cachedGetParsedArticle(undefined, slug.join("/"));
+  const article = await cachedGetParsedArticle(slug.join("/"));
 
   if (article == null) {
     notFound();

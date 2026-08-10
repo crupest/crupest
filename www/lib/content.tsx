@@ -1,7 +1,7 @@
 import { cache, ReactNode } from "react";
 import runtime from "react/jsx-runtime";
-import { stat, glob, readFile } from "fs/promises";
-import { join, relative, dirname } from "path";
+import { stat } from "fs/promises";
+import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { z } from "zod";
 import { VFile } from "vfile";
@@ -112,9 +112,9 @@ function rehypeAddLanguageToPre() {
 async function loadArticle(
   sourceBaseDir: string,
   sourcePath: string,
+  sourceContent: string,
 ): Promise<Article> {
   const fullPath = join(sourceBaseDir, sourcePath);
-  const sourceContent = await readFile(fullPath, { encoding: "utf-8" });
 
   const vfile = new VFile({
     path: fullPath,
@@ -195,39 +195,51 @@ export async function parseArticles(
 async function loadAndParseArticle(
   sourceBaseDir: string,
   sourcePath: string,
+  sourceContent: string,
 ): Promise<ParsedArticle> {
-  const article = await loadArticle(sourceBaseDir, sourcePath);
+  const article = await loadArticle(sourceBaseDir, sourcePath, sourceContent);
   return await parseArticle(article);
 }
 
-export function getDefaultContentBasePath(): string {
-  const filename = fileURLToPath(import.meta.url);
-  return join(dirname(filename), "..", "content");
+const kContentDir = "../content";
+const moduleDirPath = dirname(fileURLToPath(import.meta.url));
+const contentDirPath = join(moduleDirPath, kContentDir);
+
+function scanArticleSources(): Record<
+  string,
+  () => Promise<{ default: string }>
+> {
+  const modules = import.meta.glob(`**/*.md`, { base: kContentDir }) as Record<
+    string,
+    () => Promise<{ default: string }>
+  >;
+  return Object.fromEntries(
+    Object.entries(modules).map(([sourcePath, getSourceContent]) => [
+      sourcePath.slice(kContentDir.length + 1),
+      getSourceContent,
+    ]),
+  );
 }
 
-async function scanArticleSourcePaths(baseDir?: string): Promise<string[]> {
-  baseDir ??= getDefaultContentBasePath();
-  const paths: string[] = [];
-  for await (const path of glob(join(baseDir, "**/*.md"))) {
-    paths.push(relative(baseDir, path));
-  }
-  return paths;
-}
-
-export async function getArticlePaths(baseDir?: string): Promise<string[]> {
-  const sourcePaths = await scanArticleSourcePaths(baseDir);
+export async function getArticlePaths(): Promise<string[]> {
+  const sourcePaths = Object.keys(scanArticleSources());
   return sourcePaths.map(sourcePathToPath);
 }
 
 export async function getArticles(options?: {
-  baseDir?: string;
   postOnly?: boolean;
   sort?: boolean;
 }): Promise<Article[]> {
-  const dir = options?.baseDir ?? getDefaultContentBasePath();
-  const articleSourcePaths = await scanArticleSourcePaths(dir);
+  const articleSources = scanArticleSources();
   let articles: Article[] = await Promise.all(
-    articleSourcePaths.map((sourcePath) => loadArticle(dir, sourcePath)),
+    Object.entries(articleSources).map(
+      async ([sourcePath, getSourceContent]) =>
+        await loadArticle(
+          contentDirPath,
+          sourcePath,
+          (await getSourceContent()).default,
+        ),
+    ),
   );
   if (options?.postOnly === true) {
     articles = articles.filter((a) => a.path.startsWith("/posts"));
@@ -251,17 +263,21 @@ async function fileExists(filePath: string): Promise<boolean> {
 }
 
 export async function getParsedArticle(
-  baseDir: string | undefined,
   path: string,
 ): Promise<ParsedArticle | null> {
-  baseDir ??= getDefaultContentBasePath();
   if (path.startsWith("/")) {
     path = path.slice(1);
   }
-  const candidatePaths = [path + ".md", join(path, "index.md")];
+  const candidatePaths = [path + ".md", path + "/index.md"];
   for (const candidate of candidatePaths) {
-    if (await fileExists(join(baseDir, candidate))) {
-      return await loadAndParseArticle(baseDir, candidate);
+    if (await fileExists(join(contentDirPath, candidate))) {
+      const sourceContent = (await import(`${kContentDir}/${candidate}`))
+        .default;
+      return await loadAndParseArticle(
+        contentDirPath,
+        candidate,
+        sourceContent,
+      );
     }
   }
   return null;
