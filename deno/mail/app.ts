@@ -50,6 +50,7 @@ export function createHono({ logger, outbound, inbound }: {
     return c.json({ message: "Server error, check its log." }, 500);
   });
   hono.use(honoLogger());
+  hono.get("/health", (context) => context.text("OK"));
   hono.post("/send/raw", async (context) => {
     const body = await context.req.text();
     if (body.trim().length === 0) {

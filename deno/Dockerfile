@@ -23,5 +23,8 @@ ADD --chmod=644 mail/scripts/dovecot/. /etc/dovecot/
 ADD --chmod=755 mail/scripts/dovecot-seive-bins/. /usr/lib/dovecot/
 ADD --chmod=644 mail/scripts/postfix/. /etc/postfix/
 ADD --chmod=644 mail/scripts/spamassassin/. /etc/spamassassin/
-ADD --chmod=755 mail/scripts/app/main.bash /app/
+ADD --chmod=755 mail/scripts/app/. /app/
 CMD ["/app/main.bash"]
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD ["/app/healthcheck.bash"]

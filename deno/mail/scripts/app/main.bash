@@ -2,6 +2,22 @@
 
 set -e -o pipefail
 
+service_pids=()
+
+stop_services() {
+  local status=$?
+
+  trap - EXIT INT TERM
+  postfix stop >/dev/null 2>&1 || true
+  kill -TERM "${service_pids[@]}" 2>/dev/null || true
+  wait "${service_pids[@]}" 2>/dev/null || true
+  exit "$status"
+}
+
+trap stop_services EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
 # clean stale dovecot pid file if exists
 if [[ -f /var/run/dovecot/master.pid ]]; then
   dovecot_pid="$(cat /var/run/dovecot/master.pid)"
@@ -29,6 +45,7 @@ done
   --max-children=5 \
   --pidfile=/run/spamd/spamd.pid \
   --syslog=stderr &
+service_pids+=("$!")
 
 tries=0
 until /usr/bin/spamc -K >/dev/null 2>&1; do
@@ -52,17 +69,23 @@ fi
 postmap /data/postfix-virtual
 
 /app/crupest-mail serve --real &
+service_pids+=("$!")
 
 /usr/sbin/dovecot -F &
+service_pids+=("$!")
 
 tries=0
-while [[ ! -S /var/spool/postfix/private/auth || ! -S /var/spool/postfix/private/dovecot-lmtp ]]; do
+until [[ -S /var/spool/postfix/private/auth && \
+  -S /var/spool/postfix/private/dovecot-lmtp ]]; do
   if [[ $tries -ge 10 ]]; then
     echo "Error: Dovecot auth and lmtp sockets are not found after 10 seconds!"
     exit 1
   fi
   sleep 1
-  ((tries++))
+  ((++tries))
 done
 
-postfix start-fg
+postfix start-fg &
+service_pids+=("$!")
+
+wait
