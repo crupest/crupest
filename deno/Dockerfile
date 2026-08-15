@@ -16,14 +16,13 @@ RUN apt-get update && apt-get install -y tini ca-certificates curl \
     dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd dovecot-sieve dovecot-managesieved dovecot-flatcurve dovecot-fts-xapian \
     spamassassin spamc spamd && \
     rm -rf /var/lib/apt/lists/*
-RUN groupadd -g 1000 vmail && useradd -u 1000 -g vmail -s /usr/sbin/nologin vmail && \
-    install -d -m 0755 /etc/dovecot/sieve
+RUN groupadd -g 1000 vmail && useradd -u 1000 -g vmail -s /usr/sbin/nologin vmail
 COPY --from=build /app/mail/out/crupest-mail /app/
-ADD --chmod=644 mail/scripts/dovecot/. /etc/dovecot/
-ADD --chmod=755 mail/scripts/dovecot-seive-bins/. /usr/lib/dovecot/
-ADD --chmod=644 mail/scripts/postfix/. /etc/postfix/
-ADD --chmod=644 mail/scripts/spamassassin/. /etc/spamassassin/
-ADD --chmod=755 mail/scripts/app/. /app/
+ADD --chmod=u=rwX,go=rX mail/scripts/dovecot/. /etc/dovecot/
+ADD --chmod=u=rwx,go=rx mail/scripts/dovecot-seive-bins/. /usr/lib/dovecot/
+ADD --chmod=u=rwX,go=rX mail/scripts/postfix/. /etc/postfix/
+ADD --chmod=u=rwX,go=rX mail/scripts/spamassassin/. /etc/spamassassin/
+ADD --chmod=u=rwx,go=rx mail/scripts/app/. /app/
 CMD ["/app/main.bash"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
