@@ -13,6 +13,33 @@ fi
 mkdir -p /var/spool/postfix/private
 chown postfix:postfix /var/spool/postfix/private
 
+install -d -m 0770 -o vmail -g vmail /data/spamassassin /run/spamd
+
+for script in /etc/dovecot/sieve/*.sieve; do
+  sievec -c /etc/dovecot/dovecot.conf "$script"
+done
+
+/usr/sbin/spamd \
+  --listen=127.0.0.1 \
+  --allow-tell \
+  --username=vmail \
+  --groupname=vmail \
+  --nouser-config \
+  --helper-home-dir=/data/spamassassin \
+  --max-children=5 \
+  --pidfile=/run/spamd/spamd.pid \
+  --syslog=stderr &
+
+tries=0
+until /usr/bin/spamc -K >/dev/null 2>&1; do
+  if [[ $tries -ge 10 ]]; then
+    echo "Error: SpamAssassin is not ready after 10 seconds!"
+    exit 1
+  fi
+  sleep 1
+  ((++tries))
+done
+
 postconf "myhostname=mail.${CRUPEST_MAIL_SERVER_MAIL_DOMAIN}"
 postconf "mydomain=${CRUPEST_MAIL_SERVER_MAIL_DOMAIN}"
 postconf "virtual_mailbox_domains=${CRUPEST_MAIL_SERVER_MAIL_DOMAIN}"
