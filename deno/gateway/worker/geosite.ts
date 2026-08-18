@@ -8,11 +8,18 @@ import { getDefaultWorkerLogger } from "@crupest/base/log/worker";
 import { GEOSITE_PATH } from "../base.ts";
 
 async function generate() {
-  await generateGeoSiteFiles({
-    hasPath: GEOSITE_PATH.has,
-    notHasPath: GEOSITE_PATH.notHas,
-    logger: getDefaultWorkerLogger().withDefaultTag("worker:geosite"),
-  });
+  try {
+    await generateGeoSiteFiles({
+      hasPath: GEOSITE_PATH.has,
+      notHasPath: GEOSITE_PATH.notHas,
+      logger: getDefaultWorkerLogger().withDefaultTag("worker:geosite"),
+    });
+  } catch (e) {
+    getDefaultWorkerLogger().withDefaultTag("worker:geosite").warn(
+      "Failed to generate geosite data files: ",
+      e,
+    );
+  }
 }
 
 await generate();
