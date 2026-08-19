@@ -15,9 +15,9 @@ import { createConnectionLimitMiddleware } from "./middleware/connection-limit.t
 import { createLogMiddleware, LogWriter } from "./middleware/log.ts";
 import { createReverseProxyHandler } from "./helper/reverse-proxy.ts";
 
-function createHttpHono(options?: { logWriter?: LogWriter }) {
+function createHttpHono(options?: { accessLogWriter?: LogWriter }) {
   const app = new Hono();
-  app.use(createLogMiddleware({ writer: options?.logWriter }));
+  app.use(createLogMiddleware({ writer: options?.accessLogWriter }));
   app.use(createRateLimitMiddleware());
 
   // Serve static files for ACME challenge
@@ -127,7 +127,13 @@ function createSubdomains(config: Config): Subdomain[] {
   }];
 }
 
-function createSubdomainHono(basePath: string, sites: Site[]) {
+function createSubdomainHono(
+  { basePath, sites, logger }: {
+    basePath: string;
+    sites: Site[];
+    logger: ILogger;
+  },
+) {
   const app = new Hono();
   for (const site of sites) {
     if (site.middlewares != null && site.middlewares.length > 0) {
@@ -154,7 +160,7 @@ function createSubdomainHono(basePath: string, sites: Site[]) {
       case "reverse-proxy": {
         app.all(
           site.path,
-          createReverseProxyHandler({ originServer: site.server }),
+          createReverseProxyHandler({ originServer: site.server, logger }),
         );
         break;
       }
@@ -164,12 +170,16 @@ function createSubdomainHono(basePath: string, sites: Site[]) {
 }
 
 function createHttpsHono(
-  { config, logWriter }: { config: Config; logWriter?: LogWriter },
+  { logger, config, accessLogWriter }: {
+    logger: ILogger;
+    config: Config;
+    accessLogWriter?: LogWriter;
+  },
 ) {
   const app = new Hono({
     getPath: (req) => req.url.replace(/^https?:\/([^?]+).*$/, "$1"),
   });
-  app.use(createLogMiddleware({ writer: logWriter }));
+  app.use(createLogMiddleware({ writer: accessLogWriter }));
   app.use(createRateLimitMiddleware());
 
   const rootDomain = config.get("domain");
@@ -180,7 +190,7 @@ function createHttpsHono(
     const basePath = subdomain === ""
       ? `/${rootDomain}`
       : `/${subdomain}.${rootDomain}`;
-    app.route(basePath, createSubdomainHono(basePath, sites));
+    app.route(basePath, createSubdomainHono({ basePath, sites, logger }));
   }
 
   return app;
@@ -254,7 +264,7 @@ async function startHttpServer({ logger }: { logger: ILogger }) {
   });
   const textEncoder = new TextEncoder();
   const httpApp = createHttpHono({
-    logWriter: async (str) => {
+    accessLogWriter: async (str) => {
       await accessLogFile.write(textEncoder.encode(str + "\n"));
     },
   });
@@ -271,8 +281,9 @@ async function startHttpsServer({ logger }: { logger: ILogger }) {
   const textEncoder = new TextEncoder();
 
   const httpsApp = createHttpsHono({
+    logger,
     config: configProvider,
-    logWriter: async (str) => {
+    accessLogWriter: async (str) => {
       await accessLogFile.write(textEncoder.encode(str + "\n"));
     },
   });

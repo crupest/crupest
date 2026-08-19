@@ -1,6 +1,8 @@
 import { Context } from "hono";
 import { getConnInfo } from "hono/deno";
 
+import { ILogger } from "@crupest/base/log";
+
 function isWebSocketRequest(headers: Headers) {
   return headers.get("upgrade")?.toLowerCase() === "websocket";
 }
@@ -49,7 +51,7 @@ function forwardWebSocket(from: WebSocket, to: WebSocket) {
 }
 
 export function createReverseProxyHandler(
-  { originServer }: { originServer: string },
+  { originServer, logger }: { originServer: string; logger?: ILogger },
 ) {
   return async (c: Context) => {
     const url = new URL(c.req.url);
@@ -116,7 +118,8 @@ export function createReverseProxyHandler(
         body: c.req.raw.body,
         redirect: "manual",
       });
-    } catch (_) {
+    } catch (e) {
+      logger?.warn(`Upstream error to ${originServer}`, e);
       return new Response("Upstream error.", {
         status: 502,
       });
