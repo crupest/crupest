@@ -15,8 +15,6 @@ export function createLogMiddleware(options?: LogOptions) {
   const writer = options?.writer ?? defaultLogWriter;
 
   return createMiddleware(async (c, next) => {
-    await next();
-
     // Nginx log format: log_format combined '$remote_addr - $remote_user [$time_local] '
     //                                       '"$request" $status $body_bytes_sent '
     //                                       '"$http_referer" "$http_user_agent"';
@@ -25,6 +23,9 @@ export function createLogMiddleware(options?: LogOptions) {
     const remoteAddr = getConnInfo(c).remote.address ?? "unknown";
     const referer = c.req.header("referer") ?? "";
     const userAgent = c.req.header("user-agent") ?? "";
+
+    await next();
+
     const contentLength = c.res.headers.get("content-length") ?? "-1";
 
     const logStr = `${remoteAddr} - [${
