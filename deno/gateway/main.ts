@@ -197,119 +197,157 @@ function createHttpsHono(
 }
 
 function createControllerHono(options: {
-  restartHttpsServer: () => Promise<void>;
+  restartHttpsServer: () => void;
 }) {
   const app = new Hono();
 
-  app.get("/restart-https-server", async (c) => {
-    await options.restartHttpsServer();
+  app.get("/restart-https-server", (c) => {
+    options.restartHttpsServer();
     return c.text("HTTPS server restarted.", 200);
   });
 
   return app;
 }
 
-class DenoHttpServerWrapper {
-  #name: string;
-  #abortController: AbortController;
-  #server: Deno.HttpServer<Deno.NetAddr>;
-  #logger: ILogger;
+interface Services {
+  config: Config;
+  logger: ILogger;
+}
 
-  constructor(
-    name: string,
-    hono: Hono,
-    { logger, ...options }:
-      & (
-        | Deno.ServeTcpOptions
-        | (Deno.ServeTcpOptions & Deno.TlsCertifiedKeyPem)
-      )
-      & {
-        logger: ILogger;
-      },
-  ) {
-    this.#name = name;
-    this.#logger = logger;
-    this.#abortController = new AbortController();
-    this.#logger.info(`Starting server "${this.#name}" ...`);
-    this.#server = Deno.serve({
-      signal: this.#abortController.signal,
-      ...options,
-    }, hono.fetch);
-    this.#logger.info(
-      `Server "${this.#name}" started on ${this.#server.addr.hostname}:${this.#server.addr.port}.`,
-    );
+type ServeOptions =
+  | Deno.ServeTcpOptions
+  | (Deno.ServeTcpOptions & Deno.TlsCertifiedKeyPem);
+
+interface ServerDefinition {
+  name: string;
+  serveOptions: () => ServeOptions | Promise<ServeOptions>;
+  honoCreator: (accessLogWriter?: LogWriter) => Hono | Promise<Hono>;
+  /** If set, an access log file is opened for this server and closed when
+   * the server stops. */
+  accessLogFilePath?: string;
+}
+
+interface ServerState {
+  abortController: AbortController;
+  server: Deno.HttpServer<Deno.NetAddr>;
+}
+
+class ServerWrapper {
+  #services: Services;
+  #definition: ServerDefinition;
+  #state: ServerState | null = null;
+  #finished: Promise<void> = Promise.resolve();
+
+  constructor(services: Services, definition: ServerDefinition) {
+    this.#services = services;
+    this.#definition = definition;
   }
 
-  async stop() {
-    this.#logger.info(`Try to shutdown server "${this.#name}" gracefully...`);
+  get #logger() {
+    return this.#services.logger;
+  }
+
+  get running(): boolean {
+    return this.#state != null;
+  }
+
+  /** Resolves when the current run finishes (clean stop or caught error). */
+  get finished(): Promise<void> {
+    return this.#finished;
+  }
+
+  /** Starts the server and waits until it stops. Errors during server
+   * creation (`serveOptions`, `honoCreator`, `Deno.serve`) are hard errors
+   * and propagate to the caller. */
+  async run(): Promise<void> {
+    const { name, serveOptions, honoCreator, accessLogFilePath } =
+      this.#definition;
+    if (this.#state != null) {
+      throw new Error(`Server ${name} is already running.`);
+    }
+
+    const accessLogFile = accessLogFilePath == null
+      ? null
+      : await Deno.open(accessLogFilePath, { create: true, append: true });
+
+    let server: Deno.HttpServer<Deno.NetAddr>;
+    try {
+      const textEncoder = new TextEncoder();
+      const accessLogWriter: LogWriter | undefined = accessLogFile == null
+        ? undefined
+        : async (str) => {
+            await accessLogFile.write(textEncoder.encode(str + "\n"));
+          };
+
+      const options = await serveOptions();
+      const hono = await honoCreator(accessLogWriter);
+      const abortController = new AbortController();
+      this.#logger.info(`Starting server "${name}" ...`);
+      server = Deno.serve({
+        signal: abortController.signal,
+        ...options,
+      }, hono.fetch);
+      this.#state = { abortController, server };
+    } catch (error) {
+      // Hard error while creating the server: release the log file and
+      // rethrow so the process fails fast.
+      try {
+        accessLogFile?.close();
+      } catch {
+        // Ignore close errors; the original error is what matters.
+      }
+      throw error;
+    }
+
+    const [finished, resolveFinished] = Utils.promise<void>();
+    this.#finished = finished;
+
+    this.#logger.info(
+      `Server "${name}" started on ${server.addr.hostname}:${server.addr.port}.`,
+    );
+
+    void (async () => {
+      try {
+        await server.finished;
+        this.#logger.info(`Server "${name}" stopped.`);
+      } catch (error) {
+        // A serving error is not fatal: log it and let the loop restart.
+        this.#logger.error(`Server "${name}" failed:`, error);
+      } finally {
+        this.#state = null;
+        try {
+          accessLogFile?.close();
+        } catch (error) {
+          this.#logger.error(
+            `Failed to close access log file for server "${name}":`,
+            error,
+          );
+        }
+        resolveFinished();
+      }
+    })();
+
+    await finished;
+  }
+
+  async stop(): Promise<void> {
+    if (this.#state == null) return;
+    const { name } = this.#definition;
+    const { server: denoServer, abortController } = this.#state;
+    this.#logger.info(`Try to shutdown server "${name}" gracefully...`);
     const result = await Utils.timeout(
-      this.#server.shutdown(),
+      denoServer.shutdown(),
       Temporal.Duration.from({ seconds: 5 }),
     );
     if (!result) {
       this.#logger.warn(
-        `Failed to shutdown server "${this.#name}" gracefully, force to abort.`,
+        `Failed to shutdown server "${name}" gracefully, force to abort.`,
       );
-      this.#abortController.abort();
-      await this.#server.finished;
+      abortController.abort();
     }
-    this.#logger.info(`Server "${this.#name}" stopped.`);
+    // Wait until the run fully finishes (state cleared and file closed).
+    await this.#finished;
   }
-}
-
-async function startHttpServer({ logger }: { logger: ILogger }) {
-  const accessLogFile = await Deno.open("/app/state/http-access.log", {
-    create: true,
-    append: true,
-  });
-  const textEncoder = new TextEncoder();
-  const httpApp = createHttpHono({
-    accessLogWriter: async (str) => {
-      await accessLogFile.write(textEncoder.encode(str + "\n"));
-    },
-  });
-  return await Promise.resolve(
-    new DenoHttpServerWrapper("HTTP", httpApp, { port: 80, logger }),
-  );
-}
-
-async function startHttpsServer({ logger }: { logger: ILogger }) {
-  const accessLogFile = await Deno.open("/app/state/https-access.log", {
-    create: true,
-    append: true,
-  });
-  const textEncoder = new TextEncoder();
-
-  const httpsApp = createHttpsHono({
-    logger,
-    config: configProvider,
-    accessLogWriter: async (str) => {
-      await accessLogFile.write(textEncoder.encode(str + "\n"));
-    },
-  });
-  return new DenoHttpServerWrapper("HTTPS", httpsApp, {
-    port: 443,
-    cert: await Deno.readTextFile(
-      `/etc/letsencrypt/live/${configProvider.get("domain")}/fullchain.pem`,
-    ),
-    key: await Deno.readTextFile(
-      `/etc/letsencrypt/live/${configProvider.get("domain")}/privkey.pem`,
-    ),
-    logger,
-  });
-}
-
-async function startControllerServer(
-  options: { restartHttpsServer: () => Promise<void>; logger: ILogger },
-) {
-  const controllerApp = createControllerHono(options);
-  return await Promise.resolve(
-    new DenoHttpServerWrapper("Controller", controllerApp, {
-      hostname: "127.0.0.1",
-      port: 2266,
-      logger: options.logger,
-    }),
-  );
 }
 
 async function certbotRenew(logger: ILogger) {
@@ -343,17 +381,49 @@ async function main() {
     },
   );
   installLogHandlerForWorker(geositeWorker, logger);
+  const services: Services = { logger, config: configProvider };
 
-  const _httpServer = await startHttpServer({ logger });
-  let httpsServer = await startHttpsServer({ logger });
-  const _controllerServer = await startControllerServer({
-    restartHttpsServer,
-    logger,
+  const httpServer = new ServerWrapper(services, {
+    name: "HTTP",
+    honoCreator: (accessLogWriter) =>
+      createHttpHono({ accessLogWriter }),
+    serveOptions: () => ({ port: 80 }),
+    accessLogFilePath: "/app/state/http-access.log",
+  });
+  const httpsServer = new ServerWrapper(services, {
+    name: "HTTPS",
+    honoCreator: (accessLogWriter) =>
+      createHttpsHono({
+        logger,
+        config: configProvider,
+        accessLogWriter,
+      }),
+    serveOptions: async () => ({
+      port: 443,
+      cert: await Deno.readTextFile(
+        `/etc/letsencrypt/live/${configProvider.get("domain")}/fullchain.pem`,
+      ),
+      key: await Deno.readTextFile(
+        `/etc/letsencrypt/live/${configProvider.get("domain")}/privkey.pem`,
+      ),
+    }),
+    accessLogFilePath: "/app/state/https-access.log",
+  });
+  const controllerServer = new ServerWrapper(services, {
+    name: "Controller",
+    honoCreator: () => createControllerHono({ restartHttpsServer }),
+    serveOptions: () => ({
+      hostname: "127.0.0.1",
+      port: 2266,
+    }),
   });
 
-  async function restartHttpsServer() {
-    await httpsServer.stop();
-    httpsServer = await startHttpsServer({ logger });
+  function restartHttpsServer() {
+    // Trigger a graceful stop; the main loop restarts the server once it
+    // has fully finished. No need to await here.
+    httpsServer.stop().catch((error) => {
+      logger.error(`Failed to stop HTTPS server:`, error);
+    });
   }
 
   setTimeout(async () => {
@@ -365,6 +435,15 @@ async function main() {
       enableNow: true,
     });
   }, 5000);
+
+  const servers = [httpServer, httpsServer, controllerServer];
+  while (true) {
+    await Promise.race(
+      servers.map((server) =>
+        server.running ? server.finished : server.run()
+      ),
+    );
+  }
 }
 
 await main();
