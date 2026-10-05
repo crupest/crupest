@@ -23,6 +23,7 @@ export class DumbSmtpServer {
   #logger;
   #deliverer;
   #count = 1;
+  #listener: Deno.Listener | null = null;
 
   constructor(logger: ILogger, deliverer: MailDeliverer) {
     this.#logger = logger;
@@ -103,7 +104,10 @@ export class DumbSmtpServer {
               logger.error("Relay failed.", err);
               await send("554 5.3.0 Error: check server log");
             }
+            // Tell the client to reconnect, then close so the socket cannot
+            // linger (the matching line only waits for a new connection).
             await send(responses["ACTIVE_CLOSE"]);
+            return;
           } else {
             const dataLine = line.startsWith("..") ? line.slice(1) : line;
             rawMail += dataLine + CRLF;
@@ -115,18 +119,29 @@ export class DumbSmtpServer {
 
   async serve(options: { hostname: string; port: number }) {
     const listener = Deno.listen(options);
+    this.#listener = listener;
     const responses = createResponses(options.hostname, options.port);
     this.#logger.info(
       `Dumb SMTP server starts to listen on ${responses.serverName}.`,
     );
 
-    for await (const conn of listener) {
-      const logger = this.#logger.withDefaultTag(`outbound ${this.#count++}`);
-      try {
-        await this.#handleConnection(logger, conn, responses);
-      } catch (cause) {
-        logger.error("A JS error was thrown by handler:", cause);
+    try {
+      for await (const conn of listener) {
+        const logger = this.#logger.withDefaultTag(`outbound ${this.#count++}`);
+        // Handle each connection independently: awaiting here would make one
+        // slow client block accepting (and closing) every other connection.
+        this.#handleConnection(logger, conn, responses).catch((cause) => {
+          logger.error("A JS error was thrown by handler:", cause);
+        });
       }
+    } finally {
+      this.#listener = null;
     }
+  }
+
+  /** Stops accepting connections. The `serve` loop finishes once the listener
+   * is closed. */
+  close() {
+    this.#listener?.close();
   }
 }

@@ -35,18 +35,26 @@ function forwardWebSocket(from: WebSocket, to: WebSocket) {
     queue.forEach((data) => to.send(data));
     queue.length = 0;
   });
-  from.addEventListener("close", (event) => {
-    if (to.readyState === WebSocket.OPEN) {
-      to.close(
-        event.code === 1000 || event.code === 1001 ? 1000 : 4000,
-        event.reason,
-      );
+  // Close `to` in any live state. Closing while CONNECTING aborts the pending
+  // handshake and releases its TCP connection; only handling OPEN leaks a
+  // socket when `from` goes away before `to` finishes connecting.
+  const abort = (code: number, reason: string) => {
+    queue.length = 0;
+    if (
+      to.readyState === WebSocket.CONNECTING ||
+      to.readyState === WebSocket.OPEN
+    ) {
+      to.close(code, reason);
     }
+  };
+  from.addEventListener("close", (event) => {
+    abort(
+      event.code === 1000 || event.code === 1001 ? 1000 : 4000,
+      event.reason,
+    );
   });
   from.addEventListener("error", () => {
-    if (to.readyState === WebSocket.OPEN) {
-      to.close(4000, "WebSocket error");
-    }
+    abort(4000, "WebSocket error");
   });
 }
 

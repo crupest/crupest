@@ -270,13 +270,35 @@ class ServerWrapper {
       ? null
       : await Deno.open(accessLogFilePath, { create: true, append: true });
 
+    let accessLogClosed = false;
+    const closeAccessLog = () => {
+      if (accessLogClosed) return;
+      accessLogClosed = true;
+      try {
+        accessLogFile?.close();
+      } catch (error) {
+        this.#logger.error(
+          `Failed to close access log file for server "${name}":`,
+          error,
+        );
+      }
+    };
+
     let server: Deno.HttpServer<Deno.NetAddr>;
     try {
       const textEncoder = new TextEncoder();
       const accessLogWriter: LogWriter | undefined = accessLogFile == null
         ? undefined
         : async (str) => {
-            await accessLogFile.write(textEncoder.encode(str + "\n"));
+            // The file is closed once the server stops, but requests that were
+            // still in flight may log afterwards: drop those writes instead of
+            // throwing on a closed descriptor.
+            if (accessLogClosed) return;
+            try {
+              await accessLogFile.write(textEncoder.encode(str + "\n"));
+            } catch (error) {
+              if (!accessLogClosed) throw error;
+            }
           };
 
       const options = await serveOptions();
@@ -291,11 +313,7 @@ class ServerWrapper {
     } catch (error) {
       // Hard error while creating the server: release the log file and
       // rethrow so the process fails fast.
-      try {
-        accessLogFile?.close();
-      } catch {
-        // Ignore close errors; the original error is what matters.
-      }
+      closeAccessLog();
       throw error;
     }
 
@@ -315,14 +333,7 @@ class ServerWrapper {
         this.#logger.error(`Server "${name}" failed:`, error);
       } finally {
         this.#state = null;
-        try {
-          accessLogFile?.close();
-        } catch (error) {
-          this.#logger.error(
-            `Failed to close access log file for server "${name}":`,
-            error,
-          );
-        }
+        closeAccessLog();
         resolveFinished();
       }
     })();

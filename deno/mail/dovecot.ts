@@ -31,11 +31,22 @@ async function runCommand(
     });
     const process = command.spawn();
 
-    // Write stdin if any.
+    // Write stdin if any. If this fails, make sure the child process and its
+    // pipe do not outlive the call.
     if (stdin != null) {
-      const writer = process.stdin.getWriter();
-      await writer.write(stdin);
-      writer.close();
+      try {
+        const writer = process.stdin.getWriter();
+        await writer.write(stdin);
+        await writer.close();
+      } catch (cause) {
+        try {
+          process.kill();
+        } catch {
+          // The process already exited.
+        }
+        await process.status.catch(() => {});
+        throw cause;
+      }
     }
 
     // Wait for process to exit.
