@@ -1,4 +1,4 @@
-import { describe, it } from "@std/testing/bdd";
+import { describe, it } from "node:test";
 import { expect, fn } from "@std/expect";
 
 import { NULL_LOGGER } from "@crupest/base/log";
