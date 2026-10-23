@@ -1,0 +1,23 @@
+.git
+.gitmodules
+.codegraph
+
+# Local investigation / dev trees
+.tmp-review
+.tmp-work
+
+# Deployment data and generated state
+data
+services/generated
+services/state
+store
+www
+deno
+
+# Build noise
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache

@@ -1,0 +1,4 @@
+[submodule "services/onebot-adapter"]
+	path = services/onebot-adapter
+	url = https://github.com/crupest/hermes-onebot-adapter.git
+	branch = crupest

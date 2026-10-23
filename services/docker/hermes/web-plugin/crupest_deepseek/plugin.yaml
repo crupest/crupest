@@ -1,0 +1,7 @@
+name: crupest-web-deepseek
+version: 0.1.0
+description: "Crupest DeepSeek Search & Fetch backend for Hermes web_search / web_extract. Uses DEEPSEEK_API_KEY."
+author: crupest
+kind: backend
+provides_web_providers:
+  - crupest-deepseek

@@ -95,6 +95,61 @@ services:
         ipv4_address: "172.21.5.6"
     restart: "on-failure:3"
 
+  onebot-adapter:
+    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-onebot-adapter:latest
+    hostname: onebot-adapter
+    env_file:
+      - "./{{CRUPEST_GENERATED_DIR}}/envs/adapter.env"
+    ports:
+      - "127.0.0.1:18820:18820" # adapter WebUI (SSH tunnel only)
+    volumes:
+      - "./{{CRUPEST_DATA_ONEBOT_ADAPTER_DIR}}:/opt/data"
+    networks:
+      default:
+        ipv4_address: "172.21.5.10"
+    mem_limit: 800m
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+  hermes:
+    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-hermes:latest
+    hostname: hermes
+    env_file:
+      - "./{{CRUPEST_GENERATED_DIR}}/envs/hermes.env"
+    volumes:
+      - "./{{CRUPEST_DATA_HERMES_DIR}}:/opt/data"
+      - "./{{CRUPEST_DATA_ONEBOT_ADAPTER_DIR}}/handoff:/opt/onebot-adapter:ro"
+    networks:
+      default:
+        ipv4_address: "172.21.5.8"
+    mem_limit: 800m
+    shm_size: 128m
+    restart: unless-stopped
+    stop_grace_period: 1m
+    depends_on:
+      - onebot-adapter
+
+  napcat:
+    image: mlikiowa/napcat-docker:v4.18.41
+    hostname: napcat
+    env_file:
+      - "./{{CRUPEST_GENERATED_DIR}}/envs/napcat.env"
+    ports:
+      - "127.0.0.1:6099:6099" # NapCat WebUI/QR login (SSH tunnel only)
+    volumes:
+      - "./{{CRUPEST_DATA_NAPCAT_DIR}}/qq:/app/.config/QQ"
+      - "./{{CRUPEST_DATA_NAPCAT_DIR}}/config:/app/napcat/config"
+      - "./{{CRUPEST_DATA_NAPCAT_DIR}}/plugins:/app/napcat/plugins"
+    networks:
+      default:
+        ipv4_address: "172.21.5.9"
+    mem_limit: 800m
+    shm_size: 256m
+    restart: unless-stopped
+    init: true
+    depends_on:
+      - onebot-adapter
+
 volumes:
   roundcubemail-html:
   roundcubemail-temp:
