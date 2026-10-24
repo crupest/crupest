@@ -122,6 +122,8 @@ services:
     networks:
       default:
         ipv4_address: "172.21.5.8"
+    cap_drop:
+      - NET_RAW
     mem_limit: 800m
     shm_size: 128m
     restart: unless-stopped

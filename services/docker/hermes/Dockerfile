@@ -68,7 +68,6 @@ COPY services/docker/hermes/web-plugin/crupest_deepseek ${VENV}/lib/python3.11/s
 
 RUN groupadd --gid 1000 hermes \
     && useradd --uid 1000 --gid hermes --home-dir /opt/data --no-create-home --shell /bin/bash hermes \
-    && chown -R hermes:hermes /opt/hermes \
     && mkdir -p /opt/data/.hermes /opt/data/.onebot_adapter \
     && chown -R hermes:hermes /opt/data
 
@@ -96,4 +95,15 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 FROM runtime AS hermes
 ENV ROLE=hermes \
     ONEBOT_HANDOFF_FILE=/opt/onebot-adapter/hermes_ws_token
+
+# The gateway/terminal user is intentionally allowed root inside this
+# container (install packages, inspect processes). Keep the adapter image
+# without the sudoers entry so the two roles do not share that privilege.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get -o Acquire::Retries=10 update && apt-get -o Acquire::Retries=10 install -y --no-install-recommends \
+        sudo procps \
+    && rm -rf /var/lib/apt/lists/* \
+    && printf 'hermes ALL=(ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/hermes \
+    && chmod 0440 /etc/sudoers.d/hermes
 

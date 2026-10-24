@@ -243,4 +243,11 @@ docker compose -f docker-compose.yaml up -d onebot-adapter hermes
 - 不要公网发布 18800/18810/18820/6099；统一走 SSH 隧道。
 - NapCat 是非官方客户端，有封号风险；固定 tag `v4.18.41`，用专用小号。
 - adapter 容器无 terminal；Hermes 的 terminal 不能直接改 adapter 代码/配置。
+- Hermes 容器内 `hermes` 用户有 passwordless sudo，可自行 `apt`/装包、看进程；
+  adapter 镜像没有这条 sudoers，两个角色的权限不共享。
+- `/opt/hermes` 保持 root 所有，hermes 用户只读；要改应用/venv 必须用 sudo。
+  这去掉了 `chown -R /opt/hermes` 的 310MB 重复层，但也意味着 Hermes 的
+  lazy deps/self-update 不能直接写 venv，需要显式 sudo 或构建期预装。
+- Hermes 容器没有 Docker socket、没有 host 目录挂载，root 只在本容器内有效；
+  compose 额外 `cap_drop: NET_RAW`，避免用 sudo 后抓容器网络包。
 - Hermes 只能读到 WS token，拿不到 `webui_token`，不能登录 adapter WebUI。
