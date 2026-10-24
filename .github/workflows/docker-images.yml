@@ -26,10 +26,12 @@ jobs:
             context: deno
             file: deno/Dockerfile
             target: gateway
+            build-contexts: www=./www
           - image: crupest-mail-server
             context: deno
             file: deno/Dockerfile
             target: mail-server
+            build-contexts: www=./www
           - image: crupest-git-server
             context: services/docker/git-server
             file: services/docker/git-server/Dockerfile
@@ -41,10 +43,6 @@ jobs:
           - image: crupest-auto-backup
             context: services/docker/auto-backup
             file: services/docker/auto-backup/Dockerfile
-            target: ""
-          - image: crupest-www
-            context: www
-            file: www/Dockerfile
             target: ""
 
     steps:
@@ -83,6 +81,7 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           target: ${{ matrix.target }}
+          build-contexts: ${{ matrix.build-contexts || '' }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

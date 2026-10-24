@@ -8,14 +8,14 @@
 
 ## Architecture
 
-This repository has three main areas:
+This repository has four main areas:
 
+- `www/`: Next.js static site (App Router, `output: "export"`). `npm run build` generates `www/out/`, which is served directly by the Deno gateway from `/srv/www`.
 - `deno/`: deno workspace.
   - `base/`, `base-contrib/`: shared code and utilities.
-  - `gateway/`: reverse proxy.
+  - `gateway/`: reverse proxy and static file server.
   - `mail/`: mail service.
   - `tools/`: CLI for service and other tools.
-  - `www/`: static site generator/build pipeline.
 - `services/`: definitions for programs running on a personal server. These services may depend on binaries/tools built from `deno/`.
   - `services/docker/`: each subdirectory defines one Docker image used by a service.
   - `services/config.mustache` and `services/templates/`: template and non-template config files (including `docker-compose.yaml`).
@@ -23,11 +23,13 @@ This repository has three main areas:
 
 ## Build and Test
 
+- www (run from `www/`, requires Node/npm):
+  - `npm ci`
+  - `npm run build` (writes `out/`)
 - Deno tasks (run from `deno/`):
   - `deno task gateway:start`
   - `deno task mail:run`
   - `deno task mail:serve-real`
-  - `deno task www:generate`
 - Testing, formatting, and linting (run from `deno/`):
   - `deno test` (runs all tests in the workspace)
   - `deno fmt` (formats all code in the workspace)

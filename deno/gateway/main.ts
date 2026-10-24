@@ -106,8 +106,8 @@ function createSubdomains(config: Config): Subdomain[] {
       root: "/srv/www",
     }, {
       path: "*",
-      type: "reverse-proxy",
-      server: "www:3000",
+      type: "static",
+      root: "/srv/www",
     }],
   }, {
     subdomain: "mail",

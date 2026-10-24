@@ -5,6 +5,8 @@ services:
       context: "./{{CRUPEST_DENO_DIR}}"
       dockerfile: Dockerfile
       target: gateway
+      additional_contexts:
+        www: "./{{CRUPEST_WWW_DIR}}"
     ports:
       - "80:80"
       - "443:443"
@@ -28,6 +30,8 @@ services:
       context: "./{{CRUPEST_DENO_DIR}}"
       dockerfile: Dockerfile
       target: mail-server
+      additional_contexts:
+        www: "./{{CRUPEST_WWW_DIR}}"
     container_name: mail-server
     hostname: mail
     domainname: "{{CRUPEST_DOMAIN}}"
@@ -105,16 +109,6 @@ services:
     networks:
       default:
         ipv4_address: "172.21.5.6"
-    restart: "on-failure:3"
-
-  www:
-    build:
-      context: "./{{CRUPEST_WWW_DIR}}"
-      dockerfile: Dockerfile
-    hostname: www
-    networks:
-      default:
-        ipv4_address: "172.21.5.7"
     restart: "on-failure:3"
 
 volumes:

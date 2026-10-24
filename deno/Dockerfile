@@ -1,3 +1,11 @@
+FROM node:24-slim AS www-builder
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+COPY --from=www package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
+COPY --from=www . ./
+RUN npm run build
+
 FROM denoland/deno AS build
 WORKDIR /app
 COPY . .
@@ -6,6 +14,7 @@ RUN --mount=type=cache,target=/deno-dir deno install && deno task build
 FROM denoland/deno AS gateway
 RUN apt-get update && apt-get install -y tini certbot unzip curl && rm -rf /var/lib/apt/lists/* && mkdir -p /app/state
 COPY --from=build /app/gateway/out/crupest-gateway /app/
+COPY --from=www-builder /app/out /srv/www
 WORKDIR /app
 ADD gateway/srv/. /srv/
 CMD ["/app/crupest-gateway"]

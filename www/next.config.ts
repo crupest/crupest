@@ -1,21 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  outputFileTracingIncludes: {
-    "/**": ["content/**/*"],
-  },
+  output: "export",
+  trailingSlash: true,
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "avatars.githubusercontent.com",
-      },
-      {
-        protocol: "https",
-        hostname: "mirrors.creativecommons.org",
-      },
-    ],
+    unoptimized: true,
   },
   turbopack: {
     rules: {

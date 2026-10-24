@@ -61,6 +61,8 @@ compose*.yaml
 
 # Documentation (not needed in the image)
 docs/
+AGENTS.md
+TODO.md
 
 # CI/CD (not needed in the image)
 .github/
@@ -71,6 +73,7 @@ Jenkinsfile
 
 # TypeScript and build metadata
 *.tsbuildinfo
+next-env.d.ts
 
 # Cache and temporary directories
 .cache/

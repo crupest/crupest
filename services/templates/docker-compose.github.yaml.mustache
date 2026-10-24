@@ -95,14 +95,6 @@ services:
         ipv4_address: "172.21.5.6"
     restart: "on-failure:3"
 
-  www:
-    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-www:latest
-    hostname: www
-    networks:
-      default:
-        ipv4_address: "172.21.5.7"
-    restart: "on-failure:3"
-
 volumes:
   roundcubemail-html:
   roundcubemail-temp:
