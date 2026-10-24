@@ -172,6 +172,8 @@ services:
       - "./{{CRUPEST_DATA_NAPCAT_DIR}}/qq:/app/.config/QQ"
       - "./{{CRUPEST_DATA_NAPCAT_DIR}}/config:/app/napcat/config"
       - "./{{CRUPEST_DATA_NAPCAT_DIR}}/plugins:/app/napcat/plugins"
+      # Same path the Hermes container uses, so files staged there are readable.
+      - "./{{CRUPEST_DATA_HERMES_DIR}}/share:/opt/data/share:ro"
     networks:
       default:
         ipv4_address: "172.21.5.9"

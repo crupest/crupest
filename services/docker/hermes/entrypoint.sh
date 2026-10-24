@@ -18,7 +18,7 @@ ADAPTER=/opt/hermes/venv/bin/hermes-onebot-adapter
 GOSU_BIN=""
 
 if [ "$(id -u)" -eq 0 ]; then
-    mkdir -p /opt/data
+    mkdir -p /opt/data /opt/data/share
     chown -R hermes:hermes /opt/data
     GOSU_BIN="$(command -v gosu || command -v su-exec || true)"
     if [ -z "${GOSU_BIN}" ]; then
