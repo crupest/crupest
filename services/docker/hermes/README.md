@@ -17,12 +17,14 @@ napcat  ──ws──▶  onebot-adapter  ──ws──▶  hermes
 | --- | --- |
 | `/opt/hermes` | 应用与 venv |
 | `/opt/data` | 唯一数据卷，`HOME` |
+| `/opt/data/share` | 出站文件暂存目录；napcat 以只读方式挂同一路径 |
 | `/opt/data/.hermes` | Hermes 配置、插件、skills、sessions |
 | `/opt/data/.onebot_adapter` | adapter 配置、日志、限流/usage sqlite |
 
 宿主机：
 
 - `data/hermes` → Hermes `/opt/data`
+- `data/hermes/share` → napcat `/opt/data/share:ro`（同一路径，NapCat 可直接读取）
 - `data/onebot-adapter` → adapter `/opt/data`
 - `data/onebot-adapter/handoff` → Hermes `/opt/onebot-adapter:ro`（只有 WS token）
 - `data/napcat` → NapCat
@@ -30,6 +32,21 @@ napcat  ──ws──▶  onebot-adapter  ──ws──▶  hermes
 从两容器升级时，**必须**把旧的 `data/hermes/.onebot_adapter` 移出 Hermes 卷
 （例如备份到仓库外）；留在里面会让 Hermes 重新读到旧 `config.json` 的
 `webui_token`。adapter 现在只使用 `data/onebot-adapter`。
+
+## 出站文件
+
+Hermes 和 NapCat 是两个容器，NapCat 只在**它自己的**文件系统上解析
+`upload_group_file` / `send_document` 的路径。两边把同一个目录挂在同一个路径上：
+
+- Hermes：`/opt/data/share`（宿主机 `data/hermes/share`，可写）
+- napcat：`/opt/data/share`（同一宿主机目录，只读）
+
+要发文件时，Hermes 先把文件写到 `/opt/data/share/...`，再把
+`/opt/data/share/...` 传给发送工具；napcat 直接读本地文件上传，不需要临时
+起 HTTP 服务。SOUL.md 里已经写明这条约定。
+
+注意：`~/.hermes/cache/` 里的文件（例如别人发来的图片）不在共享目录内，要
+转发时需要先复制到 `/opt/data/share/`。
 
 ## 构建
 
@@ -161,9 +178,7 @@ docker compose -f docker-compose.yaml logs --tail 50 hermes
 docker exec crupest-onebot-adapter-1 curl -fsS http://127.0.0.1:18820/api/v1/health
 ```
 
-adapter 和 hermes 镜像构建后的测试基线：`ruff check .` + `pytest -q`
-（1038 passed）；镜像内 `web_search` / `web_extract` 和 DeepSeek vision
-都已手工验证。
+adapter 和 hermes 镜像构建后的测试基线：`ruff check .` + `pytest -q`（Linux 下全绿；Windows 本机有 9 个文件权限/路径相关的环境失败，与业务无关）；镜像内 `web_search` / `web_extract` 和 DeepSeek vision 都已手工验证。
 
 ## 端口
 
