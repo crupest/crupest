@@ -1,1 +1,4 @@
 data/open-webui/cache
+data/hermes/.cache
+data/hermes/.hermes/cache
+data/hermes/.hermes/models_dev_cache.json
