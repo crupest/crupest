@@ -1,268 +1,123 @@
-# Hermes + OneBot 三容器部署
+# Hermes + QQ 三容器部署
 
-```text
-napcat  ──ws──▶  onebot-adapter  ──ws──▶  hermes
-(QQ)              (:18800/:18810)         (gateway + agent + terminal)
+```
+napcat  ──反向 ws──▶  qqbot-adapter  ──ws──▶  hermes
+(QQ)                 (:18800 / :18810)        (gateway + agent + terminal)
 ```
 
-- `onebot-adapter`、`hermes` 用同一个 runtime 镜像，两个只读 wrapper 只差
-  `ROLE` / `EXPOSE` / `HEALTHCHECK`，共享全部 Docker layer。
-- `napcat` 用官方 `mlikiowa/napcat-docker`。
-- adapter 和 Hermes 不共享可写文件系统；Hermes 只读取 adapter 写出的
-  `handoff/hermes_ws_token`，看不到完整 config。
+- `napcat`：QQ 协议端，只负责登录和收发。
+- `qqbot-adapter`：单会话适配器（[`hermes-qqbot/`](../../../hermes-qqbot)），负责过滤、目标夹、活跃窗口、动作白名单。
+- `hermes`：agent 本体，插件把事件转成 Hermes 的消息，并暴露六个 QQ 工具。
 
-## 目录
-
-| 容器内路径 | 用途 |
-| --- | --- |
-| `/opt/hermes` | 应用与 venv |
-| `/opt/data` | 唯一数据卷，`HOME` |
-| `/opt/data/share` | 出站文件暂存目录；napcat 以只读方式挂同一路径 |
-| `/opt/data/.hermes` | Hermes 配置、插件、skills、sessions |
-| `/opt/data/.onebot_adapter` | adapter 配置、日志、限流/usage sqlite |
-
-宿主机：
-
-- `data/hermes` → Hermes `/opt/data`
-- `data/hermes/share` → napcat `/opt/data/share:ro`（同一路径，NapCat 可直接读取）
-- `data/onebot-adapter` → adapter `/opt/data`
-- `data/onebot-adapter/handoff` → Hermes `/opt/onebot-adapter:ro`（只有 WS token）
-- `data/napcat` → NapCat
-
-从两容器升级时，**必须**把旧的 `data/hermes/.onebot_adapter` 移出 Hermes 卷
-（例如备份到仓库外）；留在里面会让 Hermes 重新读到旧 `config.json` 的
-`webui_token`。adapter 现在只使用 `data/onebot-adapter`。
-
-## 出站文件
-
-Hermes 和 NapCat 是两个容器，NapCat 只在**它自己的**文件系统上解析
-`upload_group_file` / `send_document` 的路径。两边把同一个目录挂在同一个路径上：
-
-- Hermes：`/opt/data/share`（宿主机 `data/hermes/share`，可写）
-- napcat：`/opt/data/share`（同一宿主机目录，只读）
-
-要发文件时，Hermes 先把文件写到 `/opt/data/share/...`，再把
-`/opt/data/share/...` 传给发送工具；napcat 直接读本地文件上传，不需要临时
-起 HTTP 服务。SOUL.md 里已经写明这条约定。
-
-注意：`~/.hermes/cache/` 里的文件（例如别人发来的图片）不在共享目录内，要
-转发时需要先复制到 `/opt/data/share/`。
-
-## 构建
-
-两个 target 共享 `frontend`、`adapter-build`、`runtime` 层：
+## 镜像与构建
 
 ```bash
-docker build -f services/docker/hermes/Dockerfile --target adapter -t crupest-onebot-adapter .
-docker build -f services/docker/hermes/Dockerfile --target hermes  -t crupest-hermes .
+docker compose -f docker-compose.yaml build qqbot-adapter hermes
 ```
 
-compose 会一次构建两个 target；改动 adapter 源码时 BuildKit 会复用已有的
-frontend/npm/pip 缓存。
+单独构建时注意 Dockerfile 的上下文：
 
-- 基础镜像：`python:3.11-slim-bookworm`，运行时无 Node/Chromium/Xvfb。
-- 前端阶段：`node:22-slim` 构建 `services/onebot-adapter/frontend`。
-- Python 阶段：`hermes-agent~=0.19.0` + 从 submodule 源码构建的 adapter wheel。
-- `setuptools-scm` 看不到 `.git`，用
-  `--build-arg ONEBOT_ADAPTER_VERSION=<x.y.z>`，默认 `1.8.0`。
-- `APT_MIRROR` 可写在 `data/config`，由 compose 传 build arg。
+```bash
+docker build -f services/docker/hermes/Dockerfile -t crupest-hermes .
+docker build -f hermes-qqbot/adapter/Dockerfile -t crupest-qqbot-adapter hermes-qqbot
+```
 
 ## 配置
 
-`data/config`（gitignore）：
+适配器和插件读**同一份** `data/qqbot/config.toml`。adapter 可写（首次启动时若文件
+不存在，会从镜像里的 `config.example.toml` 自动拷一份），hermes 只读。
 
-```dotenv
-CRUPEST_DOMAIN=...
-CRUPEST_GITHUB=crupest
-CRUPEST_ONEBOT_WS_TOKEN=<随机长字符串>
-CRUPEST_QQ_ACCOUNT=<QQ号>
-CRUPEST_QQ_GROUP_ID=<群号>
-CRUPEST_DEEPSEEK_API_KEY=<key>
-APT_MIRROR=
+会话绑定优先取环境变量：`QQBOT_GROUP_ID`（模板已从 `CRUPEST_QQ_GROUP_ID` 注入）；
+要绑好友，自己在 `envs/qqbot-adapter.env` 里加一行 `QQBOT_USER_ID=<QQ号>`。环境变量
+优先于 `config.toml` 里的 `[chat]`，所以通常不需要手写配置。
+
+```toml
+# 自动生成的默认值；一般不用改
+[chat]
+active_window_seconds = 300
 ```
 
-`gen-tmpl` 生成：
+完整字段见 `hermes-qqbot/config/config.example.toml`。改完要重启两侧，没有热重载。
 
-```text
-services/generated/envs/adapter.env
-services/generated/envs/hermes.env
-services/generated/envs/napcat.env
-services/generated/docker-compose.yaml
-```
+token 由 env 文件注入容器（不写进 `config.toml`，也不写进数据卷），
+**两条链路各用各的 token**：
 
-| 变量 | 作用 |
+| 变量 | 用途 |
 | --- | --- |
-| `CRUPEST_ONEBOT_WS_TOKEN` | NapCat → adapter 的共享 token；adapter bootstrap 写回 `onebot_ws_token` |
-| `CRUPEST_QQ_ACCOUNT` | NapCat `-q` 快速登录账号 |
-| `CRUPEST_QQ_GROUP_ID` | 可选；导出 `ONEBOT_HOME_CHANNEL=group:<id>` |
-| `CRUPEST_DEEPSEEK_API_KEY` | DeepSeek 聊天、vision 和 web search/fetch 共用 |
+| `CRUPEST_ONEBOT_WS_TOKEN` | NapCat → adapter；只有这两个容器知道 |
+| `CRUPEST_QQBOT_PLUGIN_TOKEN` | adapter ↔ 插件；Hermes 只知道这一个 |
+| `CRUPEST_QQ_ACCOUNT` | NapCat 登录的 QQ 号 |
+| `CRUPEST_QQ_GROUP_ID` | 生成 `QQBOT_HOME_CHANNEL=group:<id>` |
 
-NapCat WebUI 的 token 不由 `data/config` 提供：`webui.json` 不存在时 NapCat 会
-自动生成一个，保存到 `data/napcat/config/webui.json`；直接读这个文件即可。
-已有 `webui.json` 时，删掉它再重启才会重新生成。
-
-adapter 的 `hermes_ws_token` / `webui_token` 由它自己的 `--init-config` 生成。
-adapter bootstrap 只把 `hermes_ws_token` 写到 `handoff/hermes_ws_token` 给
-Hermes；`webui_token` 留在 adapter 容器内，不暴露给 Hermes。
-
-## 启动
-
-`entrypoint.sh` 根据镜像里的 `ROLE` 分流，`bootstrap.py --role adapter|hermes`
-共用：
-
-- adapter：初始化/同步 `config.json`，然后 `exec hermes-onebot-adapter`。
-- hermes：安装插件、写 `SOUL.md`/首次配置、读取 adapter token，然后
-  `exec hermes gateway run`。
-- 每个容器只跑一个进程，靠 Docker `restart` 重启；没有 supervisord。
-
-首次启动会写：
-
-- `group_sessions_per_user: false`
-- `display.memory_notifications: off`
-- DeepSeek model（有 key 且无 model）
-- `agent.image_input_mode: native`
-- `web.backend: crupest-deepseek`
-- `platform_toolsets.onebot`
-- `plugins.entries.onebot.tool_allowlist`
-- `GATEWAY_ALLOW_ALL_USERS=true`
-
-模型使用 `deepseek-v4-flash` + `supports_vision: true`：Hermes 0.19 还不认识
-`deepseek-flash` 这个名字，而 DeepSeek 目前把 `deepseek-v4-flash` 兼容路由到
-V4.1 Flash（多模态）。
-
-镜像内置一个 `crupest-deepseek` provider，`web_search` / `web_extract` 直接调用
-DeepSeek 的 `/v1/tools/search` 和 `/v1/tools/fetch`，复用
-`DEEPSEEK_API_KEY`；不需要额外的 Firecrawl/Tavily key。
-
-`web_extract` 的 404 不一定是接口写错：DeepSeek Fetch 对目标站的反爬拦截会
-返回 `failed to fetch URL`，换一个可抓取的来源即可。
-
-`.onebot_toolsets_initialized` 存在时不重写首次配置。
-
-## 工具与权限
-
-```yaml
-platform_toolsets:
-  onebot: [file, terminal, cronjob, memory, skills, todo, clarify,
-           onebot, session_search, web, vision]
-```
-
-OneBot 工具 allowlist：
-
-- 保留：发送/转发、上传、贴表情、戳一戳、点赞、标记已读、`get_*` /
-  `fetch_*` / `nc_get_*`。
-- 保留自身资料：`onebot_set_avatar`（头像）、`onebot_set_qq_profile`
-  （昵称）、`onebot_set_group_card`（自己的群名片）。
-- 隐藏：踢人、禁言、设/撤管理员、改他人群名片/群名、退群、处理加群/好友、
-  撤回、删文件/公告/精华、改群设置、黑名单写操作。
-
-`set_group_card` 在 adapter 层还会检查目标 `user_id` 必须等于 bot 的
-`self_id`，所以只能改自己的群名片；`set_qq_profile` / `set_qq_avatar`
-本身没有目标参数，只影响 bot 自己。
-
-这三个工具的默认权限是 `everyone`：任何能让 bot 响应的群成员都可以要求它
-改自己的身份。只想让管理员触发时，把对应 `tool_policies` 的
-`permission` 改成 `admin`。
-
-adapter 的 `_handle_api_call` 是第二层 action allowlist；Hermes 的 terminal
-即使改配置也只能调用白名单 action。automation API 保持
-`automation_api_enabled=false`；只有人工能通过 adapter WebUI 打开它，Hermes
-拿不到 `webui_token`。
-
-## 验证
+两者必须不同：如果共用一个值，Hermes 就拿到了 OneBot 侧的 token，可以自己连
+adapter 的 `/onebot` 伪造事件（绕过所有入站过滤，甚至把 NapCat 顶下线）。生成：
 
 ```bash
-docker compose -f docker-compose.yaml ps
-docker compose -f docker-compose.yaml logs --tail 50 onebot-adapter
-docker compose -f docker-compose.yaml logs --tail 50 hermes
-docker exec crupest-onebot-adapter-1 curl -fsS http://127.0.0.1:18820/api/v1/health
+openssl rand -hex 24
 ```
 
-adapter 和 hermes 镜像构建后的测试基线：`ruff check .` + `pytest -q`（Linux 下全绿；Windows 本机有 9 个文件权限/路径相关的环境失败，与业务无关）；镜像内 `web_search` / `web_extract` 和 DeepSeek vision 都已手工验证。
+新变量加在 `data/config` 里（和 `CRUPEST_ONEBOT_WS_TOKEN` 放在一起）。
 
-## 端口
+对应的 env 文件由模板生成：`envs/qqbot-adapter.env`、`envs/hermes.env`、`envs/napcat.env`。
 
-| 端口 | 位置 | 说明 |
+## 数据目录
+
+| 宿主 | 容器 | 内容 |
 | --- | --- | --- |
-| `18800` | adapter | NapCat 反向 WS，仅容器网络 |
-| `18810` | adapter | Hermes 插件 WS，仅容器网络 |
-| `18820` | adapter | WebUI，只发布 `127.0.0.1` |
-| `6099` | napcat | WebUI/扫码，只发布 `127.0.0.1` |
+| `data/qqbot` | adapter `/opt/qqbot`（rw）、hermes `/opt/qqbot:ro` | 共享配置 |
+| `data/hermes` | hermes `/opt/data` | Hermes 状态、插件、SOUL、共享目录 |
+| `data/hermes/share` | napcat `/opt/data/share:ro` | 出站文件（含媒体缓存 `media/`） |
+| `data/napcat` | napcat | QQ 登录态、OneBot 配置 |
 
-固定 IP：hermes `.8`、napcat `.9`、adapter `.10`。
+`data/hermes/share` 是唯一两边都能读的目录：要发文件先放这里；下载回来的媒体也缓存到
+`share/media/`，所以可以直接回发。
 
-三个服务的 `mem_limit` 都是 `800m`；`/dev/shm` 分别是 hermes `128m`、
-napcat `256m`，adapter 用 Docker 默认 `64m`。shm 是容量上限，不预分配，但
-实际占用会算进 `mem_limit`。
+## 启动行为
 
-adapter WebUI token：
+- `qqbot-adapter`：读 `config.toml`（缺失时自动拷贝默认文件），校验失败直接退出
+  （退出码 2，错误一次列全）。
+- `hermes`：bootstrap 把镜像里内置的 `crupest-qqbot` 插件复制到 `$HERMES_HOME/plugins/`
+  并启用；首次启动写 `group_sessions_per_user=false`、`platform_toolsets.onebot`、
+  DeepSeek 默认模型等。`.crupest_qqbot_toolsets_initialized` 存在时不再重写。
+  `QQBOT_*` 直接从容器环境继承（来自 `envs/hermes.env`），其中
+  `QQBOT_HOME_CHANNEL=group:<CRUPEST_QQ_GROUP_ID>` 由模板生成；绑定好友而不是群时，
+  把 env 里这行改成 `user:<QQ号>`。不再生成 `.entrypoint.env`；旧镜像留下的文件/变量
+  由迁移时手动清理。
 
-```bash
-docker compose exec onebot-adapter \
-  python -c 'import json;print(json.load(open("/opt/data/.onebot_adapter/config.json"))["webui_token"])'
-```
-
-## 首次部署
-
-```bash
-# 1. data/config + chmod 600
-# 2. 生成并放到仓库根
-deno run -A deno/tools/main.ts service --project-dir . gen-tmpl --no-dry-run
-cp services/generated/docker-compose.yaml docker-compose.yaml
-
-# 3. 构建并启动三个容器
-docker compose -f docker-compose.yaml build onebot-adapter hermes
-docker compose -f docker-compose.yaml up -d onebot-adapter hermes napcat
-
-# 4. SSH 隧道
-ssh -N -L 18820:127.0.0.1:18820 -L 6099:127.0.0.1:6099 user@host
-```
-
-打开 `http://127.0.0.1:6099`，用 `data/napcat/config/webui.json` 里的
-`token` 登录扫码。会话保存在 `data/napcat/qq`；第二次起用 `ACCOUNT` 快速登录。
-
-## 升级与回滚
+## 常用操作
 
 ```bash
-cd services/onebot-adapter
-git fetch upstream --tags
-git switch -c crupest-<new-tag> <new-tag>
-git push origin crupest-<new-tag>
-cd ../..
-git add services/onebot-adapter
-git commit -m "chore: bump onebot adapter"
-
-docker compose -f docker-compose.yaml build
-docker compose -f docker-compose.yaml up -d onebot-adapter hermes
+docker compose -f docker-compose.yaml logs --tail 100 qqbot-adapter
+docker compose -f docker-compose.yaml logs --tail 100 hermes
+docker compose -f docker-compose.yaml restart qqbot-adapter hermes
 ```
 
-- 每次启动 bootstrap 都会重装/更新插件，不需要手工 `install`。
-- 升级前备份 `data/hermes` 与 `data/onebot-adapter`。
-- 回滚：子模块切回上一个 commit，重新 build/up；同时保留上一个镜像 digest。
+改 token：改 `data/config` 里的 `CRUPEST_ONEBOT_WS_TOKEN` / `CRUPEST_QQBOT_PLUGIN_TOKEN`，
+`gen-tmpl` 后重启 `qqbot-adapter`、`hermes`；OneBot 那个还要在 NapCat 的 OneBot
+配置里同步。
 
-## 常见故障
+## 从旧（onebot-adapter）迁移
 
-| 现象 | 排查 |
+1. `data/config` 里加 `CRUPEST_QQBOT_PLUGIN_TOKEN`（`openssl rand -hex 24`），
+   保留原有的 `CRUPEST_ONEBOT_WS_TOKEN`。
+2. `data/qqbot/config.toml` 不用手写：adapter 首次启动会自动从镜像拷贝默认配置，
+   绑定信息由 `QQBOT_GROUP_ID` 环境变量注入。
+3. 手动清理旧镜像的产物：删掉 `data/hermes/.hermes/.entrypoint.env`，并清掉
+   `data/hermes/.hermes/.env` 里的 `QQBOT_*` / `ONEBOT_ADAPTER_*` 行（新镜像不再生成
+   也不再读取它们）。
+4. `bash services/manage gen-tmpl --no-dry-run`，然后重建/拉取镜像并 `docker compose up -d`。
+5. NapCat 不用改：`qqbot-adapter` 保留了 `onebot-adapter` 的网络别名，旧配置里的
+   `ws://onebot-adapter:18800/onebot?...` 继续可用。
+6. `SOUL.md` 会自动同步成镜像里的版本，旧文件备份为 `SOUL.md.bak.<timestamp>`。
+
+旧的 `data/onebot-adapter` 目录和旧容器可以随后删掉。
+
+## 排查
+
+| 现象 | 先看 |
 | --- | --- |
-| adapter 不健康 | `docker compose logs onebot-adapter`；18820 health |
-| Hermes 插件不连 | `docker compose logs hermes`；`ONEBOT_ADAPTER_URL`；adapter 18810 |
-| NapCat 不登录 | 6099 扫码；检查 `data/napcat/qq` 权限；`ACCOUNT` |
-| 群消息没反应 | 是否 `@bot`；群是否启用；`self_id`；窗口是否过期 |
-| 有事件无回复 | Hermes 是否配置模型/API key；看 provider 错误 |
-| 内存高 | `docker stats`；adapter 约 50–100 MiB，hermes 约 80–260 MiB |
-
-## 注意
-
-- `data/config`、`services/generated`、根 `docker-compose.yaml` 含 secret，
-  已 gitignore；不要提交。
-- 不要公网发布 18800/18810/18820/6099；统一走 SSH 隧道。
-- NapCat 是非官方客户端，有封号风险；固定 tag `v4.18.41`，用专用小号。
-- adapter 容器无 terminal；Hermes 的 terminal 不能直接改 adapter 代码/配置。
-- Hermes 容器内 `hermes` 用户有 passwordless sudo，可自行 `apt`/装包、看进程；
-  adapter 镜像没有这条 sudoers，两个角色的权限不共享。
-- `/opt/hermes` 保持 root 所有，hermes 用户只读；要改应用/venv 必须用 sudo。
-  这去掉了 `chown -R /opt/hermes` 的 310MB 重复层，但也意味着 Hermes 的
-  lazy deps/self-update 不能直接写 venv，需要显式 sudo 或构建期预装。
-- Hermes 容器没有 Docker socket、没有 host 目录挂载，root 只在本容器内有效；
-  compose 额外 `cap_drop: NET_RAW`，避免用 sudo 后抓容器网络包。
-- Hermes 只能读到 WS token，拿不到 `webui_token`，不能登录 adapter WebUI。
+| adapter 起不来 | `docker compose logs qqbot-adapter`；配置是否合法、`data/qqbot` 是否可写 |
+| NapCat 连不上 adapter | NapCat 日志里的 `ONEBOT_URL`；token 是否一致 |
+| Hermes 侧无回复 | `docker compose logs hermes`；插件是否启用；`QQBOT_ADAPTER_URL` |
+| 发文件失败 | 文件是否在 `data/hermes/share` 下；路径是否两边一致 |
+| 图片只显示占位符 | 占位符里的 `cache=failed/none`；NapCat 是否给出可下载 URL |

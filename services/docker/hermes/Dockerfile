@@ -1,75 +1,60 @@
-# One frontend build feeds the image; the adapter wheel is built once.
-FROM node:22-slim AS frontend
-
-WORKDIR /src/frontend
-COPY services/onebot-adapter/frontend/package.json services/onebot-adapter/frontend/package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci
-COPY services/onebot-adapter/frontend/ ./
-RUN npm run build
-
-
-FROM python:3.11-slim-bookworm AS base
+FROM python:3.11-slim-bookworm
 
 ARG APT_MIRROR=""
+
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
-
-RUN if [ -n "${APT_MIRROR}" ]; then \
-        for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do \
-            [ -f "$f" ] || continue; \
-            sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g; s|archive.ubuntu.com|${APT_MIRROR}|g; s|security.ubuntu.com|${APT_MIRROR}|g" "$f"; \
-        done; \
-    fi \
-    && apt-get -o Acquire::Retries=10 update && apt-get -o Acquire::Retries=10 install -y --no-install-recommends \
-        ffmpeg git curl ca-certificates tini gosu \
-    && rm -rf /var/lib/apt/lists/*
-
-
-FROM base AS adapter-build
-
-# setuptools-scm cannot see the submodule's .git inside the build context.
-# Keep this in sync with the services/onebot-adapter CHANGELOG version.
-ARG ONEBOT_ADAPTER_VERSION=1.8.0
-
-WORKDIR /src/adapter
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --upgrade pip setuptools wheel setuptools-scm
-
-COPY services/onebot-adapter/pyproject.toml services/onebot-adapter/MANIFEST.in \
-     services/onebot-adapter/README.md services/onebot-adapter/CHANGELOG.md \
-     services/onebot-adapter/LICENSE ./
-COPY services/onebot-adapter/onebot_adapter ./onebot_adapter
-COPY --from=frontend /src/frontend/dist/ ./onebot_adapter/webui/static/
-
-RUN --mount=type=cache,target=/root/.cache/pip \
-    SETUPTOOLS_SCM_PRETEND_VERSION="$ONEBOT_ADAPTER_VERSION" \
-    pip wheel --no-deps --wheel-dir /wheels .
-
-
-FROM base AS runtime
-
-ENV APP_DIR=/opt/hermes \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
     VENV=/opt/hermes/venv \
     HOME=/opt/data \
     HERMES_HOME=/opt/data/.hermes \
     PATH=/opt/hermes/venv/bin:$PATH
 
-COPY --from=adapter-build /wheels /wheels
+# System deps + the sudo/procps used by the terminal tool. One layer, cached
+# until this ARG or the base image changes.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    if [ -n "${APT_MIRROR}" ]; then \
+        for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do \
+            [ -f "$f" ] || continue; \
+            sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g; s|archive.ubuntu.com|${APT_MIRROR}|g; s|security.ubuntu.com|${APT_MIRROR}|g" "$f"; \
+        done; \
+    fi \
+    && apt-get -o Acquire::Retries=10 update \
+    && apt-get -o Acquire::Retries=10 install -y --no-install-recommends \
+        ffmpeg git curl ca-certificates tini gosu sudo procps \
+    && rm -rf /var/lib/apt/lists/* \
+    && printf 'hermes ALL=(ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/hermes \
+    && chmod 0440 /etc/sudoers.d/hermes
+
+# Users and the data root never change: keep them in the first layer so no
+# source edit invalidates them.
+RUN groupadd --gid 1000 hermes \
+    && useradd --uid 1000 --gid hermes --home-dir /opt/data --no-create-home --shell /bin/bash hermes \
+    && mkdir -p /opt/data/.hermes \
+    && chown -R hermes:hermes /opt/data
+
+# Hermes itself is the expensive layer: install it before our sources so a
+# code change never re-resolves or reinstalls the agent.
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m venv "$VENV" \
     && "$VENV/bin/pip" install --upgrade pip setuptools wheel \
-    && "$VENV/bin/pip" install "hermes-agent~=0.19.0" \
-    && "$VENV/bin/pip" install /wheels/*.whl
+    && "$VENV/bin/pip" install "hermes-agent~=0.19.0" "aiohttp>=3.9,<4"
+
+COPY hermes-qqbot/core /src/qqbot-core
+COPY hermes-qqbot/plugin /src/qqbot-plugin
+
+RUN "$VENV/bin/pip" install --no-deps /src/qqbot-core /src/qqbot-plugin
+
+# Baked plugin directory; bootstrap copies it into $HERMES_HOME/plugins at boot
+# (the home is a volume, so baking directly there would be masked). Kept out of
+# /opt/qqbot because that path is the read-only config mount.
+RUN mkdir -p /opt/qqbot-plugin \
+    && cp -a /src/qqbot-plugin/src/crupest_qqbot_plugin/. /opt/qqbot-plugin/
 
 # Bundled web provider: DeepSeek Search & Fetch (same DEEPSEEK_API_KEY).
 COPY services/docker/hermes/web-plugin/crupest_deepseek ${VENV}/lib/python3.11/site-packages/plugins/web/crupest_deepseek
-
-RUN groupadd --gid 1000 hermes \
-    && useradd --uid 1000 --gid hermes --home-dir /opt/data --no-create-home --shell /bin/bash hermes \
-    && mkdir -p /opt/data/.hermes /opt/data/.onebot_adapter \
-    && chown -R hermes:hermes /opt/data
 
 WORKDIR /opt/hermes
 COPY services/docker/hermes/entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -80,30 +65,3 @@ RUN chmod 0755 /usr/local/bin/entrypoint.sh
 VOLUME [ "/opt/data" ]
 
 ENTRYPOINT [ "tini", "--", "/usr/local/bin/entrypoint.sh" ]
-
-
-# Thin wrappers: both share every runtime layer; only role/env/expose/health
-# differ. The adapter image is the only one that listens on exposed ports.
-FROM runtime AS adapter
-ENV ROLE=adapter \
-    ONEBOT_HANDOFF_FILE=/opt/data/handoff/hermes_ws_token
-EXPOSE 18800 18810 18820
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:18820/api/v1/health || exit 1
-
-
-FROM runtime AS hermes
-ENV ROLE=hermes \
-    ONEBOT_HANDOFF_FILE=/opt/onebot-adapter/hermes_ws_token
-
-# The gateway/terminal user is intentionally allowed root inside this
-# container (install packages, inspect processes). Keep the adapter image
-# without the sudoers entry so the two roles do not share that privilege.
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get -o Acquire::Retries=10 update && apt-get -o Acquire::Retries=10 install -y --no-install-recommends \
-        sudo procps \
-    && rm -rf /var/lib/apt/lists/* \
-    && printf 'hermes ALL=(ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/hermes \
-    && chmod 0440 /etc/sudoers.d/hermes
-

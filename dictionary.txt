@@ -70,6 +70,8 @@ siyuan
 katex
 wooorm
 copyparty
+onebot
+napcat
 
 xreadlink
 xgethostname

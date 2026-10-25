@@ -1,0 +1,21 @@
+name: crupest-qqbot
+label: QQ (NapCat)
+kind: platform
+version: "0.1.0"
+description: >
+  单会话 QQ 平台插件：经独立的 crupest-qqbot-adapter 服务对接 NapCat。
+  插件自己只做 Hermes 侧的转换（事件、媒体、发送结果），不直接接触 QQ。
+author: crupest
+requires_env:
+  - name: QQBOT_CONFIG
+    description: "共享配置 TOML 的绝对路径（adapter 与插件读同一份）"
+    prompt: "配置文件路径"
+    password: false
+  - name: QQBOT_ADAPTER_URL
+    description: "adapter 的插件 WebSocket 地址，例如 ws://qqbot-adapter:18810/hermes"
+    prompt: "适配器 WS 地址"
+    password: false
+  - name: QQBOT_ADAPTER_TOKEN
+    description: "adapter 插件连接的 token"
+    prompt: "适配器 token"
+    password: true

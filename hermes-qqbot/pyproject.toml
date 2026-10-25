@@ -1,0 +1,14 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["core/tests", "adapter/tests", "plugin/tests"]
+pythonpath = ["core/src", "adapter/src", "plugin/src"]
+asyncio_mode = "auto"
+addopts = "-q"
+filterwarnings = ["error::RuntimeWarning"]

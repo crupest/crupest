@@ -111,27 +111,24 @@ services:
         ipv4_address: "172.21.5.6"
     restart: "on-failure:3"
 
-  onebot-adapter:
+  qqbot-adapter:
     build:
-      context: "."
-      dockerfile: services/docker/hermes/Dockerfile
-      target: adapter
-      args:
-        # Optional local-build apt mirror; keep APT_MIRROR empty for the
-        # default Debian sources, or set it in data/config for a mirror.
-        APT_MIRROR: "{{APT_MIRROR}}"
-    image: crupest-onebot-adapter
-    hostname: onebot-adapter
+      context: "./hermes-qqbot"
+      dockerfile: adapter/Dockerfile
+    image: crupest-qqbot-adapter
+    hostname: qqbot-adapter
     env_file:
-      - "./{{CRUPEST_GENERATED_DIR}}/envs/adapter.env"
-    ports:
-      - "127.0.0.1:18820:18820" # adapter WebUI (SSH tunnel only)
+      - "./{{CRUPEST_GENERATED_DIR}}/envs/qqbot-adapter.env"
     volumes:
-      - "./{{CRUPEST_DATA_ONEBOT_ADAPTER_DIR}}:/opt/data"
+      - "./{{CRUPEST_DATA_QQBOT_DIR}}:/opt/qqbot"
     networks:
       default:
         ipv4_address: "172.21.5.10"
-    mem_limit: 800m
+        # Old deployments' NapCat config still dials onebot-adapter:18800;
+        # the alias keeps that URL working after the rename.
+        aliases:
+          - onebot-adapter
+    mem_limit: 128m
     restart: unless-stopped
     stop_grace_period: 30s
 
@@ -139,7 +136,6 @@ services:
     build:
       context: "."
       dockerfile: services/docker/hermes/Dockerfile
-      target: hermes
       args:
         APT_MIRROR: "{{APT_MIRROR}}"
     image: crupest-hermes
@@ -148,7 +144,7 @@ services:
       - "./{{CRUPEST_GENERATED_DIR}}/envs/hermes.env"
     volumes:
       - "./{{CRUPEST_DATA_HERMES_DIR}}:/opt/data"
-      - "./{{CRUPEST_DATA_ONEBOT_ADAPTER_DIR}}/handoff:/opt/onebot-adapter:ro"
+      - "./{{CRUPEST_DATA_QQBOT_DIR}}:/opt/qqbot:ro"
     networks:
       default:
         ipv4_address: "172.21.5.8"
@@ -159,7 +155,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 1m
     depends_on:
-      - onebot-adapter
+      - qqbot-adapter
 
   napcat:
     image: mlikiowa/napcat-docker:v4.18.41
@@ -182,7 +178,7 @@ services:
     restart: unless-stopped
     init: true
     depends_on:
-      - onebot-adapter
+      - qqbot-adapter
 
 volumes:
   roundcubemail-html:

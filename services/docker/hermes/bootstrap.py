@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""Shared bootstrap for the adapter and Hermes gateway containers."""
+"""Hermes gateway bootstrap: SOUL, QQ plugin, first-run config."""
 from __future__ import annotations
 
-import argparse
 import os
-import shlex
 import shutil
 import subprocess
 import sys
@@ -14,15 +12,15 @@ from pathlib import Path
 APP_DIR = Path("/opt/hermes")
 VENV = APP_DIR / "venv"
 HERMES_HOME = Path(os.environ.get("HERMES_HOME", "/opt/data/.hermes"))
-ADAPTER_CONFIG = Path(os.environ.get("ONEBOT_ADAPTER_CONFIG", "/opt/data/.onebot_adapter/config.json"))
-HANDOFF_FILE = Path(os.environ.get("ONEBOT_HANDOFF_FILE", "/opt/data/handoff/hermes_ws_token"))
-ADAPTER_URL = os.environ.get("ONEBOT_ADAPTER_URL", "ws://onebot-adapter:18810/hermes")
-ADAPTER_BIN = VENV / "bin/hermes-onebot-adapter"
 HERMES_BIN = VENV / "bin/hermes"
 
-TOOLSET_MARKER = HERMES_HOME / ".onebot_toolsets_initialized"
-SELF_PROFILE_MARKER = HERMES_HOME / ".onebot_self_profile_initialized"
-ENV_FILE = HERMES_HOME / ".entrypoint.env"
+PLUGIN_SRC = Path("/opt/qqbot-plugin")
+PLUGIN_NAME = "crupest-qqbot"
+# Directory name must be a valid Python package name; the manifest name may keep hyphens.
+PLUGIN_DEST = HERMES_HOME / "plugins" / "crupest_qqbot"
+ADAPTER_TOKEN = os.environ.get("QQBOT_ADAPTER_TOKEN", "")
+
+TOOLSET_MARKER = HERMES_HOME / ".crupest_qqbot_toolsets_initialized"
 
 
 def log(message: str) -> None:
@@ -49,115 +47,59 @@ def run(*args: object, quiet: bool = False) -> None:
         fail(f"command failed ({exc.returncode}): {' '.join(command)}")
 
 
-def init_adapter_config() -> None:
-    if ADAPTER_CONFIG.exists() and ADAPTER_CONFIG.stat().st_size > 0:
-        log("adapter config ready (created=0)")
-        return
-    ADAPTER_CONFIG.parent.mkdir(parents=True, exist_ok=True)
-    ADAPTER_CONFIG.unlink(missing_ok=True)
-    log(f"initializing adapter config at {ADAPTER_CONFIG}")
-    run(ADAPTER_BIN, "--init-config", quiet=True)
-    log("adapter config ready (created=1)")
-
-
-def sync_onebot_token() -> str:
-    from onebot_adapter.config import load_config, save_config
-
-    try:
-        cfg = load_config(ADAPTER_CONFIG)
-    except Exception as exc:
-        fail(f"cannot load adapter config {ADAPTER_CONFIG}: {exc}")
-    env_token = os.environ.get("ONEBOT_WS_TOKEN", "").strip()
-    if not env_token:
-        log("ONEBOT_WS_TOKEN is not set; keeping config.json value")
-        return cfg.hermes_ws_token
-    if cfg.onebot_ws_token == env_token:
-        return cfg.hermes_ws_token
-    log("syncing ONEBOT_WS_TOKEN into adapter config")
-    save_config(
-        cfg.with_overrides(onebot_ws_token=env_token),
-        ADAPTER_CONFIG,
-        source="docker-entrypoint",
-        reason="docker.onebot_ws_token",
-        actor="docker-entrypoint",
-        submitted_fields=["onebot_ws_token"],
-    )
-    return cfg.hermes_ws_token
-
-
 def install_soul() -> None:
+    """Keep the volume's SOUL in sync with the image, backing up local edits."""
     source = APP_DIR / "SOUL.md"
     target = HERMES_HOME / "SOUL.md"
-    if source.exists() and (not target.exists() or target.stat().st_size == 0):
+    if not source.exists():
+        return
+    if not target.exists() or target.stat().st_size == 0:
         log("installing default SOUL.md")
         shutil.copyfile(source, target)
+        return
+    if target.read_bytes() == source.read_bytes():
+        return
+    backup = target.with_name(f"SOUL.md.bak.{int(time.time())}")
+    shutil.copyfile(target, backup)
+    shutil.copyfile(source, target)
+    log(f"updated SOUL.md (backup: {backup.name})")
 
 
-def write_handoff(token: str) -> None:
-    """Expose only the plugin WS token, never the full adapter config."""
-    if not token:
-        fail("hermes_ws_token is empty in adapter config")
-    HANDOFF_FILE.parent.mkdir(parents=True, exist_ok=True)
-    tmp = HANDOFF_FILE.with_name(f".{HANDOFF_FILE.name}.tmp")
-    tmp.write_text(token + "\n", encoding="utf-8")
-    tmp.chmod(0o600)
-    os.replace(tmp, HANDOFF_FILE)
+def install_plugin() -> None:
+    """Copy the baked plugin into the volume and enable it."""
+    if not PLUGIN_SRC.is_dir():
+        fail(f"baked plugin missing at {PLUGIN_SRC}")
+    if not ADAPTER_TOKEN:
+        fail("QQBOT_ADAPTER_TOKEN is empty (check envs/hermes.env)")
 
+    log(f"installing QQ plugin into {PLUGIN_DEST}")
+    if PLUGIN_DEST.exists():
+        shutil.rmtree(PLUGIN_DEST)
+    shutil.copytree(PLUGIN_SRC, PLUGIN_DEST)
 
-def wait_for_handoff() -> str:
-    for _ in range(60):
-        try:
-            token = HANDOFF_FILE.read_text(encoding="utf-8").strip()
-        except FileNotFoundError:
-            token = ""
-        if token:
-            return token
-        time.sleep(1)
-    fail(f"adapter handoff token not available: {HANDOFF_FILE}")
+    # The gateway inherits QQBOT_* from the container environment (env_file);
+    # nothing needs to be written. Old image leftovers are cleaned manually
+    # during migration, not at every boot.
 
-
-def install_plugin(token: str) -> None:
-    if not token:
-        fail("hermes_ws_token is empty in adapter config")
-    log(f"installing/updating the OneBot plugin in {HERMES_HOME}")
-    run(
-        ADAPTER_BIN,
-        "install",
-        "--hermes-dir",
-        HERMES_HOME,
-        "--adapter-url",
-        ADAPTER_URL,
-        "--adapter-token",
-        token,
-    )
-    env_path = HERMES_HOME / ".env"
-    if env_path.exists():
-        env_path.chmod(0o600)
-
-    lines = [
-        f"ONEBOT_ADAPTER_URL={shlex.quote(ADAPTER_URL)}",
-        f"ONEBOT_ADAPTER_TOKEN={shlex.quote(token)}",
-    ]
-    group_id = os.environ.get("QQ_GROUP_ID", "").strip()
-    if group_id:
-        lines.append(f"ONEBOT_HOME_CHANNEL={shlex.quote('group:' + group_id)}")
-    ENV_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    ENV_FILE.chmod(0o600)
-
-    run(HERMES_BIN, "plugins", "enable", "onebot-platform", "--no-allow-tool-override")
+    run(HERMES_BIN, "plugins", "enable", PLUGIN_NAME, "--no-allow-tool-override", quiet=True)
 
 
 def write_first_run_config() -> None:
     if TOOLSET_MARKER.exists():
         return
-    log("writing restricted platform_toolsets.onebot")
+    log("writing first-run Hermes config")
     from ruamel.yaml import YAML
 
     path = HERMES_HOME / "config.yaml"
+    if not path.exists():
+        # The gateway has not run yet on a fresh volume; start from an empty
+        # mapping — Hermes merges its defaults at load time.
+        path.write_text("{}\n", encoding="utf-8")
     yaml = YAML()
     yaml.preserve_quotes = True
     with open(path, encoding="utf-8") as handle:
         config = yaml.load(handle) or {}
+
     config["group_sessions_per_user"] = False
 
     display = config.setdefault("display", {})
@@ -196,33 +138,11 @@ def write_first_run_config() -> None:
         "vision",
     ]
 
-    entries = config.setdefault("plugins", {}).setdefault("entries", {})
-    onebot = entries.setdefault("onebot", {})
-    onebot["tool_allowlist"] = [
-        "onebot_send_message",
-        "onebot_send_forward_msg",
-        "onebot_forward_single_msg",
-        "onebot_upload_file",
-        "onebot_set_msg_emoji_like",
-        "onebot_poke",
-        "onebot_send_like",
-        "onebot_mark_msg_as_read",
-        "onebot_set_avatar",
-        "onebot_set_qq_profile",
-        "onebot_set_group_card",
-    ]
-    onebot["tool_allowlist_prefixes"] = [
-        "onebot_get_",
-        "onebot_fetch_",
-        "onebot_nc_get_",
-    ]
-    tool_policies = onebot.setdefault("tool_policies", {})
-    for tool_name in (
-        "onebot_set_avatar",
-        "onebot_set_qq_profile",
-        "onebot_set_group_card",
-    ):
-        tool_policies.setdefault(tool_name, {})["permission"] = "everyone"
+    platforms = config.setdefault("platforms", {})
+    if isinstance(platforms, dict):
+        onebot_platform = platforms.setdefault("onebot", {})
+        if isinstance(onebot_platform, dict):
+            onebot_platform["enabled"] = True
 
     with open(path, "w", encoding="utf-8") as handle:
         yaml.dump(config, handle)
@@ -234,13 +154,6 @@ def write_first_run_config() -> None:
             handle.write("\nGATEWAY_ALLOW_ALL_USERS=true\n")
     env_path.chmod(0o600)
     TOOLSET_MARKER.touch()
-
-
-def run_adapter() -> None:
-    ADAPTER_CONFIG.parent.mkdir(parents=True, exist_ok=True)
-    init_adapter_config()
-    token = sync_onebot_token()
-    write_handoff(token)
 
 
 def ensure_feature_config() -> None:
@@ -282,85 +195,17 @@ def ensure_feature_config() -> None:
             yaml.dump(config, handle)
 
 
-def ensure_self_profile_config() -> None:
-    """One-time migration for existing configs that predate self-profile tools."""
-    if SELF_PROFILE_MARKER.exists():
-        return
-    path = HERMES_HOME / "config.yaml"
-    if not path.exists():
-        return
-    from ruamel.yaml import YAML
-
-    yaml = YAML()
-    yaml.preserve_quotes = True
-    with open(path, encoding="utf-8") as handle:
-        config = yaml.load(handle) or {}
-    plugins = config.setdefault("plugins", {})
-    entries = plugins.setdefault("entries", {}) if isinstance(plugins, dict) else {}
-    onebot = entries.setdefault("onebot", {}) if isinstance(entries, dict) else {}
-    if not isinstance(onebot, dict):
-        onebot = {}
-        entries["onebot"] = onebot
-
-    allowlist = onebot.get("tool_allowlist")
-    if not isinstance(allowlist, list):
-        allowlist = []
-        onebot["tool_allowlist"] = allowlist
-    for name in (
-        "onebot_set_avatar",
-        "onebot_set_qq_profile",
-        "onebot_set_group_card",
-    ):
-        if name not in allowlist:
-            allowlist.append(name)
-
-    prefixes = onebot.get("tool_allowlist_prefixes")
-    if not isinstance(prefixes, list):
-        prefixes = []
-        onebot["tool_allowlist_prefixes"] = prefixes
-    for prefix in ("onebot_get_", "onebot_fetch_", "onebot_nc_get_"):
-        if prefix not in prefixes:
-            prefixes.append(prefix)
-
-    policies = onebot.get("tool_policies")
-    if not isinstance(policies, dict):
-        policies = {}
-        onebot["tool_policies"] = policies
-    for name in (
-        "onebot_set_avatar",
-        "onebot_set_qq_profile",
-        "onebot_set_group_card",
-    ):
-        policy = policies.get(name)
-        if not isinstance(policy, dict):
-            policy = {}
-            policies[name] = policy
-        policy.setdefault("permission", "everyone")
-
-    with open(path, "w", encoding="utf-8") as handle:
-        yaml.dump(config, handle)
-    SELF_PROFILE_MARKER.touch()
-
-
 def run_hermes() -> None:
     HERMES_HOME.mkdir(parents=True, exist_ok=True)
     (HERMES_HOME / "plugins").mkdir(parents=True, exist_ok=True)
     install_soul()
-    token = wait_for_handoff()
-    install_plugin(token)
+    install_plugin()
     write_first_run_config()
     ensure_feature_config()
-    ensure_self_profile_config()
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--role", choices=("adapter", "hermes"), default="hermes")
-    args = parser.parse_args()
-    if args.role == "adapter":
-        run_adapter()
-    else:
-        run_hermes()
+    run_hermes()
 
 
 if __name__ == "__main__":
