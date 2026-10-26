@@ -42,16 +42,16 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     && "$VENV/bin/pip" install --upgrade pip setuptools wheel \
     && "$VENV/bin/pip" install "hermes-agent~=0.19.0" "aiohttp>=3.9,<4"
 
-COPY hermes-qqbot/core /src/qqbot-core
-COPY hermes-qqbot/plugin /src/qqbot-plugin
+COPY hermes-chatbot/core /src/chatbot-core
+COPY hermes-chatbot/plugin /src/chatbot-plugin
 
-RUN "$VENV/bin/pip" install --no-deps /src/qqbot-core /src/qqbot-plugin
+RUN "$VENV/bin/pip" install --no-deps /src/chatbot-core /src/chatbot-plugin
 
 # Baked plugin directory; bootstrap copies it into $HERMES_HOME/plugins at boot
 # (the home is a volume, so baking directly there would be masked). Kept out of
-# /opt/qqbot because that path is the read-only config mount.
-RUN mkdir -p /opt/qqbot-plugin \
-    && cp -a /src/qqbot-plugin/src/crupest_qqbot_plugin/. /opt/qqbot-plugin/
+# /opt/chatbot because that path is the read-only config mount.
+RUN mkdir -p /opt/chatbot-plugin \
+    && cp -a /src/chatbot-plugin/src/crupest_chatbot_plugin/. /opt/chatbot-plugin/
 
 # Bundled web provider: DeepSeek Search & Fetch (same DEEPSEEK_API_KEY).
 COPY services/docker/hermes/web-plugin/crupest_deepseek ${VENV}/lib/python3.11/site-packages/plugins/web/crupest_deepseek

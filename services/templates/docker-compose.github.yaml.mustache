@@ -95,13 +95,13 @@ services:
         ipv4_address: "172.21.5.6"
     restart: "on-failure:3"
 
-  qqbot-adapter:
-    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-qqbot-adapter:latest
-    hostname: qqbot-adapter
+  chatbot-adapter:
+    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-chatbot-adapter:latest
+    hostname: chatbot-adapter
     env_file:
-      - "./{{CRUPEST_GENERATED_DIR}}/envs/qqbot-adapter.env"
+      - "./{{CRUPEST_GENERATED_DIR}}/envs/chatbot-adapter.env"
     volumes:
-      - "./{{CRUPEST_DATA_QQBOT_DIR}}:/opt/qqbot"
+      - "./{{CRUPEST_DATA_CHATBOT_DIR}}:/opt/chatbot"
     networks:
       default:
         ipv4_address: "172.21.5.10"
@@ -120,7 +120,7 @@ services:
       - "./{{CRUPEST_GENERATED_DIR}}/envs/hermes.env"
     volumes:
       - "./{{CRUPEST_DATA_HERMES_DIR}}:/opt/data"
-      - "./{{CRUPEST_DATA_QQBOT_DIR}}:/opt/qqbot:ro"
+      - "./{{CRUPEST_DATA_CHATBOT_DIR}}:/opt/chatbot:ro"
     networks:
       default:
         ipv4_address: "172.21.5.8"
@@ -131,7 +131,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 1m
     depends_on:
-      - qqbot-adapter
+      - chatbot-adapter
 
   napcat:
     image: mlikiowa/napcat-docker:v4.18.41
@@ -154,7 +154,7 @@ services:
     restart: unless-stopped
     init: true
     depends_on:
-      - qqbot-adapter
+      - chatbot-adapter
 
 volumes:
   roundcubemail-html:

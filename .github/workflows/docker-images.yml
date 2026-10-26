@@ -48,9 +48,9 @@ jobs:
             context: .
             file: services/docker/hermes/Dockerfile
             target: ""
-          - image: crupest-qqbot-adapter
-            context: hermes-qqbot
-            file: hermes-qqbot/adapter/Dockerfile
+          - image: crupest-chatbot-adapter
+            context: hermes-chatbot
+            file: hermes-chatbot/adapter/Dockerfile
             target: ""
 
     steps:
