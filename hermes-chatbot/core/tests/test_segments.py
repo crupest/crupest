@@ -9,6 +9,10 @@ def test_constructors() -> None:
     assert segments.reply(7) == {"type": "reply", "data": {"id": "7"}}
     assert segments.image("a.jpg", "http://x/a.jpg")["data"] == {"file": "a.jpg", "url": "http://x/a.jpg"}
     assert segments.file("fid", "doc.pdf")["data"]["file_id"] == "fid"
+    assert segments.face(14) == {"type": "face", "data": {"id": "14"}}
+    assert segments.dice() == {"type": "dice", "data": {}}
+    assert segments.rps() == {"type": "rps", "data": {}}
+    assert segments.node("4512") == {"type": "node", "data": {"id": "4512"}}
 
 
 def test_event_segments_array(group_event) -> None:
@@ -66,17 +70,17 @@ def test_extract_reply_and_forward() -> None:
 
 
 def test_command_regex_positive() -> None:
-    match = segments.COMMAND_RE.match("[@self] /reset")
+    match = segments.COMMAND_RE.match("[[@self]] /reset")
     assert match is not None
     assert match.group(1) == "/reset"
 
 
 def test_command_regex_allows_whitespace_and_newlines() -> None:
-    assert segments.COMMAND_RE.match("   [@self]   /model gpt")
-    assert segments.COMMAND_RE.match("[@self]\n/reset")
+    assert segments.COMMAND_RE.match("   [[@self]]   /model gpt")
+    assert segments.COMMAND_RE.match("[[@self]]\n/reset")
 
 
 def test_command_regex_negative() -> None:
     assert segments.COMMAND_RE.match("你好 /reset") is None
     assert segments.COMMAND_RE.match("/reset") is None
-    assert segments.COMMAND_RE.match("[@12345] /reset") is None
+    assert segments.COMMAND_RE.match("[[@12345]] /reset") is None

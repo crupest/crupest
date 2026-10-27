@@ -140,6 +140,56 @@ def test_cache_dir_default_and_override(tmp_path: Path) -> None:
     assert overridden.plugin.cache_dir == "/srv/media"
 
 
+def test_feature_and_limit_defaults(tmp_path: Path) -> None:
+    config = load_config(_write(tmp_path, MINIMAL))
+    assert config.features.at is True
+    assert config.features.at_all is True
+    assert config.features.upload is True
+    assert config.limits.forward_max_nodes == 20
+    assert config.limits.upload_max_bytes == 50 * 1024 * 1024
+    assert config.limits.upload_dir == "/opt/data/share"
+    assert config.limits.at_all_cooldown_seconds == 0.0
+
+
+def test_features_and_limits_are_parsed(tmp_path: Path) -> None:
+    text = MINIMAL + """
+[features]
+at = false
+at_all = true
+face = false
+dice = false
+rps = false
+poke = false
+forward = false
+upload = false
+
+[limits]
+poke_cooldown_seconds = 5
+at_all_cooldown_seconds = 0
+forward_cooldown_seconds = 1.5
+forward_max_nodes = 3
+upload_cooldown_seconds = 2
+upload_max_bytes = 1024
+upload_dir = "/srv/share"
+max_segments_per_message = 10
+"""
+    config = load_config(_write(tmp_path, text))
+    assert config.features.at is False
+    assert config.features.at_all is True
+    assert config.features.upload is False
+    assert config.limits.forward_max_nodes == 3
+    assert config.limits.upload_max_bytes == 1024
+    assert config.limits.upload_dir == "/srv/share"
+
+
+def test_negative_limit_is_rejected(tmp_path: Path) -> None:
+    text = MINIMAL + "\n[limits]\nforward_max_nodes = -1\n"
+    with pytest.raises(ConfigError) as excinfo:
+        load_config(_write(tmp_path, text))
+    assert any("forward_max_nodes" in error for error in excinfo.value.errors)
+
+
+
 def test_secrets_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CHATBOT_ONEBOT_TOKEN", "env-a")
     monkeypatch.setenv("CHATBOT_PLUGIN_TOKEN", "env-b")

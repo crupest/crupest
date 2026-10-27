@@ -6,15 +6,20 @@ Two independent answers live here:
 * :func:`authorize` — may this outbound action run, and against which target?
 
 Both are pure functions over config + event, so the whole behaviour is a table
-in the tests.
+in the tests.  Filesystem checks (``check_upload``) and message-id checks
+(``SeqMap``) are deliberately separate: they need IO and are called by the
+relay right before the upstream call.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlparse
 
 from crupest_chatbot_core import segments
-from crupest_chatbot_core.config import NotifyConfig
+from crupest_chatbot_core.config import FeaturesConfig, LimitsConfig, NotifyConfig
 from crupest_chatbot_core.errors import REASON_BAD_PARAM, REASON_POLICY_DENIED, REASON_TARGET_MISMATCH, PolicyError
 from crupest_chatbot_core.schema import Event
 
@@ -23,6 +28,7 @@ ALLOWED_ACTIONS = frozenset({
     "send_msg",
     "send_group_msg",
     "send_private_msg",
+    "send_poke",
     "send_group_forward_msg",
     "send_private_forward_msg",
     "upload_group_file",
@@ -74,6 +80,7 @@ _USER_TARGETS = frozenset({
     "get_private_file_url",
     "get_friend_msg_history",
 })
+FORWARD_ACTIONS = frozenset({"send_group_forward_msg", "send_private_forward_msg"})
 
 UPLOAD_ACTIONS = frozenset({"upload_group_file", "upload_private_file"})
 #: Actions whose ``message`` field must be an array of segments.  A string is
@@ -93,6 +100,12 @@ _ACTION_PARAMS: dict[str, frozenset[str]] = {
     "set_group_card": frozenset({"card", "group_id", "user_id"}),
     # Tool takes real_seq (mapped by the adapter) or an id from history JSON.
     "fetch_ptt_text": frozenset({"real_seq", "message_id"}),
+    "send_poke": frozenset({"group_id", "user_id"}),
+    # Only node-by-id forwards; no ``content``/``user_id``/``nickname`` nodes.
+    "send_group_forward_msg": frozenset({"group_id", "messages"}),
+    "send_private_forward_msg": frozenset({"user_id", "messages"}),
+    "upload_group_file": frozenset({"group_id", "file", "name", "folder"}),
+    "upload_private_file": frozenset({"user_id", "file", "name"}),
 }
 WINDOW_ACTIONS = frozenset({
     "send_msg",
@@ -104,6 +117,10 @@ WINDOW_ACTIONS = frozenset({
     "upload_private_file",
     "set_msg_emoji_like",
 })
+
+_QQ_RE = re.compile(r"\d{1,12}")
+_FACE_RE = re.compile(r"\d{1,3}")
+_FORBIDDEN_NAME = re.compile(r"[/\\\x00-\x1f]")
 
 
 @dataclass(frozen=True)
@@ -122,6 +139,13 @@ class Binding:
         if self.group_id is not None:
             return f"group:{self.group_id}"
         return f"user:{self.user_id}"
+
+
+@dataclass(frozen=True)
+class Context:
+    """Identity used for the few actions that need the bot's own QQ."""
+
+    self_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -204,14 +228,186 @@ def _require_user(action: str, params: dict[str, Any], binding: Binding) -> None
         raise PolicyError(action, REASON_TARGET_MISMATCH, f"{action}: 目标不是本实例绑定的好友")
 
 
+def _bad(action: str, message: str) -> PolicyError:
+    return PolicyError(action, REASON_BAD_PARAM, message)
+
+
+def _check_at(
+    action: str, data: dict[str, Any], binding: Binding, features: FeaturesConfig,
+) -> None:
+    if binding.group_id is None:
+        raise _bad(action, f"{action}: 私聊不能 @ 人")
+    target = str(data.get("qq") or "")
+    if target == "all":
+        if not features.at_all:
+            raise PolicyError(action, REASON_POLICY_DENIED, f"{action}: @全体未开启")
+        return
+    if not _QQ_RE.fullmatch(target):
+        raise _bad(action, f"{action}: at.qq 必须是 QQ 号或 all")
+
+
+def _check_media_ref(action: str, kind: str, data: dict[str, Any], limits: LimitsConfig) -> None:
+    """Local media must come from the shared volume.
+
+    Remote URLs are rejected here: the plugin downloads them through its SSRF
+    guard and sends a local path.  Local paths are confined so a prompt-injected
+    ``MEDIA:`` line cannot read adapter-only files such as the config or tokens.
+    """
+    ref = str(data.get("file") or "")
+    if not ref:
+        raise _bad(action, f"{action}: {kind} 段缺少 file")
+    if ref.startswith(("http://", "https://")):
+        raise PolicyError(
+            action, REASON_POLICY_DENIED, f"{action}: 远程媒体必须由插件先下载",
+        )
+    if ref.startswith("base64://"):
+        return
+    if "://" in ref and not ref.startswith("file://"):
+        raise PolicyError(
+            action, REASON_POLICY_DENIED, f"{action}: 不支持的媒体协议",
+        )
+    if ref.startswith("file://"):
+        ref = unquote(urlparse(ref).path)
+    candidate = Path(ref)
+    if not candidate.is_absolute():
+        candidate = Path(limits.upload_dir) / candidate
+    try:
+        path = candidate.resolve(strict=False)
+        root = Path(limits.upload_dir).resolve(strict=False)
+    except OSError as exc:
+        raise _bad(action, f"{action}: 文件路径无效 ({exc})") from exc
+    if not path.is_relative_to(root):
+        raise PolicyError(
+            action, REASON_POLICY_DENIED, f"{action}: 只能发送 {limits.upload_dir} 下的文件",
+        )
+
+
+def _check_message_segments(
+    action: str, prepared: dict[str, Any], binding: Binding,
+    features: FeaturesConfig, limits: LimitsConfig,
+) -> None:
+    """Validate every outbound segment; reject disabled/unknown features.
+
+    The plugin has the same checks, but the adapter is the hard boundary: a
+    bypassing client must not be able to send a disabled segment type.
+    """
+    message = prepared.get("message")
+    if not isinstance(message, list):
+        raise _bad(action, f"{action}: message 必须是数组")
+    if len(message) > limits.max_segments_per_message:
+        raise _bad(action, f"{action}: message 段数超过 {limits.max_segments_per_message}")
+
+    kept: list[dict[str, Any]] = []
+    for index, segment in enumerate(message):
+        if not isinstance(segment, dict):
+            raise _bad(action, f"{action}: message[{index}] 不是对象")
+        kind = str(segment.get("type") or "")
+        raw_data = segment.get("data")
+        data = raw_data if isinstance(raw_data, dict) else {}
+
+        if kind == "text":
+            if not isinstance(data.get("text"), str):
+                raise _bad(action, f"{action}: text 段缺少文本")
+        elif kind == "at":
+            if not features.at:
+                raise PolicyError(action, REASON_POLICY_DENIED, "@ 已关闭")
+            _check_at(action, data, binding, features)
+        elif kind == "face":
+            if not features.face:
+                raise PolicyError(action, REASON_POLICY_DENIED, "QQ 表情已关闭")
+            face_id = str(data.get("id") or "")
+            if not _FACE_RE.fullmatch(face_id):
+                raise _bad(action, f"{action}: face.id 必须是 0-999 的数字")
+        elif kind in ("dice", "rps"):
+            if not (features.dice if kind == "dice" else features.rps):
+                raise PolicyError(action, REASON_POLICY_DENIED, f"{kind} 已关闭")
+            if data:
+                raise _bad(action, f"{action}: {kind} 段不接受参数")
+        elif kind in ("image", "record", "video"):
+            _check_media_ref(action, kind, data, limits)
+        elif kind == "file":
+            _check_media_ref(action, kind, data, limits)
+        elif kind == "reply":
+            if not str(data.get("id") or ""):
+                raise _bad(action, f"{action}: reply 段缺少 id")
+        else:
+            raise _bad(action, f"{action}: 不允许的消息段 {kind or '?'}")
+        kept.append(segment)
+
+    prepared["message"] = kept
+
+
+def _check_forward(action: str, prepared: dict[str, Any], limits: LimitsConfig) -> None:
+    messages = prepared.get("messages")
+    if not isinstance(messages, list):
+        raise _bad(action, f"{action}: messages 必须是数组")
+    if not 1 <= len(messages) <= limits.forward_max_nodes:
+        raise _bad(action, f"{action}: 转发条数必须在 1-{limits.forward_max_nodes} 之间")
+    for index, node in enumerate(messages):
+        if not isinstance(node, dict) or set(node) != {"type", "data"} or node.get("type") != "node":
+            raise _bad(action, f"{action}: messages[{index}] 必须是 node 段")
+        data = node.get("data")
+        if not isinstance(data, dict) or set(data) != {"id"}:
+            raise _bad(action, f"{action}: node 只接受 id（不接受伪造的 content/user_id）")
+        if not _QQ_RE.fullmatch(str(data.get("id") or "")):
+            raise _bad(action, f"{action}: node.id 必须是消息 ID")
+
+
+def check_upload(action: str, prepared: dict[str, Any], limits: LimitsConfig) -> None:
+    """Confine uploads to the shared directory and cap their size.
+
+    Runs in the adapter (the process NapCat talks to), so it is the hard
+    boundary even if the plugin is bypassed.
+    """
+    raw = str(prepared.get("file") or "")
+    if not raw:
+        raise _bad(action, f"{action}: file 不能为空")
+    try:
+        candidate = Path(raw)
+        if not candidate.is_absolute():
+            candidate = Path(limits.upload_dir) / candidate
+        path = candidate.resolve(strict=True)
+        root = Path(limits.upload_dir).resolve(strict=False)
+    except OSError as exc:
+        raise _bad(action, f"{action}: 文件不可读 ({exc})") from exc
+    if not path.is_relative_to(root):
+        raise PolicyError(action, REASON_POLICY_DENIED, f"{action}: 只能上传 {limits.upload_dir} 下的文件")
+    if not path.is_file():
+        raise _bad(action, f"{action}: 不是普通文件")
+    size = path.stat().st_size
+    if size > limits.upload_max_bytes:
+        raise _bad(action, f"{action}: 文件超过 {limits.upload_max_bytes} 字节")
+    name = str(prepared.get("name") or path.name).strip()
+    if not name or len(name) > 100 or _FORBIDDEN_NAME.search(name):
+        raise _bad(action, f"{action}: 文件名不合法")
+    prepared["file"] = str(path)
+    prepared["name"] = name
+    if "folder" in prepared and not isinstance(prepared["folder"], str):
+        raise _bad(action, f"{action}: folder 必须是字符串")
+
+
 def authorize(
-    action: str, params: dict[str, Any] | None, binding: Binding, self_id: str = "",
+    action: str,
+    params: dict[str, Any] | None,
+    binding: Binding,
+    self_id: str = "",
+    *,
+    context: Context | None = None,
+    features: FeaturesConfig | None = None,
+    limits: LimitsConfig | None = None,
 ) -> dict[str, Any]:
     """Gate 2: validate an outbound action and pin its target.
 
     Returns a new params dict with missing targets filled in.  Raises
     :class:`PolicyError` for anything that is not allowed.
     """
+    features = features or FeaturesConfig()
+    limits = limits or LimitsConfig()
+    if context is None:
+        context = Context(self_id=str(self_id or ""))
+    elif not context.self_id and self_id:
+        context = replace(context, self_id=str(self_id))
+
     if action not in ALLOWED_ACTIONS:
         raise PolicyError(action, REASON_POLICY_DENIED, f"不允许的动作: {action}")
     prepared: dict[str, Any] = dict(params or {})
@@ -237,10 +433,37 @@ def authorize(
             _require_user(action, prepared, binding)
         else:
             raise PolicyError(action, REASON_BAD_PARAM, "send_msg 需要 message_type=group|private")
+    elif action == "send_poke":
+        if not features.poke:
+            raise PolicyError(action, REASON_POLICY_DENIED, "戳一戳已关闭")
+        if binding.group_id is not None:
+            _require_group(action, prepared, binding)
+            target = str(prepared.get("user_id") or "")
+            if not _QQ_RE.fullmatch(target):
+                raise _bad(action, "send_poke: user_id 必须是 QQ 号")
+        else:
+            if prepared.get("group_id") not in (None, ""):
+                raise PolicyError(action, REASON_TARGET_MISMATCH, "私聊里不能用 group_id")
+            _require_user(action, prepared, binding)
+    elif action in FORWARD_ACTIONS:
+        if not features.forward:
+            raise PolicyError(action, REASON_POLICY_DENIED, "合并转发已关闭")
+        if action == "send_group_forward_msg":
+            _require_group(action, prepared, binding)
+        else:
+            _require_user(action, prepared, binding)
+        _check_forward(action, prepared, limits)
+    elif action in UPLOAD_ACTIONS:
+        if not features.upload:
+            raise PolicyError(action, REASON_POLICY_DENIED, "文件上传已关闭")
+        if action == "upload_group_file":
+            _require_group(action, prepared, binding)
+        else:
+            _require_user(action, prepared, binding)
     elif action == "set_group_card":
         # Only the bot's own card — a model must never rename a member.
         _require_group(action, prepared, binding)
-        me = str(self_id or "")
+        me = str(context.self_id or self_id or "")
         if not me:
             raise PolicyError(action, REASON_BAD_PARAM, "还没有拿到自己的 QQ 号，稍后再试")
         target = str(prepared.get("user_id") or me)
@@ -251,5 +474,8 @@ def authorize(
         _require_group(action, prepared, binding)
     elif action in _USER_TARGETS:
         _require_user(action, prepared, binding)
+
+    if action in MESSAGE_ACTIONS:
+        _check_message_segments(action, prepared, binding, features, limits)
 
     return prepared

@@ -7,20 +7,26 @@ from crupest_chatbot_adapter.policy import Binding
 from crupest_chatbot_adapter.relay import PluginLink
 from crupest_chatbot_adapter.seq import SeqMap
 from crupest_chatbot_adapter.window import Window
+from crupest_chatbot_core.config import FeaturesConfig, LimitsConfig
 from crupest_chatbot_core.errors import REASON_NAPCAT_FAILED, REASON_POLICY_DENIED, TransportError
 
 
 class FakeNapCat:
-    def __init__(self, response: dict | None = None, error: Exception | None = None) -> None:
+    def __init__(
+        self, response: dict | None = None, error: Exception | None = None, role: str = "admin",
+    ) -> None:
         self.calls: list[tuple[str, dict, float]] = []
         self.response = response if response is not None else {"status": "ok", "retcode": 0, "data": {"message_id": 1}}
         self.error = error
+        self.role = role
         self.connected = True
 
     async def call(self, action: str, params: dict, timeout: float) -> dict:
         self.calls.append((action, params, timeout))
         if self.error is not None:
             raise self.error
+        if action == "get_group_member_info":
+            return {"status": "ok", "retcode": 0, "data": {"role": self.role}}
         return self.response
 
 
@@ -43,7 +49,8 @@ class Clock:
 
 def _link(
     napcat: FakeNapCat, window: Window | None = None, seq: SeqMap | None = None, self_id: str = "",
-    *, grace: float = 100.0, cooldown: float = 0.0,
+    *, grace: float = 100.0, cooldown: float = 0.0, limits: LimitsConfig | None = None,
+    clock: Clock | None = None,
 ) -> PluginLink:
     return PluginLink(
         token="tok",
@@ -59,6 +66,8 @@ def _link(
         self_id_provider=lambda: self_id,
         disconnect_grace=grace,
         notice_cooldown=cooldown,
+        limits=limits,
+        clock=clock,
     )
 
 
@@ -87,10 +96,15 @@ async def test_action_is_forwarded_and_target_pinned() -> None:
     assert napcat.calls[0][2] == 60
 
 
-async def test_upload_uses_long_timeout() -> None:
+async def test_upload_uses_long_timeout(tmp_path) -> None:
+    target = tmp_path / "x.bin"
+    target.write_bytes(b"x")
     napcat = FakeNapCat()
-    link = _link(napcat)
-    await _send(link, {"action": "upload_group_file", "params": {"file": "/x", "name": "x"}, "echo": "e"})
+    link = _link(napcat, limits=LimitsConfig(upload_dir=str(tmp_path)))
+    await _send(
+        link,
+        {"action": "upload_group_file", "params": {"file": str(target), "name": "x.bin"}, "echo": "e"},
+    )
     assert napcat.calls[0][2] == 600
 
 
@@ -268,3 +282,110 @@ async def test_first_disconnect_notice_is_not_blocked_by_small_uptime(monkeypatc
     monkeypatch.setattr("time.monotonic", lambda: 1.0)
     await link._notify_disconnect()
     assert len(napcat.calls) == 1
+
+
+async def test_poke_is_allowed_once_per_cooldown() -> None:
+    from adapter_helpers import make_event
+
+    clock = Clock()
+    napcat = FakeNapCat(response={"status": "ok", "retcode": 0, "data": None})
+    link = _link(napcat, limits=LimitsConfig(poke_cooldown_seconds=10), clock=clock)
+    await link.send_event(make_event())
+
+    first = await _send(link, {"action": "send_poke", "params": {"user_id": "10001"}, "echo": "e1"})
+    assert first["status"] == "ok"
+    assert napcat.calls[0][0] == "send_poke"
+    assert napcat.calls[0][1] == {"user_id": "10001", "group_id": 123456}
+
+    second = await _send(link, {"action": "send_poke", "params": {"user_id": "10001"}, "echo": "e2"})
+    assert second["status"] == "failed"
+    assert second["reason"] == REASON_POLICY_DENIED
+    assert len(napcat.calls) == 1
+
+
+async def test_forward_rejects_unknown_message_ids() -> None:
+    from adapter_helpers import make_event
+
+    napcat = FakeNapCat()
+    link = _link(napcat)
+    await link.send_event(make_event())
+
+    unknown = [{"type": "node", "data": {"id": "999999"}}]
+    response = await _send(link, {
+        "action": "send_group_forward_msg",
+        "params": {"messages": unknown},
+        "echo": "e",
+    })
+    assert response["status"] == "failed"
+    assert response["reason"] == REASON_POLICY_DENIED
+    assert napcat.calls == []
+
+
+async def test_forward_allows_seen_message_ids() -> None:
+    from adapter_helpers import make_event
+
+    napcat = FakeNapCat()
+    link = _link(napcat)
+    event = make_event()
+    link._seq.record_event(event)
+    await link.send_event(event)
+
+    seen = [{"type": "node", "data": {"id": "1234"}}]
+    response = await _send(link, {
+        "action": "send_group_forward_msg",
+        "params": {"messages": seen},
+        "echo": "e",
+    })
+    assert response["status"] == "ok"
+    assert napcat.calls[0][0] == "send_group_forward_msg"
+    assert napcat.calls[0][1]["group_id"] == 123456
+
+
+async def test_at_all_has_its_own_cooldown() -> None:
+    napcat = FakeNapCat(response={"status": "ok", "retcode": 0, "data": {"message_id": 1}})
+    link = _link(
+        napcat,
+        self_id="1950119910",
+        limits=LimitsConfig(at_all_cooldown_seconds=60),
+        clock=Clock(),
+    )
+    link._features = FeaturesConfig(at_all=True)
+    payload = {
+        "action": "send_group_msg",
+        "params": {"message": [{"type": "at", "data": {"qq": "all"}}]},
+        "echo": "e",
+    }
+    assert (await _send(link, payload))["status"] == "ok"
+    second = await _send(link, {**payload, "echo": "e2"})
+    assert second["status"] == "failed"
+    assert second["reason"] == REASON_POLICY_DENIED
+    assert [call[0] for call in napcat.calls] == ["get_group_member_info", "send_group_msg"]
+
+
+async def test_at_all_is_refused_when_not_admin() -> None:
+    napcat = FakeNapCat(role="member")
+    link = _link(napcat, self_id="1950119910")
+    response = await _send(link, {
+        "action": "send_group_msg",
+        "params": {"message": [{"type": "at", "data": {"qq": "all"}}]},
+        "echo": "e",
+    })
+    assert response["status"] == "failed"
+    assert response["reason"] == REASON_POLICY_DENIED
+    assert "管理员" in response["wording"]
+    assert [call[0] for call in napcat.calls] == ["get_group_member_info"]
+
+
+async def test_upload_outside_share_dir_is_refused(tmp_path) -> None:
+    outside = tmp_path / "outside.txt"
+    outside.write_text("x", encoding="utf-8")
+    napcat = FakeNapCat()
+    link = _link(napcat, limits=LimitsConfig(upload_dir=str(tmp_path / "share")))
+    response = await _send(link, {
+        "action": "upload_group_file",
+        "params": {"file": str(outside), "name": "outside.txt"},
+        "echo": "e",
+    })
+    assert response["status"] == "failed"
+    assert response["reason"] == REASON_POLICY_DENIED
+    assert napcat.calls == []

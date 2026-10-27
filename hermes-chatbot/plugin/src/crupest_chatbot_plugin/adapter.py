@@ -9,13 +9,16 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections import OrderedDict
 from collections.abc import Callable
 from datetime import UTC, datetime
 from functools import partial
+from pathlib import Path
 from typing import Any
 
 import aiohttp
-from crupest_chatbot_core import segments
+from crupest_chatbot_core import richtext, segments
+from crupest_chatbot_core.config import FeaturesConfig, LimitsConfig
 from crupest_chatbot_core.errors import ChatbotError
 from crupest_chatbot_core.render import MediaResult, flatten, render_event
 from crupest_chatbot_core.schema import Event
@@ -240,6 +243,8 @@ class QQPlatform(BasePlatformAdapter):
         upload_timeout: float = 600.0,
         media_fetcher: MediaFetcher | None = None,
         strip_markdown: bool = True,
+        features: FeaturesConfig | None = None,
+        limits: LimitsConfig | None = None,
     ) -> None:
         platform = Platform("onebot") if Platform is not None else "onebot"
         super().__init__(config, platform)
@@ -252,6 +257,10 @@ class QQPlatform(BasePlatformAdapter):
         self._upload_timeout = upload_timeout
         self._media = media_fetcher
         self._strip = strip_markdown
+        self._features = features or FeaturesConfig()
+        self._limits = limits or LimitsConfig()
+        self._recent: OrderedDict[str, tuple[str, str]] = OrderedDict()
+        self._last_user_id = ""
         self._rpc = RpcClient()
         self._task: asyncio.Task[None] | None = None
         self._worker: asyncio.Task[None] | None = None
@@ -429,6 +438,7 @@ class QQPlatform(BasePlatformAdapter):
             logger.warning("dropping malformed event: %s", exc)
             return
         self._self_id = str(event.self_id or self._self_id)
+        self._remember(event)
 
         media, media_urls, media_types = await self._prepare_media(event)
         reply = await self._reply_context(event)
@@ -461,6 +471,18 @@ class QQPlatform(BasePlatformAdapter):
             timestamp=_event_timestamp(event.time),
         )
         await self.handle_message(message_event)
+
+    def _remember(self, event: Event) -> None:
+        """Keep the recent ``seq -> (message_id, user_id)`` map for forward/poke."""
+        message_id = str(event.message_id or "")
+        if message_id:
+            key = str(event.real_seq if event.real_seq not in (None, "") else message_id)
+            self._recent[key] = (message_id, str(event.user_id or ""))
+            self._recent.move_to_end(key)
+            while len(self._recent) > 2000:
+                self._recent.popitem(last=False)
+        if event.user_id not in (None, ""):
+            self._last_user_id = str(event.user_id)
 
     async def _prepare_media(self, event: Event) -> tuple[list[MediaResult], list[str], list[str]]:
         media_segments = [s for s in segments.event_segments(event) if segments.media_kind(s)]
@@ -537,7 +559,7 @@ class QQPlatform(BasePlatformAdapter):
         """Abstract-method implementation: text is the only content Hermes routes here."""
         text = to_plain(content) if self._strip else content
         if not text:
-            return SendResult(success=False, error="empty message", retryable=False, raw_response={"final": True})
+            return self._failure("empty message")
         chunks = self.truncate_message(text, max_length=self.MAX_MESSAGE_LENGTH) or [text]
         message_segments: list[dict[str, Any]] = [segments.text(chunk) for chunk in chunks]
         if reply_to:
@@ -553,7 +575,18 @@ class QQPlatform(BasePlatformAdapter):
         self, chat_id: str, image_url: str, caption: str | None = None,
         reply_to: str | None = None, metadata: Any = None,
     ) -> SendResult:
-        return await self._send_media(segments.image(image_url), caption, reply_to)
+        url = image_url.strip()
+        if url.startswith(("http://", "https://")):
+            if self._media is None:
+                return self._failure("媒体下载未配置")
+            try:
+                path, _content_type, _size = await self._media.fetch_to_cache(
+                    url, _SUFFIX_BY_KIND["image"],
+                )
+            except MediaError as exc:
+                return self._failure(f"图片下载失败: {exc}")
+            return await self._send_media(segments.image(path), caption, reply_to)
+        return await self._send_media(segments.image(url), caption, reply_to)
 
     async def send_image_file(
         self, chat_id: str, image_path: str, caption: str | None = None,
@@ -574,12 +607,13 @@ class QQPlatform(BasePlatformAdapter):
     ) -> SendResult:
         return await self._send_media(segments.video(video_path), caption, reply_to)
 
+    def _caption(self, caption: str | None) -> list[dict[str, Any]]:
+        return [segments.text(caption)] if caption else []
+
     async def _send_media(
         self, segment: dict[str, Any], caption: str | None, reply_to: str | None,
     ) -> SendResult:
-        message_segments: list[dict[str, Any]] = [segment]
-        if caption:
-            message_segments.append(segments.text(caption))
+        message_segments: list[dict[str, Any]] = [segment, *self._caption(caption)]
         if reply_to:
             message_segments.insert(0, segments.reply(reply_to))
         return await self._send(message_segments)
@@ -591,12 +625,108 @@ class QQPlatform(BasePlatformAdapter):
         name = file_name or file_path.rsplit("/", 1)[-1]
         # Outbound file segments use ``file`` (path/URL) + ``name`` — not the
         # inbound ``file_id`` shape that ``segments.file`` builds.
-        message_segments: list[dict[str, Any]] = [{"type": "file", "data": {"file": file_path, "name": name}}]
-        if caption:
-            message_segments.append(segments.text(caption))
+        message_segments: list[dict[str, Any]] = [
+            {"type": "file", "data": {"file": file_path, "name": name}},
+            *self._caption(caption),
+        ]
         if reply_to:
             message_segments.insert(0, segments.reply(reply_to))
         return await self._send(message_segments)
+
+    async def send_rich(self, items: list[dict[str, Any]]) -> SendResult:
+        """Send one message built from typed items (``chatbot_send_message``).
+
+        Validation errors carry the item index and are raised, not converted to
+        a send failure: the tool reports them to the model so it can fix the
+        call instead of guessing.
+        """
+        message_segments = richtext.build(
+            items,
+            self._features,
+            max_text=self.MAX_MESSAGE_LENGTH,
+            group=self._chat_kind == "group",
+            resolve_seq=self._resolve_seq,
+        )
+        if self._strip:
+            for segment in message_segments:
+                if segment.get("type") == "text":
+                    segment["data"]["text"] = to_plain(segment["data"]["text"])
+            message_segments = [
+                segment for segment in message_segments
+                if segment.get("type") != "text" or segment["data"]["text"]
+            ]
+            if not message_segments:
+                return self._failure("empty message")
+        return await self._send(message_segments)
+
+    def _resolve_seq(self, seq: Any) -> str | None:
+        entry = self._recent.get(str(seq))
+        return entry[0] if entry is not None else None
+
+    async def poke(self, user_id: str | None = None) -> SendResult:
+        """Poke a group member, or the latest speaker when no target is given."""
+        if not self._features.poke:
+            return self._failure("戳一戳已关闭")
+        target = str(user_id or self._last_user_id)
+        if not target:
+            return self._failure("还没有可戳的人")
+        params: dict[str, Any] = {"user_id": target}
+        if self._chat_kind == "group":
+            params["group_id"] = self._chat_numeric
+        return await self._send_action("send_poke", params, self._call_timeout)
+
+    async def send_forward(self, real_seqs: list[int]) -> SendResult:
+        """Forward messages the adapter has seen, referenced by ``#real_seq``."""
+        if not self._features.forward:
+            return self._failure("合并转发已关闭")
+        if not 1 <= len(real_seqs) <= self._limits.forward_max_nodes:
+            return self._failure(f"转发条数必须在 1-{self._limits.forward_max_nodes} 之间")
+        ids: list[str] = []
+        missing: list[str] = []
+        for seq in real_seqs:
+            entry = self._recent.get(str(seq))
+            if entry is None:
+                missing.append(str(seq))
+            else:
+                ids.append(entry[0])
+        if missing:
+            return self._failure(f"找不到消息序号: {', '.join(missing)}")
+        nodes = [segments.node(message_id) for message_id in ids]
+        if self._chat_kind == "group":
+            action, params = "send_group_forward_msg", {"group_id": self._chat_numeric, "messages": nodes}
+        else:
+            action, params = "send_private_forward_msg", {"user_id": self._chat_numeric, "messages": nodes}
+        return await self._send_action(action, params, self._call_timeout)
+
+    async def upload_group_file(self, path: str, name: str | None = None) -> SendResult:
+        """Upload a file into the bound group's file system."""
+        if not self._features.upload:
+            return self._failure("群文件上传已关闭")
+        if self._chat_kind != "group":
+            return self._failure("只有群聊实例可以上传群文件")
+        raw = str(path or "").strip()
+        if not raw:
+            return self._failure("path 不能为空")
+        try:
+            candidate = Path(raw)
+            if not candidate.is_absolute():
+                candidate = Path(self._limits.upload_dir) / candidate
+            resolved = candidate.resolve(strict=True)
+            root = Path(self._limits.upload_dir).resolve()
+        except OSError as exc:
+            return self._failure(f"文件不可读: {exc}")
+        if not resolved.is_relative_to(root):
+            return self._failure(f"只能上传 {self._limits.upload_dir} 下的文件")
+        if not resolved.is_file():
+            return self._failure("不是普通文件")
+        size = resolved.stat().st_size
+        if size > self._limits.upload_max_bytes:
+            return self._failure(f"文件超过 {self._limits.upload_max_bytes} 字节")
+        display = str(name or resolved.name).strip() or resolved.name
+        if any(char in display for char in ("/", "\\")) or len(display) > 100:
+            return self._failure("文件名不合法")
+        params = {"group_id": self._chat_numeric, "file": str(resolved), "name": display}
+        return await self._send_action("upload_group_file", params, self._upload_timeout)
 
     async def get_chat_info(self, chat_id: str) -> dict[str, Any]:
         """Required by BasePlatformAdapter; used for display names."""
@@ -614,23 +744,25 @@ class QQPlatform(BasePlatformAdapter):
         name = str(data.get("nickname") or "") if isinstance(data, dict) else ""
         return {"name": name or chat_id, "type": "dm", "chat_id": chat_id}
 
+    @staticmethod
+    def _failure(error: str) -> SendResult:
+        return SendResult(success=False, error=error, retryable=False, raw_response={"final": True})
+
     async def _send(self, message_segments: list[dict[str, Any]]) -> SendResult:
         # A file segment goes through QQ's upload path and can take minutes.
         has_file = any(segment.get("type") == "file" for segment in message_segments)
         timeout = self._upload_timeout if has_file else self._call_timeout
+        if self._chat_kind == "group":
+            action = "send_group_msg"
+            params: dict[str, Any] = {"group_id": self._chat_numeric, "message": message_segments}
+        else:
+            action = "send_private_msg"
+            params = {"user_id": self._chat_numeric, "message": message_segments}
+        return await self._send_action(action, params, timeout)
+
+    async def _send_action(self, action: str, params: dict[str, Any], timeout: float) -> SendResult:
         try:
-            if self._chat_kind == "group":
-                data = await self.api(
-                    "send_group_msg",
-                    {"group_id": self._chat_numeric, "message": message_segments},
-                    timeout=timeout,
-                )
-            else:
-                data = await self.api(
-                    "send_private_msg",
-                    {"user_id": self._chat_numeric, "message": message_segments},
-                    timeout=timeout,
-                )
+            data = await self.api(action, params, timeout=timeout)
         except RpcError as exc:
             final = not exc.retryable
             return SendResult(
@@ -644,7 +776,7 @@ class QQPlatform(BasePlatformAdapter):
 
         message_id = ""
         if isinstance(data, dict):
-            message_id = str(data.get("message_id") or "")
+            message_id = str(data.get("message_id") or data.get("file_id") or "")
         return SendResult(success=True, message_id=message_id)
 
     def _send_retry_is_final(self, result: SendResult) -> bool:

@@ -7,7 +7,7 @@ napcat  ──反向 ws──▶  chatbot-adapter  ──ws──▶  hermes
 
 - `napcat`：QQ 协议端，只负责登录和收发。
 - `chatbot-adapter`：单会话适配器（[`hermes-chatbot/`](../../../hermes-chatbot)），负责过滤、目标夹、活跃窗口、动作白名单。
-- `hermes`：agent 本体，插件把事件转成 Hermes 的消息，并暴露 17 个 QQ 工具。
+- `hermes`：agent 本体，插件把事件转成 Hermes 的消息，并暴露 21 个 QQ 工具。
 
 ## 镜像与构建
 

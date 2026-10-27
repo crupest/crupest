@@ -123,7 +123,7 @@ pydantic v2 模型，`model_config = ConfigDict(extra="allow")`（保留未知�
 
 ### 4.2 segments.py
 
-纯函数：`text(s)`, `at(qq)`, `image(url_or_path)`, `reply(id)`, `file(...)`；`flatten(segs) -> str`（文本原样 + `[@self]`/`[@qq]` + 媒体占位，日志预览也用它）；`mentions_self(segs, self_id) -> bool`（任意位置的 at）；`COMMAND_RE`（`^\s*\[@self\]\s*(/.*)$`，DOTALL）；`has_content(segs) -> bool`（去掉纯空白文本后是否还剩内容——**at 段算内容**）；`format_sender_prefix(name, qq, seq) -> str`（产出 `[昵称(QQ)#序号]`，沿用旧格式）。
+纯函数：`text(s)`, `at(qq)`, `face(id)`, `dice()`, `rps()`, `image(url_or_path)`, `reply(id)`, `file(...)`, `node(id)`；`flatten(segs) -> str`（文本原样 + `[[@self]]`/`[[@qq]]` + `[[表情:faceText]]`/`[[大表情:faceText]]`/`[[贴表情:faceText]]` + 媒体占位，日志预览也用它）；`mentions_self(segs, self_id) -> bool`（任意位置的 at）；`COMMAND_RE`（`^\s*\[\[@self\]\]\s*(/.*)$`，DOTALL）；`has_content(segs) -> bool`（去掉纯空白文本后是否还剩内容——**at 段算内容**）；`format_sender_prefix(name, qq, seq) -> str`（产出 `[昵称(QQ)#序号]`，沿用旧格式）。
 
 QQ 的 `at.qq` 是字符串，`at.qq == "all"` 表示 @全体，必须显式区分。
 
@@ -132,8 +132,8 @@ QQ 的 `at.qq` 是字符串，`at.qq == "all"` 表示 @全体，必须显式区�
 `render_event(event, self_id, media: list[MediaResult]) -> str | None`，`media` 按媒体段出现顺序给出每个的落盘结果（`path` / `failed` / `none`），由插件在下载后传入；core 不碰 IO。
 
 1. `adapter.internal` 为真：直接返回文本，不加前缀。
-2. 把段扁平化成一段文本：文本段原样（不 strip）、at(self) → `[@self]`、其他 at → `[@qq]`、媒体按序占位。**不加前缀、不处理 `reply`。**
-3. 命令：**先要求原始事件里 `mentions_self` 为真**（否则有人手打 `[@self] /reset` 就能伪造命令），再用扁平文本匹配 `^\s*\[@self\]\s*(/.*)$`（DOTALL）。命中就返回捕获组（不含前导空格），不加前缀、不带引用、不处理媒体。触发条件仍由 adapter 判定。
+2. 把段扁平化成一段文本：文本段原样（不 strip）、at(self) → `[[@self]]`、其他 at → `[[@qq]]`、face → `[[表情:faceText]]` / `[[大表情:faceText]]`（faceType 2）/ `[[贴表情:faceText]]`（faceType 3/4）、`mface` → `[[贴表情:summary]]`、媒体按序占位。**不加前缀、不处理 `reply`。**
+3. 命令：**先要求原始事件里 `mentions_self` 为真**（否则有人手打 `[[@self]] /reset` 就能伪造命令），再用扁平文本匹配 `^\s*\[\[@self\]\]\s*(/.*)$`（DOTALL）。命中就返回捕获组（不含前导空格），不加前缀、不带引用、不处理媒体。触发条件仍由 adapter 判定。
 4. 否则组装：群消息再加 `[昵称(QQ)#<real_seq>] ` 前缀（`real_seq` 缺失时用 `message_id`），私聊不加。**引用不写进正文**，由插件另填 `MessageEvent.reply_to_*`（见 §6.2）。
 5. 扁平文本为空且没有 at：返回 `None`，adapter 按 `empty` 丢弃。
 
@@ -250,6 +250,7 @@ check_target(action, params, binding) -> None | PolicyError
 
 ```
 send_msg send_group_msg send_private_msg
+send_poke
 send_group_forward_msg send_private_forward_msg
 upload_group_file upload_private_file
 set_msg_emoji_like mark_msg_as_read
@@ -272,6 +273,11 @@ set_qq_profile set_qq_avatar set_group_card
 目标夹：`send_group_msg`/`upload_group_file`/`get_group_msg_history` 的 `group_id`、`send_private_msg`/`upload_private_file` 的 `user_id` 必须等于绑定值；缺失则由 `apply_binding` 补齐。`send_msg` 按 `message_type` 分流：`group` 查 `group_id`、`private` 查 `user_id`，`message_type` 缺失或非二者之一直接拒（`100`）。
 
 `set_group_card` 是唯一能改「别人」外观的动作，因此单独夹：`group_id` 必须等于绑定群，`user_id` 强制填自己的 QQ（从入站事件的 `self_id` 学来），显式传别人直接拒；还不知道自己 QQ 时拒绝执行而不是猜。
+
+**段级校验**（`_check_message_segments`）：普通发送只接受 `text`/`at`/`face`/`dice`/`rps`/`image`/`record`/`video`/`file`/`reply`，未知类型直接 `bad_param`；`at`/`face`/`dice`/`rps` 还受 `[features]` 开关限制；段数受 `limits.max_segments_per_message` 限制。`at` 只做格式校验：`at all` 被关闭时、DM 里的 at 返回明确错误，不做静默降级；@ 自己允许，目标 QQ 是否在群里交给 NapCat 判断，adapter 不重复维护成员缓存。`at all` 发送前额外用 `get_group_member_info` 查 bot 自己的 `role`，只有 `owner`/`admin` 才发；非管理员直接 `policy_denied`，角色缓存 60 秒——NapCat 对非管理员 @全体 可能返回超时但消息已发出，提前拒绝可以避免 Hermes 重试导致重复。`face.id` 必须是 0–999 的数字；`dice`/`rps` 的 data 必须为空。`image`/`record`/`video`/`file` 的本地路径必须落在 `limits.upload_dir` 下；`http(s)` 远程 URL 在 adapter 直接拒，由插件用带 SSRF 校验的 `MediaFetcher` 先下载再发本地路径。这样 `MEDIA:` 既能防止读到 adapter 专属文件，也不会让 NapCat 去抓内网地址。
+
+`send_poke` 单独夹：群聊里 `group_id` 钉死，`user_id` 必须是数字 QQ；目标是不是群成员交给 NapCat，adapter 不维护成员缓存。私聊里目标就是绑定的好友。`send_*_forward_msg` 只收 `messages: [{type:"node", data:{id}}]`，`data` 不允许出现 `content`/`user_id`/`nickname`，条数 ≤ `forward_max_nodes`；relay 再核对每个 id 都在 `SeqMap` 里（只转发收到过的消息）。`upload_*` 在 relay 里执行 `check_upload`：`Path.resolve(strict=True)` 后必须在 `limits.upload_dir` 之下、是普通文件、大小 ≤ `upload_max_bytes`，文件名不含路径分隔符。
+
 
 ### 5.5 window.py
 
@@ -350,6 +356,11 @@ ctx.register_platform(
 
 实现 `BasePlatformAdapter` 的发送族（按 0.19 实际签名核对）：`send_text` → `send_msg` + text 段；`send_image`/`send_document` → 图片/文件段。发送前先过 `to_plain()`（可关）把 markdown 削平。长文切分沿用旧插件：`MAX_MESSAGE_LENGTH = 4500`，发送前用 `truncate_message()` 切段按序发（Hermes 只提供这个工具函数，切分是我们自己做的）。
 
+**特殊内容工具**（`chatbot_send_message`）：纯文字仍走 Hermes 的 `adapter.send`；@、QQ 表情、骰子/猜拳、引用走工具，参数是 `segments` 数组（`core/richtext.py` 校验并转成 OneBot 段）。工具返回 JSON（`ok` / `error` / 第几段），模型可据此修正后重试；发送成功后模型只回 `NO_REPLY`，Hermes 的 response filter 会吞掉最终回复，避免第二条消息。Hermes 自带的 `send_message` 与 `MEDIA:` 图片/文件链路不改动，避免多一套发送通道。表情用 QQ 的 `faceText`（`core/faces.py` 从 NapCat `face_config.json` 生成），不把内部 id 暴露给模型。
+
+**出站动作**：`send_poke`、`send_group_forward_msg` / `send_private_forward_msg`、`upload_group_file` 由专用工具触发——它们有目标/参数/副作用，需要结构化参数和独立错误返回。合并转发只接受 `{"type":"node","data":{"id":...}}`，且 id 必须是 adapter 见过的消息（`SeqMap.known`）；不接受 `content`/`user_id`/`nickname` 形式的合成节点，避免伪造发言。群文件上传在 adapter 侧再做一次 `resolve()` + 共享目录前缀 + 大小检查。
+
+
 `api(action, params)` → `{action, params, echo}`，等响应。失败一律转成失败的 `SendResult`，并把 `wording` 一起带出去（例如「发送失败：NapCat 超时」）——不吞掉原因，也不自己重试。
 
 **超时只由 adapter 判定。** 插件的 RPC 等待必须比 adapter 的动作超时长（留 15–20 秒余量；上传类——`upload_*` 和带 `file` 段的 `send_*_msg`——用 `upload_timeout + 40`）。这消掉的只是“两层超时叠加”造成的那部分重叠：插件先超时、网关重发，而 adapter 那边其实还在等。它消不掉超时本身的歧义——见 §11。
@@ -367,10 +378,11 @@ ctx.register_platform(
 
 ### 6.4 工具
 
-只注册十七个：
+只注册二十一个：
 
 - `chatbot_react(real_seq, emoji_id)` → `set_msg_emoji_like`。`emoji_id` 传 QQ 数字编号；也接受
   `ok` / `收到` / `good` / `👌` 这类常见说法，映射到 124。
+- `chatbot_send_message(segments)`：唯一能发 @/face/dice/rps/reply 的入口。`segments` 是类型化数组（`text`/`at`/`face`/`dice`/`rps`/`reply`），由 `core/richtext.py` 校验并转成 OneBot 段；文本合计 ≤4500、最多 20 段；失败返回带段下标的 JSON，模型修正后可重试。发送成功后 SOUL 要求模型只回 `NO_REPLY`（Hermes 0.19 的 `gateway/response_filters.py` 会吞掉最终回复）。`face` 只接受表内 `faceText`；入站表外的新表情仍会显示但可能无法回发。单发一个表情时 QQ 可能放大为大表情/贴表情，这是客户端行为，工具没有大小参数。
 - `chatbot_read_history(count)` → 群用 `get_group_msg_history`、私聊用
   `get_friend_msg_history`；**返回原始 JSON**，和旧版一样由模型自己读。
 - `chatbot_fetch_media(id)` → 拿占位符里的 `id` 依次试 `get_file(file_id)` / `get_image(file)` / `get_record(file, out_format="mp3")`（NapCat 文档里 `get_record` 的 `out_format` 是必填），拿到 http(s) 地址后流式下载到缓存目录，返回本地路径、名称、大小。都拿不到就返回明确的失败原因，不猜。群文件接口（`get_group_file_url`）针对群文件系统，对消息段里收到的文件用不上，故不做回退。
@@ -395,12 +407,15 @@ ctx.register_platform(
 - `chatbot_fetch_group_file(file_id)` → 先取链接再用 MediaFetcher 流式下载到缓存，返回
   `path`/`size`/`url`；下载同样走 SSRF 校验。
 - `chatbot_get_group_file_system_info()` → `get_group_file_system_info`（仅群），容量/数量。
+- `chatbot_poke(user_id?)` → `send_poke`：群聊里可指定任意群成员，不传则戳刚发消息的人；私聊只能戳绑定好友；冷却默认 10 秒。目标是否存在交给 NapCat。
+- `chatbot_send_forward(real_seqs)` → `send_group_forward_msg` / `send_private_forward_msg`：`real_seqs` 用消息前缀里的 `#序号`，插件把 `seq → message_id` 查出来再发；任何一个查不到就整体失败；adapter 只接受 node-by-id，并核对 id 确实是收到过的消息；默认上限 20 条。
+- `chatbot_upload_group_file(path, name?)` → `upload_group_file`：只允许 `/opt/data/share` 下的普通文件，大小上限默认 50 MiB；插件先查一次给出可读错误，adapter 再按同一规则硬校验；群号钉死。
 
 其余能力（发文字/图/文件）由 Hermes 自带的发送链路完成，不再注册 100 个工具。
 
-SOUL 只写行为约定（何时回/不回、`NO_REPLY`、媒体格式与发送路径、隐私确认），不列工具参数细节。
+SOUL 只写行为约定（何时回/不回、`NO_REPLY`、发送纪律、隐私确认），不列平台格式或工具参数；平台格式在 `platform_hint`，工具契约在 tool description。
 
-消息格式（前缀、`[@self]`、`[image1 …]`、`cache=`）写在 SOUL §3.1，这里不重复。
+消息格式（前缀、`[[@self]]`、`[[表情:faceText]]`、`[image1 …]`、`cache=`）写在插件注册的 `platform_hint` 里，这里不重复。
 
 ## 7. 配置
 
@@ -427,6 +442,26 @@ max_message_length = 4500
 [notify]
 poke = false
 member_change = false
+
+[features]
+at = true
+at_all = true
+face = true
+dice = true
+rps = true
+poke = true
+forward = true
+upload = true
+
+[limits]
+poke_cooldown_seconds = 10
+at_all_cooldown_seconds = 0
+forward_cooldown_seconds = 10
+forward_max_nodes = 20
+upload_cooldown_seconds = 60
+upload_max_bytes = 52428800
+upload_dir = "/opt/data/share"
+max_segments_per_message = 100
 
 [logging]
 level = "INFO"
@@ -488,8 +523,14 @@ message_preview_chars = 80
 `core`：pytest，覆盖率 ≥ 95%。
 
 - schema：合法 8 类帧、缺字段、类型错、未知字段保留、非法 JSON、超大 frame。
-- segments：构造/解析、`at all`、嵌套、`flatten`（`[@self]` 渲染）、`mentions_self`、`has_content`（at-only 为真、纯空白为假）；`COMMAND_RE` 的正反例（含 `[@12345] /x` 不命中）。
-- render：群/私聊前缀（`[昵称(QQ)#real_seq]`，缺失退回 `message_id`）、媒体编号顺序、多图、`internal` 不加前缀；at(self) → `[@self]`、其他 at → `[@qq]`、裸 @ 保留为 `[@self]`；消息正文不被 strip；命令正则——`@bot /reset`、`  @bot   /reset`、`@bot\n/reset`、`[reply, at(bot), /reset]` 都返回裸 `/reset`；`/reset`（无 @）、`你好 /reset`、`@别人 /reset`、手打 `[@self] /reset`（事件里没有真 at）都不命中。
+- segments：构造/解析、`at all`、嵌套、`flatten`（`[[@self]]` 渲染）、`mentions_self`、`has_content`（at-only 为真、纯空白为假）；`COMMAND_RE` 的正反例（含 `[[@12345]] /x` 不命中）。
+- richtext：`text`/`at`/`face`/`dice`/`rps`/`reply` 的类型化构造、未知类型、未知 faceText、at 数字/all、私聊 at、文本总长、段数上限、reply 序号缺失、功能关闭。
+- faces：faceText 查表、未知 faceText、id 为数字、faceText 唯一、最新表情存在。
+- ratelimit：首次放行、窗口内拒绝、窗口后放行、未知 key 不限、0 窗口不限、reset。
+- policy 新增：at/face/dice/rps 功能开关、at 格式校验、at_all 开关、face id 校验、dice/rps 空 data、未知段拒绝、段数上限、poke 任意数字 QQ、forward 只认 node.id / 条数上限 / 开关、upload 目录逃逸 / 大小 / 文件名。
+- relay 新增：self_id 记录、poke 冷却、at-all 冷却（默认 0）、forward 未知 id 拒绝、upload 目录外拒绝。
+- 插件出站：`chatbot_send_message` → 段（含 reply 序号解析）、错误 JSON 带下标、forward 用见过的 id、DM 走 private、poke 目标、upload 目录/大小。
+- render：群/私聊前缀（`[昵称(QQ)#real_seq]`，缺失退回 `message_id`）、媒体编号顺序、多图、`internal` 不加前缀；at(self) → `[[@self]]`、其他 at → `[[@qq]]`；face → `[[表情:faceText]]`、`[[大表情:faceText]]`、`[[贴表情:faceText]]`，`mface` → `[[贴表情:summary]]`；消息正文不被 strip；命令正则——`[[@self]] /reset`、`  [[@self]]   /reset`、`[[@self]]\n/reset`、`[reply, at(bot), /reset]` 都返回裸 `/reset`；`/reset`（无 @）、`你好 /reset`、`@别人 /reset`、手打 `[[@self]] /reset`（事件里没有真 at）都不命中。
 - notice：戳自己 / 戳别人 / 自己戳自己、进退群四种文案、缺昵称退化、开关关闭返回 None。
 - text：围栏、标题、粗体、幂等。
 - config：完整、缺 section、类型错、两个目标都缺、sha 稳定性、错误聚合。

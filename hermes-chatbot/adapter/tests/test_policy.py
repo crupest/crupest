@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from adapter_helpers import make_event
 from crupest_chatbot_adapter import policy
-from crupest_chatbot_core.config import NotifyConfig
+from crupest_chatbot_core.config import FeaturesConfig, LimitsConfig, NotifyConfig
 from crupest_chatbot_core.errors import REASON_BAD_PARAM, REASON_POLICY_DENIED, REASON_TARGET_MISMATCH, PolicyError
 
 GROUP = policy.Binding(group_id=123456)
@@ -241,3 +241,246 @@ def test_voice_transcript_param_subset() -> None:
 
 def test_forward_read_has_no_target() -> None:
     assert policy.authorize("get_forward_msg", {"id": "abc"}, GROUP) == {"id": "abc"}
+
+
+def test_at_segment_is_kept() -> None:
+    message = [{"type": "at", "data": {"qq": "42"}}, {"type": "text", "data": {"text": " hi"}}]
+    prepared = policy.authorize("send_group_msg", {"message": message}, GROUP)
+    assert prepared["message"] == message
+
+
+def test_at_self_is_allowed() -> None:
+    message = [{"type": "at", "data": {"qq": "1950119910"}}]
+    prepared = policy.authorize(
+        "send_group_msg", {"message": message}, GROUP,
+        context=policy.Context(self_id="1950119910"),
+    )
+    assert prepared["message"] == message
+
+
+def test_at_all_is_allowed_by_default() -> None:
+    message = [{"type": "at", "data": {"qq": "all"}}]
+    prepared = policy.authorize("send_group_msg", {"message": message}, GROUP)
+    assert prepared["message"] == message
+
+
+def test_at_all_can_be_disabled() -> None:
+    message = [{"type": "at", "data": {"qq": "all"}}]
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize(
+            "send_group_msg", {"message": message}, GROUP,
+            features=FeaturesConfig(at_all=False),
+        )
+    assert excinfo.value.reason == REASON_POLICY_DENIED
+
+
+@pytest.mark.parametrize(
+    ("flag", "segment"),
+    [
+        ("at", {"type": "at", "data": {"qq": "42"}}),
+        ("face", {"type": "face", "data": {"id": "14"}}),
+        ("dice", {"type": "dice", "data": {}}),
+        ("rps", {"type": "rps", "data": {}}),
+    ],
+)
+def test_disabled_segment_types_are_rejected_by_adapter(flag: str, segment: dict) -> None:
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize(
+            "send_group_msg", {"message": [segment]}, GROUP,
+            features=FeaturesConfig(**{flag: False}),
+        )
+    assert excinfo.value.reason == REASON_POLICY_DENIED
+
+
+def test_at_in_dm_is_rejected() -> None:
+    message = [{"type": "at", "data": {"qq": "1"}}]
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize("send_private_msg", {"message": message}, DM)
+    assert excinfo.value.reason == REASON_BAD_PARAM
+
+
+def test_at_non_numeric_is_rejected() -> None:
+    message = [{"type": "at", "data": {"qq": "abc"}}]
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize("send_group_msg", {"message": message}, GROUP)
+    assert excinfo.value.reason == REASON_BAD_PARAM
+
+
+def test_face_segment_valid_and_invalid() -> None:
+    assert policy.authorize(
+        "send_group_msg", {"message": [{"type": "face", "data": {"id": "14"}}]}, GROUP,
+    )["message"] == [{"type": "face", "data": {"id": "14"}}]
+    with pytest.raises(PolicyError):
+        policy.authorize(
+            "send_group_msg", {"message": [{"type": "face", "data": {"id": "x"}}]}, GROUP,
+        )
+
+
+def test_dice_and_rps_segments() -> None:
+    message = [{"type": "dice", "data": {}}, {"type": "rps", "data": {}}]
+    assert policy.authorize("send_group_msg", {"message": message}, GROUP)["message"] == message
+    with pytest.raises(PolicyError):
+        policy.authorize(
+            "send_group_msg", {"message": [{"type": "dice", "data": {"result": 3}}]}, GROUP,
+        )
+
+
+def test_unknown_segment_type_is_rejected() -> None:
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize(
+            "send_group_msg",
+            {"message": [{"type": "json", "data": {"data": "{}"}}]},
+            GROUP,
+        )
+    assert excinfo.value.reason == REASON_BAD_PARAM
+
+
+def test_media_outside_share_dir_is_rejected() -> None:
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize(
+            "send_group_msg",
+            {"message": [{"type": "file", "data": {"file": "/etc/passwd"}}]},
+            GROUP,
+        )
+    assert excinfo.value.reason == REASON_POLICY_DENIED
+
+
+def test_media_url_is_rejected() -> None:
+    message = [{"type": "image", "data": {"file": "https://example.com/a.jpg"}}]
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize("send_group_msg", {"message": message}, GROUP)
+    assert excinfo.value.reason == REASON_POLICY_DENIED
+
+
+def test_unknown_media_scheme_is_rejected() -> None:
+    message = [{"type": "image", "data": {"file": "ftp://example.com/a.jpg"}}]
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize("send_group_msg", {"message": message}, GROUP)
+    assert excinfo.value.reason == REASON_POLICY_DENIED
+
+
+def test_media_inside_share_dir_is_allowed() -> None:
+    message = [{"type": "image", "data": {"file": "/opt/data/share/media/a.jpg"}}]
+    assert policy.authorize("send_group_msg", {"message": message}, GROUP)["message"] == message
+
+
+def test_segment_count_is_capped() -> None:
+    limits = LimitsConfig(max_segments_per_message=2)
+    message = [{"type": "text", "data": {"text": str(index)}} for index in range(3)]
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize("send_group_msg", {"message": message}, GROUP, limits=limits)
+    assert excinfo.value.reason == REASON_BAD_PARAM
+
+
+def test_poke_can_target_any_qq() -> None:
+    prepared = policy.authorize("send_poke", {"user_id": "20002"}, GROUP)
+    assert prepared == {"user_id": "20002", "group_id": 123456}
+
+
+def test_poke_rejects_non_numeric_target() -> None:
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize("send_poke", {"user_id": "not-a-qq"}, GROUP)
+    assert excinfo.value.reason == REASON_BAD_PARAM
+
+
+def test_poke_respects_feature_flag() -> None:
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize(
+            "send_poke", {"user_id": "10001"}, GROUP,
+            features=FeaturesConfig(poke=False),
+        )
+    assert excinfo.value.reason == REASON_POLICY_DENIED
+
+
+def test_poke_in_dm_is_pinned_to_binding() -> None:
+    assert policy.authorize("send_poke", {}, DM) == {"user_id": 10001}
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize("send_poke", {"group_id": 123456}, DM)
+    assert excinfo.value.reason == REASON_TARGET_MISMATCH
+
+
+def test_forward_accepts_node_ids_only() -> None:
+    messages = [
+        {"type": "node", "data": {"id": "4512"}},
+        {"type": "node", "data": {"id": "4513"}},
+    ]
+    prepared = policy.authorize("send_group_forward_msg", {"messages": messages}, GROUP)
+    assert prepared["group_id"] == 123456
+    assert prepared["messages"] == messages
+
+
+@pytest.mark.parametrize(
+    "node",
+    [
+        {"type": "node", "data": {"id": "4512", "content": []}},
+        {"type": "node", "data": {"user_id": "1", "nickname": "x", "content": []}},
+        {"type": "node", "data": {"id": "4512"}, "extra": 1},
+        {"type": "text", "data": {"text": "x"}},
+    ],
+)
+def test_forward_rejects_synthesised_nodes(node) -> None:
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize("send_group_forward_msg", {"messages": [node]}, GROUP)
+    assert excinfo.value.reason == REASON_BAD_PARAM
+
+
+def test_forward_node_count_is_capped() -> None:
+    limits = LimitsConfig(forward_max_nodes=2)
+    messages = [{"type": "node", "data": {"id": str(index)}} for index in range(3)]
+    with pytest.raises(PolicyError):
+        policy.authorize("send_group_forward_msg", {"messages": messages}, GROUP, limits=limits)
+
+
+def test_forward_respects_feature_flag() -> None:
+    with pytest.raises(PolicyError) as excinfo:
+        policy.authorize(
+            "send_group_forward_msg",
+            {"messages": [{"type": "node", "data": {"id": "1"}}]},
+            GROUP,
+            features=FeaturesConfig(forward=False),
+        )
+    assert excinfo.value.reason == REASON_POLICY_DENIED
+
+
+def test_upload_path_is_confined_to_share_dir(tmp_path) -> None:
+    root = tmp_path / "share"
+    root.mkdir()
+    inside = root / "a.txt"
+    inside.write_text("x", encoding="utf-8")
+    outside = tmp_path / "b.txt"
+    outside.write_text("x", encoding="utf-8")
+    limits = LimitsConfig(upload_dir=str(root))
+
+    prepared = {"file": str(inside), "name": "a.txt"}
+    policy.check_upload("upload_group_file", prepared, limits)
+    assert prepared["file"] == str(inside)
+
+    with pytest.raises(PolicyError) as excinfo:
+        policy.check_upload("upload_group_file", {"file": str(outside), "name": "b.txt"}, limits)
+    assert excinfo.value.reason == REASON_POLICY_DENIED
+
+
+def test_upload_relative_path_is_resolved_against_share_dir(tmp_path) -> None:
+    root = tmp_path / "share"
+    root.mkdir()
+    (root / "a.txt").write_text("x", encoding="utf-8")
+    limits = LimitsConfig(upload_dir=str(root))
+    prepared = {"file": "a.txt"}
+    policy.check_upload("upload_group_file", prepared, limits)
+    assert prepared["file"] == str((root / "a.txt").resolve())
+
+
+def test_upload_size_is_capped(tmp_path) -> None:
+    target = tmp_path / "big.bin"
+    target.write_bytes(b"x" * 10)
+    limits = LimitsConfig(upload_dir=str(tmp_path), upload_max_bytes=5)
+    with pytest.raises(PolicyError):
+        policy.check_upload("upload_group_file", {"file": str(target), "name": "big.bin"}, limits)
+
+
+def test_upload_name_cannot_escape(tmp_path) -> None:
+    target = tmp_path / "a.txt"
+    target.write_text("x", encoding="utf-8")
+    limits = LimitsConfig(upload_dir=str(tmp_path))
+    with pytest.raises(PolicyError):
+        policy.check_upload("upload_group_file", {"file": str(target), "name": "../x"}, limits)

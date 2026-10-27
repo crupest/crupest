@@ -12,6 +12,7 @@ from collections.abc import Callable
 from typing import Any
 
 from crupest_chatbot_core.errors import ChatbotError
+from crupest_chatbot_core.richtext import RichTextError
 
 from .media import MediaError, MediaFetcher
 
@@ -28,9 +29,91 @@ TOOL_SPECS: list[dict[str, Any]] = [
             "type": "object",
             "properties": {
                 "real_seq": {"type": "integer", "description": "消息前缀 # 后面的群内序号"},
-                "emoji_id": {"type": "string", "description": "QQ 表情编号，例如 124"},
+                "emoji_id": {"type": "string", "description": "QQ 表情编号，例如 124；不确定可传 ok（映射到 👌）"},
             },
             "required": ["real_seq", "emoji_id"],
+        },
+    },
+    {
+        "name": "chatbot_send_message",
+        "description": (
+            "发送一条带特殊内容的消息：@人、QQ 表情、骰子/猜拳、引用。\n"
+            "segments 按顺序拼成一条消息，最多 20 段，文本合计不超过 4500 字。段类型：\n"
+            "- text：text 填文本；\n"
+            "- at：qq 填群成员 QQ 号或 all；all 需要机器人是群管理员，且请谨慎使用；\n"
+            "- face：name 填 QQ faceText，例如 微笑、得意、敲敲、汪汪；\n"
+            "- dice / rps：无字段，发骰子 / 猜拳；\n"
+            "- reply：seq 填消息前缀 # 后的序号（私聊用消息 ID），且必须放在第一段。\n"
+            "face 的 name 用 faceText（不带 /）；QQ 可能把单发的一个表情显示为大表情，不能指定大小。\n"
+            "发送成功后本轮只回复 NO_REPLY，不要再输出正文。"
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "segments": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "description": "按顺序发送的消息段；文本合计不超过 4500 字",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["text", "at", "face", "dice", "rps", "reply"],
+                            },
+                            "text": {"type": "string", "description": "text 段：文本内容"},
+                            "qq": {"type": "string", "description": "at 段：QQ 号或 all"},
+                            "name": {"type": "string", "description": "face 段：QQ faceText，如 微笑"},
+                            "seq": {"type": "integer", "description": "reply 段：消息前缀 # 后的序号"},
+                        },
+                        "required": ["type"],
+                    },
+                },
+            },
+            "required": ["segments"],
+        },
+    },
+    {
+        "name": "chatbot_poke",
+        "description": (
+            "戳一戳群成员。不传 user_id 就戳刚发消息的人；群聊里可以指定任意群成员，"
+            "私聊只能戳绑定的好友。谨慎使用，别连续戳、别刷屏。"
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "user_id": {"type": "integer", "description": "要戳的 QQ 号；不传则戳刚发消息的人"},
+            },
+        },
+    },
+    {
+        "name": "chatbot_send_forward",
+        "description": "把当前会话里的几条消息合并转发。real_seqs 是消息前缀里的 #数字（私聊用消息 ID），一次最多 20 条。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "real_seqs": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "description": "要转发的消息序号列表",
+                },
+            },
+            "required": ["real_seqs"],
+        },
+    },
+    {
+        "name": "chatbot_upload_group_file",
+        "description": "把本机共享目录（/opt/data/share）里的文件上传到本群群文件。path 必须是该目录下的文件。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "文件路径（相对或绝对，最终必须在共享目录内）"},
+                "name": {"type": "string", "description": "显示的文件名，默认用原文件名"},
+            },
+            "required": ["path"],
         },
     },
     {
@@ -488,10 +571,104 @@ async def fetch_media(platform: Any, args: dict[str, Any], fetcher: MediaFetcher
     )
 
 
+def _json(payload: dict[str, Any]) -> str:
+    return json.dumps(payload, ensure_ascii=False)
+
+
+async def send_message(platform: Any, args: dict[str, Any]) -> str:
+    items = args.get("segments")
+    if not isinstance(items, list) or not items:
+        return _json({
+            "ok": False,
+            "error": "segments 必须是非空数组",
+            "hint": "按工具 schema 传 [{type, ...}]；纯文字请直接回复",
+        })
+    try:
+        result = await platform.send_rich(items)
+    except RichTextError as exc:
+        return _json({
+            "ok": False,
+            "error": str(exc),
+            "hint": "按提示修正 segments 后重试；纯文字请直接回复",
+        })
+    except ChatbotError as exc:
+        return _json({
+            "ok": False,
+            "error": str(exc),
+            "hint": "消息未发送；修正后重试，或改用纯文本回复",
+        })
+    if result.success:
+        return _json({"ok": True, "message_id": result.message_id or ""})
+    return _json({
+        "ok": False,
+        "error": result.error or "发送失败",
+        "hint": "消息未发送；修正后重试，或改用纯文本回复",
+    })
+
+
+async def poke(platform: Any, args: dict[str, Any]) -> str:
+    raw = args.get("user_id")
+    target: str | None = None
+    if raw not in (None, ""):
+        if isinstance(raw, bool) or not isinstance(raw, (int, str)):
+            return _error("user_id 必须是 QQ 号")
+        target = str(raw).strip()
+        if not target.isdigit():
+            return _error("user_id 必须是 QQ 号")
+    try:
+        result = await platform.poke(target)
+    except ChatbotError as exc:
+        return _error(exc)
+    return "ok" if result.success else _error(result.error or "戳一戳失败")
+
+
+async def send_forward(platform: Any, args: dict[str, Any]) -> str:
+    raw = args.get("real_seqs")
+    if not isinstance(raw, list) or not raw:
+        return _error("real_seqs 不能为空")
+    seqs: list[int] = []
+    for value in raw:
+        if isinstance(value, bool):
+            return _error(f"real_seqs 必须是整数: {value!r}")
+        if isinstance(value, str) and value.strip().isdigit():
+            seqs.append(int(value.strip()))
+            continue
+        if not isinstance(value, int):
+            return _error(f"real_seqs 必须是整数: {value!r}")
+        seqs.append(value)
+    try:
+        result = await platform.send_forward(seqs)
+    except ChatbotError as exc:
+        return _error(exc)
+    return "ok" if result.success else _error(result.error or "转发失败")
+
+
+async def upload_group_file(platform: Any, args: dict[str, Any]) -> str:
+    path = str(args.get("path") or "").strip()
+    if not path:
+        return _error("path 不能为空")
+    name = args.get("name")
+    if name is not None and not isinstance(name, str):
+        return _error("name 必须是字符串")
+    try:
+        result = await platform.upload_group_file(path, name)
+    except ChatbotError as exc:
+        return _error(exc)
+    return "ok" if result.success else _error(result.error or "上传失败")
+
+
 async def dispatch(name: str, platform: Any, args: dict[str, Any]) -> str:
     """Run one tool by name against *platform*."""
     if name == "chatbot_react":
         return await react(platform, args)
+    if name == "chatbot_send_message":
+        return await send_message(platform, args)
+    if name == "chatbot_poke":
+        return await poke(platform, args)
+    if name == "chatbot_send_forward":
+        return await send_forward(platform, args)
+    if name == "chatbot_upload_group_file":
+        return await upload_group_file(platform, args)
     if name == "chatbot_read_history":
         return await read_history(platform, args)
     if name == "chatbot_fetch_media":

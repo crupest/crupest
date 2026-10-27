@@ -34,6 +34,31 @@ cache_dir = "/opt/data/share/media"
 poke = false
 member_change = false
 
+# What the model may send. Disable a feature to make the tool reject that
+# segment type (plain text replies are never affected).
+[features]
+at = true
+# @全体 is enabled but should be used sparingly; SOUL asks the model to be careful.
+at_all = true
+face = true
+dice = true
+rps = true
+poke = true
+forward = true
+upload = true
+
+[limits]
+poke_cooldown_seconds = 10
+at_all_cooldown_seconds = 0
+forward_cooldown_seconds = 10
+forward_max_nodes = 20
+upload_cooldown_seconds = 60
+# 50 MiB: group files are persistent and visible to the whole group.
+upload_max_bytes = 52428800
+# Must be the shared volume mount; both Hermes and NapCat see this path.
+upload_dir = "/opt/data/share"
+max_segments_per_message = 100
+
 [logging]
 level = "INFO"
 message_preview_chars = 80

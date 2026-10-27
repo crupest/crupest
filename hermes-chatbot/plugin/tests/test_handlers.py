@@ -91,7 +91,7 @@ async def test_handle_message_builds_event() -> None:
 
     assert len(captured) == 1
     event = captured[0]
-    assert event.text == "[张三(10001)#7] [@self] 看看这个"
+    assert event.text == "[张三(10001)#7] [[@self]] 看看这个"
     assert event.source.chat_id == "group:123"
     assert event.reply_to_message_id == "5"
     assert event.reply_to_text == "[李四(2)#3]: 在"

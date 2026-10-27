@@ -46,6 +46,8 @@ class AdapterService:
             version=__version__,
             config_sha=config.sha,
             self_id_provider=lambda: self._self_id,
+            features=config.features,
+            limits=config.limits,
         )
 
     @property

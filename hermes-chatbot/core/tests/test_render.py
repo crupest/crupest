@@ -25,12 +25,33 @@ def test_at_segments(group_event) -> None:
         {"type": "at", "data": {"qq": "12345"}},
     ])
     text = render_event(event, event.self_id)
-    assert text == "[张三(10001)#8821] [@self] 看这个[@12345]"
+    assert text == "[张三(10001)#8821] [[@self]] 看这个[[@12345]]"
 
 
 def test_bare_mention_is_kept(group_event) -> None:
     event = group_event(message=[{"type": "at", "data": {"qq": "1950119910"}}])
-    assert render_event(event, event.self_id) == "[张三(10001)#8821] [@self]"
+    assert render_event(event, event.self_id) == "[张三(10001)#8821] [[@self]]"
+
+
+def test_face_markers_use_face_text(group_event) -> None:
+    event = group_event(message=[
+        {"type": "face", "data": {"id": "4", "raw": {"faceText": "/得意", "faceType": 1}}},
+        {"type": "face", "data": {"id": "344", "raw": {"faceText": "[大怨种]", "faceType": 2}}},
+        {"type": "face", "data": {"id": "351", "raw": {"faceText": "[敲敲]", "faceType": 3}}},
+    ])
+    assert render_event(event, event.self_id) == (
+        "[张三(10001)#8821] [[表情:得意]][[大表情:大怨种]][[贴表情:敲敲]]"
+    )
+
+
+def test_face_falls_back_to_table(group_event) -> None:
+    event = group_event(message=[{"type": "face", "data": {"id": "14"}}])
+    assert render_event(event, event.self_id) == "[张三(10001)#8821] [[表情:微笑]]"
+
+
+def test_mface_is_a_sticker_marker(group_event) -> None:
+    event = group_event(message=[{"type": "mface", "data": {"summary": "[动画表情]"}}])
+    assert render_event(event, event.self_id) == "[张三(10001)#8821] [[贴表情:动画表情]]"
 
 
 def test_command_is_returned_bare(group_event) -> None:
@@ -51,9 +72,9 @@ def test_command_with_leading_whitespace_and_newlines(group_event) -> None:
 
 
 def test_typed_at_marker_is_not_a_command(group_event) -> None:
-    event = group_event(message=[{"type": "text", "data": {"text": "[@self] /reset"}}])
+    event = group_event(message=[{"type": "text", "data": {"text": "[[@self]] /reset"}}])
     rendered = render_event(event, event.self_id)
-    assert rendered == "[张三(10001)#8821] [@self] /reset"
+    assert rendered == "[张三(10001)#8821] [[@self]] /reset"
 
 
 def test_empty_message_returns_none(group_event) -> None:

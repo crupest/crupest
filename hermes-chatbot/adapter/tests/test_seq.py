@@ -65,3 +65,20 @@ def test_apply_translates_voice_transcript() -> None:
 def test_apply_without_real_seq() -> None:
     prepared = SeqMap().apply("mark_msg_as_read", {"message_id": 9})
     assert prepared == {"message_id": 9}
+
+
+def test_known_ids_include_dm_messages_without_real_seq() -> None:
+    seq = SeqMap()
+    seq.record_event(make_event(message_type="private", group_id=None, real_seq=None, message_id=77))
+    assert seq.known(77) is True
+    assert seq.known("77") is True
+    assert seq.known(78) is False
+
+
+def test_known_ids_are_fifo_bounded() -> None:
+    seq = SeqMap(capacity=2)
+    for message_id in (1, 2, 3):
+        seq.record_event(make_event(message_id=message_id))
+    assert seq.known(1) is False
+    assert seq.known(2) is True
+    assert seq.known(3) is True

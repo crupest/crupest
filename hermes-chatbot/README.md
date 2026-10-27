@@ -11,7 +11,7 @@ Hermes 侧的事件/媒体/发送结果转换。
 ```
 core/     共享协议（pydantic 模型）、渲染、通知合成、配置解析
 adapter/  反向 WS 接 NapCat + WS 服务端接插件；过滤、目标夹、窗口、seq 映射
-plugin/   Hermes 平台插件：事件 → MessageEvent、媒体下载、17 个 QQ 工具
+plugin/   Hermes 平台插件：事件 → MessageEvent、媒体下载、21 个 QQ 工具
 config/   配置样例
 ```
 
@@ -90,6 +90,15 @@ NapCat 侧加一条反向 WS（`websocketClients`），URL 指向
 - 出站：动作白名单 + 目标夹（`group_id`/`user_id` 只能指向绑定会话）。`message`
   必须是数组段；字符串（CQ 码形态）在 adapter 直接拒绝。改写类动作只接受工具暴露的
   参数子集，多出来的字段（如 emoji 的 `message_id`/`set`、profile 的 `sex`）一律拒绝。
+- 特殊内容：纯文字直接回复；@、QQ 表情、骰子/猜拳、引用调用 `chatbot_send_message`
+  （`segments` 数组），发送成功后只回复 `NO_REPLY`。`at:all` 只有 bot 是群管理员时才发，
+  且 SOUL 要求谨慎使用；非法 `at` 会返回明确错误，不静默丢弃。表情用 QQ `faceText`，
+  由 `core/faces.py` 从 NapCat `face_config.json` 生成；发送只接受表内 faceText，
+  收到表外的新表情仍会显示，但可能无法回发。单发一个表情时 QQ 可能把它放大成
+  “大表情/贴表情”，这是客户端行为，不能指定大小。
+- 动作：`chatbot_poke` 可戳任意群成员（私聊只能戳绑定好友），但 SOUL 要求谨慎使用；`chatbot_send_forward` 只转发 adapter 见过的
+  消息（`node.id`，不接受合成内容）；`chatbot_upload_group_file` 只接受 `/opt/data/share`
+  下的文件。poke/转发/上传各有冷却；`@全体` 默认不限，可在 `[limits]` 配。
 - 断线提示：插件 WS 断开后等 30 秒仍未重连，adapter 会以 bot 身份给绑定会话发一条
   英文提示（10 分钟冷却）。
 - 时间戳：`gateway.message_timestamps.enabled` 打开后，用户消息前会带
@@ -104,6 +113,7 @@ NapCat 侧加一条反向 WS（`websocketClients`），URL 指向
   `chatbot_get_group_info`、`chatbot_get_user_info`、`chatbot_get_login_info`、
   `chatbot_transcribe_voice`、`chatbot_read_forward`、`chatbot_list_group_files`、
   `chatbot_get_group_file_url`、`chatbot_fetch_group_file`、`chatbot_get_group_file_system_info`。
+  写操作还有 `chatbot_send_message`、`chatbot_poke`、`chatbot_send_forward`、`chatbot_upload_group_file`。
 
 ## 已知取舍
 

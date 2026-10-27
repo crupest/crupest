@@ -1,16 +1,17 @@
 """Turn an inbound OneBot event into the text the model actually reads.
 
-Only two things are special-cased: ``@bot /command`` (returned bare so Hermes
-can recognise it) and synthetic notices (already rendered by ``notice.py``).
-Everything else is passed through: text is not stripped, ``at`` segments
-become ``[@self]`` / ``[@12345]``, media become placeholders that say exactly
-what happened to the download.
+Only two things are special-cased: ``[[@self]] /command`` (returned bare so
+Hermes can recognise it) and synthetic notices (already rendered by
+``notice.py``).  Everything else is passed through: text is not stripped,
+``at`` becomes ``[[@self]]`` / ``[[@12345]]``, faces become
+``[[表情:faceText]]`` / ``[[大表情:faceText]]`` / ``[[贴表情:faceText]]``,
+media become placeholders that say exactly what happened to the download.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from . import segments
+from . import faces, segments
 from .schema import Event
 
 
@@ -51,6 +52,45 @@ def _placeholder(kind: str, index: int, segment: dict, result: MediaResult) -> s
     return f"[{kind}{index} id={identifier} cache={cache}]"
 
 
+def _clean_face_text(value: object) -> str:
+    """Normalize QQ faceText for the marker: no leading slash, no wrapping []."""
+    text = str(value or "").strip()
+    if text.startswith("/"):
+        text = text[1:]
+    if len(text) >= 2 and text.startswith("[") and text.endswith("]"):
+        text = text[1:-1]
+    return text.strip()
+
+
+def _face_marker(segment: dict) -> str:
+    """Render a QQ face/sticker using its normalized ``faceText``, not its id.
+
+    NapCat carries the client text in ``data.raw.faceText``; ``faceType`` says
+    whether it is a classic face, a large face, or an animated sticker.  The
+    table is only a fallback for older payloads that omit ``faceText``.
+    """
+    data = segments.data_of(segment)
+    raw = data.get("raw")
+    raw = raw if isinstance(raw, dict) else {}
+    text = _clean_face_text(raw.get("faceText") or data.get("faceText"))
+    face_id = data.get("id")
+    if not text:
+        text = faces.face_text(face_id) or ""
+    try:
+        face_type = int(raw.get("faceType", data.get("faceType")) or 0)
+    except (TypeError, ValueError):
+        face_type = 0
+    if face_type in (3, 4):
+        label = "贴表情"
+    elif face_type == 2:
+        label = "大表情"
+    else:
+        label = "表情"
+    if text:
+        return f"[[{label}:{text}]]"
+    return f"[[{label}:id={face_id}]]" if face_id not in (None, "") else f"[[{label}]]"
+
+
 def flatten(
     message_segments: list[dict], self_id: object, media: tuple[MediaResult, ...] | list[MediaResult] = (),
 ) -> str:
@@ -63,7 +103,13 @@ def flatten(
             parts.append(str(segments.data_of(segment).get("text", "")))
         elif kind == "at":
             target = str(segments.data_of(segment).get("qq", ""))
-            parts.append("[@self]" if target == str(self_id) else f"[@{target}]")
+            parts.append("[[@self]]" if target == str(self_id) else f"[[@{target}]]")
+        elif kind == "face":
+            parts.append(_face_marker(segment))
+        elif kind == "mface":
+            data = segments.data_of(segment)
+            summary = _clean_face_text(data.get("summary") or data.get("faceText"))
+            parts.append(f"[[贴表情:{summary}]]" if summary else "[[贴表情]]")
         elif kind == "reply":
             continue
         elif kind == "forward":

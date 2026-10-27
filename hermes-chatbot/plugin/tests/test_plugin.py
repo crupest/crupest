@@ -70,13 +70,17 @@ def test_register_declares_all_tools(config_path: Path) -> None:
         "chatbot_get_user_info",
         "chatbot_list_group_files",
         "chatbot_list_group_members",
+        "chatbot_poke",
         "chatbot_react",
         "chatbot_read_forward",
         "chatbot_read_history",
+        "chatbot_send_forward",
+        "chatbot_send_message",
         "chatbot_set_avatar",
         "chatbot_set_group_card",
         "chatbot_set_nickname",
         "chatbot_transcribe_voice",
+        "chatbot_upload_group_file",
     ]
     for tool in ctx.tools:
         assert callable(tool["handler"])

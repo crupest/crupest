@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bookworm
+FROM python:3.13-slim-bookworm
 
 ARG APT_MIRROR=""
 
@@ -54,7 +54,7 @@ RUN mkdir -p /opt/chatbot-plugin \
     && cp -a /src/chatbot-plugin/src/crupest_chatbot_plugin/. /opt/chatbot-plugin/
 
 # Bundled web provider: DeepSeek Search & Fetch (same DEEPSEEK_API_KEY).
-COPY services/docker/hermes/web-plugin/crupest_deepseek ${VENV}/lib/python3.11/site-packages/plugins/web/crupest_deepseek
+COPY services/docker/hermes/web-plugin/crupest_deepseek ${VENV}/lib/python3.13/site-packages/plugins/web/crupest_deepseek
 
 WORKDIR /opt/hermes
 COPY services/docker/hermes/entrypoint.sh /usr/local/bin/entrypoint.sh

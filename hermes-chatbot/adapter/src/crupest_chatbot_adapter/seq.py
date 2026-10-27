@@ -4,6 +4,10 @@ The model sees ``#real_seq`` in the sender prefix (the old behaviour), but
 NapCat's APIs want ``message_id``.  One conversation means one small FIFO,
 populated from inbound events only — the bot's own messages never carry a
 ``real_seq``.
+
+Every inbound ``message_id`` is also remembered on its own, so a forward can be
+checked against messages the adapter actually saw (and never against a node the
+caller made up).
 """
 from __future__ import annotations
 
@@ -20,6 +24,7 @@ class SeqMap:
     def __init__(self, capacity: int = 2000) -> None:
         self._capacity = max(1, capacity)
         self._entries: OrderedDict[str, str] = OrderedDict()
+        self._ids: OrderedDict[str, None] = OrderedDict()
 
     def record(self, real_seq: Any, message_id: Any) -> None:
         if real_seq in (None, "") or message_id in (None, ""):
@@ -30,13 +35,28 @@ class SeqMap:
         while len(self._entries) > self._capacity:
             self._entries.popitem(last=False)
 
+    def record_id(self, message_id: Any) -> None:
+        """Remember an inbound message id even when there is no ``real_seq`` (DMs)."""
+        if message_id in (None, ""):
+            return
+        key = str(message_id)
+        self._ids[key] = None
+        self._ids.move_to_end(key)
+        while len(self._ids) > self._capacity:
+            self._ids.popitem(last=False)
+
     def record_event(self, event: Event) -> None:
         self.record(event.real_seq, event.message_id)
+        self.record_id(event.message_id)
 
     def resolve(self, real_seq: Any) -> str | None:
         if real_seq in (None, ""):
             return None
         return self._entries.get(str(real_seq))
+
+    def known(self, message_id: Any) -> bool:
+        """True when *message_id* arrived as an inbound message."""
+        return str(message_id or "") in self._ids
 
     def apply(self, action: str, params: dict[str, Any]) -> dict[str, Any]:
         """Replace ``real_seq`` with ``message_id`` for the actions that need it."""

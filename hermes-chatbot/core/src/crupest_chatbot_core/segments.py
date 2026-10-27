@@ -10,10 +10,10 @@ from typing import Any
 
 from .schema import Event
 
-#: ``@bot /command`` — the bot mention must be real (segment level) *and* lead
-#: the flattened text.  Erring on the side of "no command" is deliberate:
-#: otherwise typing ``[@self] /reset`` by hand would reset the session.
-COMMAND_RE = re.compile(r"^\s*\[@self\]\s*(/.*)$", re.DOTALL)
+#: ``[[@self]] /command`` — the bot mention must be real (segment level) *and*
+#: lead the flattened text.  Erring on the side of "no command" is deliberate:
+#: otherwise typing ``[[@self]] /reset`` by hand would reset the session.
+COMMAND_RE = re.compile(r"^\s*\[\[@self\]\]\s*(/.*)$", re.DOTALL)
 
 MEDIA_SEGMENTS = {"image": "image", "record": "voice", "video": "video", "file": "file"}
 
@@ -47,6 +47,27 @@ def reply(message_id: str | int) -> dict[str, Any]:
 
 def file(file_id: str = "", name: str = "") -> dict[str, Any]:
     return {"type": "file", "data": {"file_id": file_id, "file": name, "file_name": name}}
+
+
+def face(face_id: str | int) -> dict[str, Any]:
+    return {"type": "face", "data": {"id": str(face_id)}}
+
+
+def dice() -> dict[str, Any]:
+    return {"type": "dice", "data": {}}
+
+
+def rps() -> dict[str, Any]:
+    return {"type": "rps", "data": {}}
+
+
+def node(message_id: str | int) -> dict[str, Any]:
+    """A forward node that references an existing message by id.
+
+    Deliberately no ``content``/``user_id``/``nickname`` form: letting a caller
+    synthesise a node would allow forging a message the bot never saw.
+    """
+    return {"type": "node", "data": {"id": str(message_id)}}
 
 
 def event_segments(event: Event) -> list[dict[str, Any]]:

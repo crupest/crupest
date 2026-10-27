@@ -52,6 +52,32 @@ class NotifyConfig:
 
 
 @dataclass(frozen=True)
+class FeaturesConfig:
+    """What the model is allowed to put into a message."""
+
+    at: bool = True
+    at_all: bool = True
+    face: bool = True
+    dice: bool = True
+    rps: bool = True
+    poke: bool = True
+    forward: bool = True
+    upload: bool = True
+
+
+@dataclass(frozen=True)
+class LimitsConfig:
+    poke_cooldown_seconds: float = 10.0
+    at_all_cooldown_seconds: float = 0.0
+    forward_cooldown_seconds: float = 10.0
+    forward_max_nodes: int = 20
+    upload_cooldown_seconds: float = 60.0
+    upload_max_bytes: int = 50 * 1024 * 1024
+    upload_dir: str = "/opt/data/share"
+    max_segments_per_message: int = 100
+
+
+@dataclass(frozen=True)
 class LoggingConfig:
     level: str = "INFO"
     message_preview_chars: int = 80
@@ -63,6 +89,8 @@ class Config:
     adapter: AdapterConfig = field(default_factory=AdapterConfig)
     plugin: PluginConfig = field(default_factory=PluginConfig)
     notify: NotifyConfig = field(default_factory=NotifyConfig)
+    features: FeaturesConfig = field(default_factory=FeaturesConfig)
+    limits: LimitsConfig = field(default_factory=LimitsConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     sha: str = ""
 
@@ -179,6 +207,48 @@ def _build(data: dict[str, Any], *, require_chat: bool = True) -> Config:
         member_change=_as_bool(notify_raw.get("member_change"), "notify.member_change", errors, False),
     )
 
+    features_raw = _section(data, "features", errors)
+    features = FeaturesConfig(
+        at=_as_bool(features_raw.get("at"), "features.at", errors, True),
+        at_all=_as_bool(features_raw.get("at_all"), "features.at_all", errors, True),
+        face=_as_bool(features_raw.get("face"), "features.face", errors, True),
+        dice=_as_bool(features_raw.get("dice"), "features.dice", errors, True),
+        rps=_as_bool(features_raw.get("rps"), "features.rps", errors, True),
+        poke=_as_bool(features_raw.get("poke"), "features.poke", errors, True),
+        forward=_as_bool(features_raw.get("forward"), "features.forward", errors, True),
+        upload=_as_bool(features_raw.get("upload"), "features.upload", errors, True),
+    )
+
+    limits_raw = _section(data, "limits", errors)
+    limits = LimitsConfig(
+        poke_cooldown_seconds=_as_float(
+            limits_raw.get("poke_cooldown_seconds"), "limits.poke_cooldown_seconds", errors, 10.0, minimum=0.0,
+        ),
+        at_all_cooldown_seconds=_as_float(
+            limits_raw.get("at_all_cooldown_seconds"),
+            "limits.at_all_cooldown_seconds", errors, 0.0, minimum=0.0,
+        ),
+        forward_cooldown_seconds=_as_float(
+            limits_raw.get("forward_cooldown_seconds"),
+            "limits.forward_cooldown_seconds", errors, 10.0, minimum=0.0,
+        ),
+        forward_max_nodes=_as_int(
+            limits_raw.get("forward_max_nodes"), "limits.forward_max_nodes", errors, 20, minimum=1,
+        ),
+        upload_cooldown_seconds=_as_float(
+            limits_raw.get("upload_cooldown_seconds"),
+            "limits.upload_cooldown_seconds", errors, 60.0, minimum=0.0,
+        ),
+        upload_max_bytes=_as_int(
+            limits_raw.get("upload_max_bytes"), "limits.upload_max_bytes", errors, 50 * 1024 * 1024, minimum=1,
+        ),
+        upload_dir=_as_str(limits_raw.get("upload_dir"), "limits.upload_dir", errors, "/opt/data/share"),
+        max_segments_per_message=_as_int(
+            limits_raw.get("max_segments_per_message"),
+            "limits.max_segments_per_message", errors, 100, minimum=1,
+        ),
+    )
+
     logging_raw = _section(data, "logging", errors)
     level = _as_str(logging_raw.get("level"), "logging.level", errors, "INFO").upper()
     if level not in _LOG_LEVELS:
@@ -192,7 +262,10 @@ def _build(data: dict[str, Any], *, require_chat: bool = True) -> Config:
 
     if errors:
         raise ConfigError(errors)
-    return Config(chat=chat, adapter=adapter, plugin=plugin, notify=notify, logging=log_cfg)
+    return Config(
+        chat=chat, adapter=adapter, plugin=plugin, notify=notify,
+        features=features, limits=limits, logging=log_cfg,
+    )
 
 
 def _env_id(name: str) -> int | str | None:
@@ -249,6 +322,8 @@ def load_config(path: str | Path | None = None, *, require_chat: bool = True) ->
         adapter=config.adapter,
         plugin=config.plugin,
         notify=config.notify,
+        features=config.features,
+        limits=config.limits,
         logging=config.logging,
         sha=sha,
     )

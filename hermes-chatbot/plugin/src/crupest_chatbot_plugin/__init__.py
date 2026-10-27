@@ -76,6 +76,8 @@ def build_platform(config: Any = None) -> QQPlatform:
         upload_timeout=shared.adapter.upload_timeout_seconds + margin * 2,
         media_fetcher=fetcher,
         strip_markdown=shared.plugin.strip_markdown,
+        features=shared.features,
+        limits=shared.limits,
     )
     _current = platform
     return platform
@@ -105,9 +107,24 @@ def register(ctx: Any) -> None:
         max_message_length=4500,
         emoji="🐧",
         platform_hint=(
-            "你正在 QQ 里聊天。消息以 `[昵称(QQ号)#序号]` 开头，那是发送者；"
-            "`[@self]` 表示有人 @ 了你，`[@数字]` 表示 @ 了别人；"
-            '`[image1 id="…" cache="…"]` 这类是媒体占位，cache 后面是本地路径、failed 或 none。'
+            "你正在 QQ 里聊天。收到的消息格式：\n"
+            "- 前缀 `[昵称(QQ号)#序号]`，`#序号` 是群内序号，不是全局消息 ID；\n"
+            "- 时间前缀 `[... CST]` 是 UTC+8；\n"
+            "- `[系统]` 是入群/退群/戳一戳等事件；\n"
+            "- @ 和表情用 `[[...]]`：`[[@self]]` / `[[@12345]]` 是 @，"
+            "`[[表情:得意]]` 是普通表情，`[[大表情:汪汪]]` 是大表情，"
+            "`[[贴表情:敲敲]]` 是贴纸/表情包；标记里的名字是 QQ faceText，不带 `/`；\n"
+            "- 用户也可能手打同样格式的文本（不常见），按上下文判断是特殊标记还是普通文字；\n"
+            '- 媒体占位符形如 `[image1 id="…" cache="…"]`；`cache=` 是本地路径表示已下载，'
+            "`failed`/`none` 表示要按 id 重取。\n"
+            "发送方式：纯文字直接回复；@/QQ 表情/骰子/猜拳/引用调用 `chatbot_send_message`；"
+            "图片/语音/视频/文件用 `MEDIA:<路径>`，路径必须在 `/opt/data/share/` 下。\n"
+            "发 QQ 表情只支持表里已知的 faceText；收到表情不受这个限制，表外的新表情也会显示，"
+            "但你不一定能把它再发出去。\n"
+            "单发一个表情时 QQ 会把它放大成“大表情”，也就是你说的“贴表情”；这是客户端渲染，"
+            "不是额外的发送类型，工具没有大/小参数，不要承诺能控制。\n"
+            "群聊只有 @ 你或处于活跃窗口时才会转给你；窗口默认 300 秒，"
+            "你成功发送消息、媒体或贴表情会续期。`/reset` / `/new` 只开新会话，不会立刻关窗口。"
         ),
     )
     register_tools(ctx, current_platform)
