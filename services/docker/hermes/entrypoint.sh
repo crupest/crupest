@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export HOME=/opt/data
-export PATH="/opt/hermes/venv/bin:${PATH}"
-export PYTHONUNBUFFERED=1
-export PYTHONDONTWRITEBYTECODE=1
-
-PYTHON=/opt/hermes/venv/bin/python
-HERMES=/opt/hermes/venv/bin/hermes
 GOSU_BIN=""
 
 if [ "$(id -u)" -eq 0 ]; then
@@ -28,12 +21,12 @@ export HERMES_HOME="${HERMES_HOME:-/opt/data/.hermes}"
 mkdir -p "${HERMES_HOME}"
 
 if [ -n "${GOSU_BIN}" ]; then
-    "${GOSU_BIN}" hermes "${PYTHON}" /opt/hermes/bootstrap.py
+    "${GOSU_BIN}" hermes python /opt/hermes/bootstrap.py
 else
-    "${PYTHON}" /opt/hermes/bootstrap.py
+    python /opt/hermes/bootstrap.py
 fi
 
 if [ -n "${GOSU_BIN}" ]; then
-    exec "${GOSU_BIN}" hermes "${HERMES}" gateway run
+    exec "${GOSU_BIN}" hermes hermes gateway run
 fi
-exec "${HERMES}" gateway run
+exec hermes gateway run

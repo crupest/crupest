@@ -2,6 +2,28 @@ name: crupest-chatbot
 label: QQ (NapCat)
 kind: platform
 version: "0.1.0"
+provides_tools:
+  - chatbot_react
+  - chatbot_send_message
+  - chatbot_poke
+  - chatbot_send_forward
+  - chatbot_upload_group_file
+  - chatbot_read_history
+  - chatbot_fetch_media
+  - chatbot_set_nickname
+  - chatbot_set_avatar
+  - chatbot_set_group_card
+  - chatbot_list_group_members
+  - chatbot_get_group_member
+  - chatbot_get_group_info
+  - chatbot_get_user_info
+  - chatbot_get_login_info
+  - chatbot_transcribe_voice
+  - chatbot_read_forward
+  - chatbot_list_group_files
+  - chatbot_get_group_file_url
+  - chatbot_fetch_group_file
+  - chatbot_get_group_file_system_info
 description: >
   单会话 QQ 平台插件：经独立的 crupest-chatbot-adapter 服务对接 NapCat。
   插件自己只做 Hermes 侧的转换（事件、媒体、发送结果），不直接接触 QQ。

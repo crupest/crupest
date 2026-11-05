@@ -72,6 +72,8 @@ wooorm
 copyparty
 onebot
 napcat
+gosu
+toolsets
 
 xreadlink
 xgethostname
@@ -144,6 +146,10 @@ creativecommons
 mijia
 imgur
 huggingface
+
+# python
+PYTHONUNBUFFERED
+PYTHONDONTWRITEBYTECODE
 
 # vim/nvim
 nvim

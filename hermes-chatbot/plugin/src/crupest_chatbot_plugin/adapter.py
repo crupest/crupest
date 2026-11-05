@@ -33,16 +33,19 @@ logger = logging.getLogger(__name__)
 # gateway.platforms.event module).  Each import is isolated: a failure in one
 # must not null out a name the others already bound.
 try:  # pragma: no cover - exercised only inside Hermes
-    from gateway.config import Platform
+    from gateway.config import Platform, PlatformConfig
 except ImportError:  # pragma: no cover
     Platform = None  # type: ignore[assignment]
+    PlatformConfig = None  # type: ignore[assignment]
 
 try:  # pragma: no cover - exercised only inside Hermes
-    from gateway.platforms.base import (
-        BasePlatformAdapter,  # type: ignore[no-redef]
-        MessageEvent,  # type: ignore[no-redef]
-        MessageType,  # type: ignore[no-redef]
-        SendResult,  # type: ignore[no-redef]
+    from gateway.platforms.base import (  # type: ignore[no-redef]
+        BasePlatformAdapter,
+        SendResult,
+    )
+    from gateway.platforms.event import (  # type: ignore[no-redef]
+        MessageEvent,
+        MessageType,
     )
 
     HERMES_AVAILABLE = True
@@ -213,6 +216,8 @@ def build_message_event(
     return MessageEvent(
         text=text,
         message_type=MessageType.TEXT,
+        user_id=getattr(source, "user_id", None),
+        user_name=getattr(source, "user_name", None),
         source=source,
         raw_message=raw,
         message_id=message_id,
@@ -246,6 +251,8 @@ class QQPlatform(BasePlatformAdapter):
         features: FeaturesConfig | None = None,
         limits: LimitsConfig | None = None,
     ) -> None:
+        if config is None and PlatformConfig is not None:
+            config = PlatformConfig()
         platform = Platform("onebot") if Platform is not None else "onebot"
         super().__init__(config, platform)
         self._url = url

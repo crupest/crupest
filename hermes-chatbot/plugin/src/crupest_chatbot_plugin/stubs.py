@@ -30,6 +30,8 @@ class SendResult:
 class MessageEvent:
     text: str
     message_type: Any = None
+    user_id: str | None = None
+    user_name: str | None = None
     source: Any = None
     raw_message: Any = None
     message_id: str | None = None
@@ -59,7 +61,7 @@ class BasePlatformAdapter(ABC):
         self.config = config
         self.platform = platform
         self.name = "chatbot"
-        self.handler = None
+        self._message_handler = None
         self._running = False
 
     # ── lifecycle bookkeeping (mirrors gateway/platforms/base.py) ──
@@ -92,9 +94,12 @@ class BasePlatformAdapter(ABC):
     def build_source(self, **kwargs: Any) -> SimpleNamespace:
         return SimpleNamespace(**kwargs)
 
+    def set_message_handler(self, handler: Any) -> None:
+        self._message_handler = handler
+
     async def handle_message(self, event: MessageEvent) -> None:
-        if self.handler is not None:
-            await self.handler(event)
+        if self._message_handler is not None:
+            await self._message_handler(event)
 
     def truncate_message(self, content: str, max_length: int = 4096) -> list[str]:
         """Split *content* into chunks of at most *max_length* characters."""

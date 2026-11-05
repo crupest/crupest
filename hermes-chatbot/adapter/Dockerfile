@@ -1,20 +1,30 @@
-FROM python:3.13-slim-bookworm
+FROM python:3.14-slim-bookworm AS build
 
-ENV PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+COPY --from=ghcr.io/astral-sh/uv:0.13.1 /uv /uvx /bin/
 
-# Third-party deps first: they never change with our code, so a source edit
-# only re-runs the cheap install below.
-RUN pip install "aiohttp>=3.9,<4" "pydantic>=2.6,<3"
+ENV UV_LINK_MODE=copy \
+    UV_CACHE_DIR=/root/.cache/uv
 
 WORKDIR /app
 
+COPY pyproject.toml uv.lock /app/
 COPY core /app/core
 COPY adapter /app/adapter
+COPY plugin /app/plugin
 COPY config/config.example.toml /opt/chatbot-defaults/config.example.toml
 
-RUN pip install --no-deps /app/core /app/adapter
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    uv sync --frozen --no-dev --package crupest-hermes-chatbot-adapter
+
+FROM python:3.14-slim-bookworm
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_LINK_MODE=copy \
+    PATH=/app/.venv/bin:$PATH
+
+COPY --from=ghcr.io/astral-sh/uv:0.13.1 /uv /uvx /usr/local/bin/
+COPY --from=build /app /app
 
 RUN useradd --create-home --uid 1000 chatbot
 USER 1000

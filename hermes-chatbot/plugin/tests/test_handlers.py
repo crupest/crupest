@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import asyncio
 import json
-from types import SimpleNamespace
 
 import pytest
 from crupest_chatbot_core.errors import ChatbotError
@@ -86,8 +86,12 @@ async def test_handle_message_builds_event() -> None:
     async def capture(event):
         captured.append(event)
 
-    platform.handler = capture
+    platform.set_message_handler(capture)
     await platform._handle_message(_message_event())
+    for _ in range(100):
+        if captured:
+            break
+        await asyncio.sleep(0)
 
     assert len(captured) == 1
     event = captured[0]
@@ -106,7 +110,7 @@ async def test_handle_message_of_dm() -> None:
     async def capture(event):
         captured.append(event)
 
-    platform.handler = capture
+    platform.set_message_handler(capture)
 
     async def fake_api(action, params, timeout=None):
         return {}
@@ -115,6 +119,10 @@ async def test_handle_message_of_dm() -> None:
     await platform._handle_message(_message_event(message_type="private", group_id=None, user_id=456, message=[
         {"type": "text", "data": {"text": "在吗"}},
     ]))
+    for _ in range(100):
+        if captured:
+            break
+        await asyncio.sleep(0)
     assert captured[0].text == "在吗"
     assert captured[0].source.chat_id == "user:456"
 
@@ -482,5 +490,5 @@ def test_platform_chat_key_matches_binding(chat_kind: str) -> None:
 def test_build_source_is_used_for_identity() -> None:
     platform = _platform()
     source = platform.build_source(chat_id="group:1", chat_type="group")
-    assert isinstance(source, SimpleNamespace)
     assert source.chat_id == "group:1"
+    assert source.chat_type == "group"

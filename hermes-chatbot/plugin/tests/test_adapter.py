@@ -10,10 +10,10 @@ from crupest_chatbot_plugin.adapter import (
     QQPlatform,
     RpcClient,
     RpcError,
+    SendResult,
     _event_timestamp,
     build_message_event,
 )
-from crupest_chatbot_plugin.stubs import SendResult
 
 
 async def test_connect_implements_base_contract() -> None:
@@ -128,7 +128,7 @@ async def test_inbound_message_is_queued_then_processed() -> None:
     async def capture(event):
         captured.append(event)
 
-    platform.handler = capture
+    platform.set_message_handler(capture)
     frame = {
         "post_type": "message",
         "message_type": "group",
