@@ -5,7 +5,7 @@ napcat  ──反向 WS──▶  chatbot-adapter  ──WS──▶  hermes
 (QQ)                 (:18800 / :18810)        (gateway + agent)
 ```
 
-Hermes 镜像从 `v0.22.7` 源码构建，Python 3.14 + uv，并带 Node.js 26 LTS / npm；
+Hermes 镜像从 `v0.22.7` 源码构建，Python 3.14 + uv，并带 Node.js LTS / npm；
 不包含浏览器、TUI 和桌面组件。运行时保留 uv 和 Node，方便在容器内排查、安装插件
 或运行 `npx` 类 MCP server。`connections` toolset 保留，用于托管应用连接和 MCP 管理。
 

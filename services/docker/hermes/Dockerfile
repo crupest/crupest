@@ -1,5 +1,5 @@
 # Hermes 0.22 gateway, built from the tagged source without the desktop,
-# browser, Node, TUI, or bundled tool-store payloads.
+# browser, TUI, or bundled tool-store payloads; Node LTS is included for MCP.
 
 ARG APT_MIRROR=""
 ARG HERMES_VERSION=v0.22.7
