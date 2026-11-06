@@ -491,3 +491,13 @@ async def test_identity_tool_reports_errors() -> None:
             raise RpcError(action, "not allowed", reason="target_mismatch")
 
     assert (await set_group_card(FakePlatform(), {"card": "x"})).startswith("错误:")
+
+
+def test_extract_local_files_leaves_bare_paths_as_text(tmp_path) -> None:
+    path = tmp_path / "report.txt"
+    path.write_text("content", encoding="utf-8")
+
+    files, text = QQPlatform.extract_local_files(f"文件在 {path}")
+
+    assert files == []
+    assert text == f"文件在 {path}"

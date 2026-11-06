@@ -560,6 +560,11 @@ class QQPlatform(BasePlatformAdapter):
             )
         return response.get("data")
 
+    @staticmethod
+    def extract_local_files(content: str) -> tuple[list[str], str]:
+        """Keep bare absolute paths as text; only explicit MEDIA: tags are delivered."""
+        return [], content
+
     async def send(
         self, chat_id: str, content: str, reply_to: str | None = None, metadata: Any = None,
     ) -> SendResult:
