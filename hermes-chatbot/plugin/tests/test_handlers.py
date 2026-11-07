@@ -101,6 +101,7 @@ async def test_handle_message_builds_event() -> None:
     assert event.reply_to_text == "[李四(2)#3]: 在"
     assert event.reply_to_author_name == "李四"
     assert event.message_id == "42"
+    assert event.reply_expected is True
 
 
 async def test_handle_message_of_dm() -> None:
@@ -125,6 +126,65 @@ async def test_handle_message_of_dm() -> None:
         await asyncio.sleep(0)
     assert captured[0].text == "在吗"
     assert captured[0].source.chat_id == "user:456"
+    assert captured[0].reply_expected is True
+
+
+async def test_handle_message_without_mention_does_not_expect_a_reply() -> None:
+    platform = _platform()
+    captured = []
+
+    async def capture(event):
+        captured.append(event)
+
+    platform.set_message_handler(capture)
+
+    async def fake_api(action, params, timeout=None):
+        raise AssertionError(action)
+
+    platform.api = fake_api  # type: ignore[method-assign]
+    await platform._handle_message(_message_event(message=[
+        {"type": "text", "data": {"text": "随便聊聊"}},
+    ]))
+    for _ in range(100):
+        if captured:
+            break
+        await asyncio.sleep(0)
+
+    assert captured[0].text == "[张三(10001)#7] 随便聊聊"
+    assert captured[0].reply_expected is False
+
+
+async def test_handle_message_reply_to_bot_expects_a_reply() -> None:
+    platform = _platform()
+    captured = []
+
+    async def capture(event):
+        captured.append(event)
+
+    platform.set_message_handler(capture)
+
+    async def fake_api(action, params, timeout=None):
+        assert action == "get_msg"
+        return {
+            "message_id": 5,
+            "real_seq": 3,
+            "user_id": 1950119910,
+            "sender": {"nickname": "机器人"},
+            "message": [{"type": "text", "data": {"text": "上一条"}}],
+        }
+
+    platform.api = fake_api  # type: ignore[method-assign]
+    await platform._handle_message(_message_event(message=[
+        {"type": "reply", "data": {"id": "5"}},
+        {"type": "text", "data": {"text": "继续"}},
+    ]))
+    for _ in range(100):
+        if captured:
+            break
+        await asyncio.sleep(0)
+
+    assert captured[0].reply_to_is_own_message is True
+    assert captured[0].reply_expected is True
 
 
 async def test_reply_context_failure_is_soft() -> None:

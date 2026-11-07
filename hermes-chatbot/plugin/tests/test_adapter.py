@@ -177,6 +177,8 @@ def test_build_message_event_maps_fields() -> None:
         reply=("7", "[李四(2)#3]: 在", "2", "李四"),
         raw={"post_type": "message"},
         internal=True,
+        reply_expected=True,
+        reply_to_is_own_message=True,
     )
     assert event.text == "[张三(1)#2] 你好"
     assert event.source is source
@@ -185,6 +187,8 @@ def test_build_message_event_maps_fields() -> None:
     assert event.reply_to_message_id == "7"
     assert event.reply_to_author_name == "李四"
     assert event.internal is True
+    assert event.reply_expected is True
+    assert event.reply_to_is_own_message is True
 
 
 def test_rpc_resolve_crosses_event_loops() -> None:

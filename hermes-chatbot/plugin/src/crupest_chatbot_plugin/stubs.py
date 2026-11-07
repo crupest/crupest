@@ -41,7 +41,9 @@ class MessageEvent:
     reply_to_text: str | None = None
     reply_to_author_id: str | None = None
     reply_to_author_name: str | None = None
+    reply_to_is_own_message: bool = False
     internal: bool = False
+    reply_expected: bool | None = None
     timestamp: Any = None
     metadata: dict[str, Any] = field(default_factory=dict)
 

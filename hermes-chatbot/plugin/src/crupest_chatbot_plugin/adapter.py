@@ -210,6 +210,8 @@ def build_message_event(
     reply: tuple[str, str, str, str] | None,
     raw: dict[str, Any],
     internal: bool = False,
+    reply_expected: bool | None = None,
+    reply_to_is_own_message: bool = False,
     timestamp: datetime | None = None,
 ) -> MessageEvent:
     reply_id, reply_text, reply_author_id, reply_author_name = reply or ("", "", "", "")
@@ -227,7 +229,9 @@ def build_message_event(
         reply_to_text=reply_text or None,
         reply_to_author_id=reply_author_id or None,
         reply_to_author_name=reply_author_name or None,
+        reply_to_is_own_message=reply_to_is_own_message,
         internal=internal,
+        reply_expected=reply_expected,
         timestamp=timestamp or datetime.now(UTC),
     )
 
@@ -438,6 +442,21 @@ class QQPlatform(BasePlatformAdapter):
             logger.error("config mismatch adapter=%s plugin=%s", sha, self._config_sha)
         logger.info("adapter ready version=%s chat=%s", adapter.get("version"), self.chat_key)
 
+    def _reply_expected(self, event: Event, reply_to_own: bool) -> bool | None:
+        """A DM, an @-mention, or a reply to the bot needs an answer; ambient chatter may be ignored.
+
+        Hermes lets a bare silence marker stand only when this is ``False``; leaving it
+        unset makes every ``NO_REPLY`` on a human turn show the "needed a reply" warning.
+        """
+        if self._chat_kind != "group":
+            return True
+        self_id = event.self_id or self._self_id
+        if not self_id:
+            return None
+        if reply_to_own:
+            return True
+        return segments.mentions_self(segments.event_segments(event), self_id)
+
     async def _handle_message(self, payload: dict[str, Any]) -> None:
         try:
             event = Event.model_validate(payload)
@@ -449,6 +468,8 @@ class QQPlatform(BasePlatformAdapter):
 
         media, media_urls, media_types = await self._prepare_media(event)
         reply = await self._reply_context(event)
+        self_id = str(event.self_id or self._self_id or "")
+        reply_to_own = bool(reply and self_id and str(reply[2]) == self_id)
         text = render_event(event, event.self_id, media)
         if text is None:
             logger.debug("event rendered empty, dropping msg=%s", event.message_id)
@@ -475,6 +496,8 @@ class QQPlatform(BasePlatformAdapter):
             reply=reply,
             raw=payload,
             internal=bool(event.adapter.internal) if event.adapter else False,
+            reply_expected=self._reply_expected(event, reply_to_own),
+            reply_to_is_own_message=reply_to_own,
             timestamp=_event_timestamp(event.time),
         )
         await self.handle_message(message_event)
