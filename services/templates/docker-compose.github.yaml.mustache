@@ -1,24 +1,46 @@
 services:
 
-  gateway:
-    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-gateway:latest
+  nginx:
+    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-nginx:latest
     ports:
       - "80:80"
       - "443:443"
       - "443:443/udp"
-    env_file:
-      - "./{{CRUPEST_GENERATED_DIR}}/envs/gateway.env"
-      - "./{{CRUPEST_GENERATED_DIR}}/envs/mail-server-common.env"
     volumes:
-      - "./{{CRUPEST_DATA_GATEWAY_DIR}}:/data"
+      - "./{{CRUPEST_GENERATED_DIR}}/nginx:/etc/nginx/conf.d"
       - "./{{CRUPEST_DATA_CERTBOT_DIR}}/certs:/etc/letsencrypt"
       - "./{{CRUPEST_DATA_CERTBOT_DIR}}/data:/var/lib/letsencrypt"
       - "./{{CRUPEST_DATA_CERTBOT_DIR}}/webroot:/var/www/certbot"
-      - "./{{CRUPEST_STATE_GATEWAY_DIR}}:/app/state"
+      - "www-gen:/srv/www/gen"
+      - "./{{CRUPEST_STATE_NGINX_DIR}}:/var/log/nginx"
     networks:
       default:
         ipv4_address: "172.21.5.2"
-    restart: "on-failure:3"
+    depends_on:
+      - git-server
+      - webdav
+      - roundcubemail
+      - mail-server
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "https://{{CRUPEST_DOMAIN}}/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+
+  geosite:
+    image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-geosite:latest
+    volumes:
+      - "www-gen:/srv/www/gen"
+    networks:
+      default:
+        ipv4_address: "172.21.5.11"
 
   mail-server:
     image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-mail-server:latest
@@ -43,7 +65,6 @@ services:
     networks:
       default:
         ipv4_address: "172.21.5.3"
-    restart: "on-failure:3"
     stop_grace_period: 1m
 
   git-server:
@@ -57,7 +78,11 @@ services:
       default:
         ipv4_address: "172.21.5.4"
     mem_limit: 500mb
-    restart: on-failure:3
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
 
   roundcubemail:
     image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-roundcubemail:latest
@@ -72,7 +97,6 @@ services:
     networks:
       default:
         ipv4_address: "172.21.5.5"
-    restart: on-failure:3
 
   auto-backup:
     image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-auto-backup:latest
@@ -81,7 +105,6 @@ services:
     volumes:
       - "./data:/data:ro"
       - "./data/auto-backup:/data/auto-backup"
-    restart: "on-failure:3"
 
   webdav:
     image: copyparty/ac
@@ -93,7 +116,6 @@ services:
     networks:
       default:
         ipv4_address: "172.21.5.6"
-    restart: "on-failure:3"
 
   chatbot-adapter:
     image: ghcr.io/{{CRUPEST_GITHUB}}/crupest-chatbot-adapter:latest
@@ -110,7 +132,6 @@ services:
         aliases:
           - onebot-adapter
     mem_limit: 128m
-    restart: unless-stopped
     stop_grace_period: 30s
 
   hermes:
@@ -128,7 +149,6 @@ services:
       - NET_RAW
     mem_limit: 800m
     shm_size: 128m
-    restart: unless-stopped
     stop_grace_period: 1m
     depends_on:
       - chatbot-adapter
@@ -151,7 +171,6 @@ services:
         ipv4_address: "172.21.5.9"
     mem_limit: 800m
     shm_size: 256m
-    restart: unless-stopped
     init: true
     depends_on:
       - chatbot-adapter
@@ -159,6 +178,7 @@ services:
 volumes:
   roundcubemail-html:
   roundcubemail-temp:
+  www-gen:
 
 networks:
   default:

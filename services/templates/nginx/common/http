@@ -1,0 +1,8 @@
+# The standard plain-HTTP server: everything redirects to HTTPS, except the
+# ACME challenge that certbot needs.
+include conf.d/common/http-listen;
+
+access_log /var/log/nginx/http-access.log;
+
+include conf.d/common/acme-challenge;
+include conf.d/common/https-redirect;

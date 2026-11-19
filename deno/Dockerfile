@@ -1,32 +1,7 @@
-FROM node:24-slim AS www-builder
-WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1
-COPY --from=www package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
-COPY --from=www . ./
-RUN npm run build
-
 FROM denoland/deno AS build
 WORKDIR /app
 COPY . .
 RUN --mount=type=cache,target=/deno-dir deno install && deno task build
-
-FROM denoland/deno AS gateway
-# Local builds in China can switch apt to a mirror:
-#   docker build --build-arg APT_MIRROR=mirrors.tuna.tsinghua.edu.cn ...
-ARG APT_MIRROR=""
-RUN if [ -n "${APT_MIRROR}" ]; then \
-        for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do \
-            [ -f "$f" ] || continue; \
-            sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g; s|archive.ubuntu.com|${APT_MIRROR}|g; s|security.ubuntu.com|${APT_MIRROR}|g" "$f"; \
-        done; \
-    fi \
-    && apt-get update && apt-get install -y tini certbot unzip curl && rm -rf /var/lib/apt/lists/* && mkdir -p /app/state
-COPY --from=build /app/gateway/out/crupest-gateway /app/
-COPY --from=www-builder /app/out /srv/www
-WORKDIR /app
-ADD gateway/srv/. /srv/
-CMD ["/app/crupest-gateway"]
 
 FROM denoland/deno AS mail-server
 # Local builds in China can switch apt to a mirror; empty keeps deb.debian.org.
@@ -53,3 +28,18 @@ CMD ["/app/main.bash"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD ["/app/healthcheck.bash"]
+
+FROM denoland/deno AS geosite
+# Local builds in China can switch apt to a mirror; empty keeps deb.debian.org.
+ARG APT_MIRROR=""
+RUN if [ -n "${APT_MIRROR}" ]; then \
+        for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do \
+            [ -f "$f" ] || continue; \
+            sed -i "s|deb.debian.org|${APT_MIRROR}|g; s|security.debian.org|${APT_MIRROR}|g; s|archive.ubuntu.com|${APT_MIRROR}|g; s|security.ubuntu.com|${APT_MIRROR}|g" "$f"; \
+        done; \
+    fi \
+    && apt-get update && apt-get install -y --no-install-recommends tini ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=build /app/geosite/out/crupest-geosite /app/
+RUN mkdir -p /srv/www/gen/magic
+CMD ["/usr/bin/tini", "--", "/app/crupest-geosite"]

@@ -10,10 +10,10 @@
 
 This repository has four main areas:
 
-- `www/`: Next.js static site (App Router, `output: "export"`). `npm run build` generates `www/out/`, which is served directly by the Deno gateway from `/srv/www`.
+- `www/`: Next.js static site (App Router, `output: "export"`). `npm run build` generates `www/out/`, which is served directly by nginx from `/srv/www`.
 - `deno/`: deno workspace.
   - `base/`, `base-contrib/`: shared code and utilities.
-  - `gateway/`: reverse proxy and static file server.
+  - `geosite/`: scheduled generator for the geosite rule files served under `/gen`.
   - `mail/`: mail service.
   - `tools/`: CLI for service and other tools.
 - `services/`: definitions for programs running on a personal server. These services may depend on binaries/tools built from `deno/`.
@@ -27,7 +27,7 @@ This repository has four main areas:
   - `npm ci`
   - `npm run build` (writes `out/`)
 - Deno tasks (run from `deno/`):
-  - `deno task gateway:start`
+  - `deno task geosite:run`
   - `deno task mail:run`
   - `deno task mail:serve-real`
 - Testing, formatting, and linting (run from `deno/`):

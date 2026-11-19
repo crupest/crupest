@@ -22,16 +22,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: crupest-gateway
+          - image: crupest-nginx
+            context: services/docker/nginx
+            file: services/docker/nginx/Dockerfile
+            target: ""
+            build-contexts: www=./www
+          - image: crupest-geosite
             context: deno
             file: deno/Dockerfile
-            target: gateway
-            build-contexts: www=./www
+            target: geosite
           - image: crupest-mail-server
             context: deno
             file: deno/Dockerfile
             target: mail-server
-            build-contexts: www=./www
           - image: crupest-git-server
             context: services/docker/git-server
             file: services/docker/git-server/Dockerfile

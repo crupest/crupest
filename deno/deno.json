@@ -2,15 +2,15 @@
   "workspace": [
     "./base",
     "./base-contrib",
-    "./gateway",
+    "./geosite",
     "./mail",
     "./tools"
   ],
   "tasks": {
-    "gateway:start": "deno task --cwd=gateway start",
+    "geosite:run": "deno task --cwd=geosite run",
     "mail:run": "deno task --cwd=mail run",
     "mail:serve-real": "deno task --cwd=mail serve-real",
-    "build": "deno task --cwd=gateway compile && deno task --cwd=mail compile"
+    "build": "deno task --cwd=mail compile && deno task --cwd=geosite compile"
   },
   "imports": {
     "@hono/standard-validator": "npm:@hono/standard-validator@^0.4.0",

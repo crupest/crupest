@@ -1,0 +1,65 @@
+# cgit forks a CGI per request, and rendering syntax highlighting for long
+# pages is slow and memory hungry; several concurrent cgit requests can OOM
+# the git server. This cap is the only throttle in the whole setup: with the
+# single worker pinned in nginx.conf it is a global limit of 5 concurrent
+# upstream requests, and anything above that fails fast instead of piling up.
+upstream git_cgi {
+    server git-server:3636 max_conns=5;
+}
+
+# Clone/fetch/objects traffic is served by git-http-backend / static files and
+# must not be throttled by the cgit limit.
+upstream git_raw {
+    server git-server:3636;
+}
+
+server {
+    server_name {{CRUPEST_DOMAIN}};
+
+    include conf.d/common/https;
+
+    root /srv/www;
+
+    error_page 404 /404.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location = /github {
+        return 302 https://github.com/{{CRUPEST_GITHUB}};
+    }
+
+    location = /github/ {
+        return 302 https://github.com/{{CRUPEST_GITHUB}};
+    }
+
+    # cgit: slow CGI, capped by the git_cgi upstream (max_conns=5).
+    location ~ "^/git/.*/(HEAD|info/refs|objects/info/[^/]+|git-(upload|receive)-pack)$" {
+        include conf.d/common/reverse-proxy;
+        proxy_pass http://git_raw;
+    }
+
+    # Clone/fetch static objects: never throttled.
+    location ~ "^/git/.*/((objects/[0-9a-f]{2}/[0-9a-f]{38})|(pack/pack-[0-9a-f]{40}\.(pack|idx)))$" {
+        include conf.d/common/reverse-proxy;
+        proxy_pass http://git_raw;
+    }
+
+    location /git/ {
+        include conf.d/common/reverse-proxy;
+        proxy_pass http://git_cgi;
+    }
+
+    location /webdav/ {
+        include conf.d/common/reverse-proxy;
+        proxy_request_buffering off;
+        proxy_pass http://webdav:3923;
+    }
+}
+
+server {
+    server_name {{CRUPEST_DOMAIN}};
+
+    include conf.d/common/http;
+}
