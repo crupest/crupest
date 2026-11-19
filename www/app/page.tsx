@@ -79,18 +79,19 @@ export default async function Home() {
         <p>Welcome to my home page! Nice to meet you here! 🥰</p>
         <p>
           Feel free to contact me via my email address{" "}
-          <Link href="mailto:crupest@crupest.life">crupest@crupest.life</Link>,
-          or just create an issue in any of my{" "}
-          <Link rel="noopener noreferrer" href="https://github.com/crupest">
+          <a href="mailto:crupest@crupest.life">crupest@crupest.life</a>, or
+          just create an issue in any of my{" "}
+          <a rel="noopener noreferrer" href="https://github.com/crupest">
             GitHub
-          </Link>{" "}
+          </a>{" "}
           repos. I love talking with people a lot.
         </p>
         <div className={clsx(styles["links"], "mono-link")}>
           goto:
           <ul>
             <li>
-              <Link href="/git/">git</Link>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- /git is served by nginx, not Next.js */}
+              <a href="/git/">git</a>
             </li>
             <li>
               <Link href="/notes/">notes</Link>

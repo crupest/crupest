@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import ThemeScheme from "@/components/ThemeScheme";
 
@@ -32,7 +31,7 @@ export default function RootLayout({
             <p id="license">
               <small>
                 This work is licensed under{" "}
-                <Link
+                <a
                   rel="license noopener noreferrer"
                   href="https://creativecommons.org/licenses/by-nc/4.0/"
                   target="_blank"
@@ -58,7 +57,7 @@ export default function RootLayout({
                       height="10"
                     />
                   </span>
-                </Link>
+                </a>
               </small>
             </p>
           </footer>
